@@ -14,9 +14,9 @@ public class Customer_Move : MonoBehaviour
     void Update()
     {
         transform.position += new Vector3(0, 0, -speed * Time.deltaTime);
-        if(transform.position.z <= -10)
+        if(transform.position.z <= -33)
         {
-            transform.position = new Vector3(transform.position.x, 1, -10);
+            transform.position = new Vector3(transform.position.x, 1, -33);
         }
     }
 }
