@@ -7,7 +7,7 @@ public class Customer_Move : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Random.Range(5, 15);
+        Random.Range(3, 7);
     }
 
     // Update is called once per frame

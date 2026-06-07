@@ -8,8 +8,11 @@ public class Shoot : MonoBehaviour
     [SerializeField]GameObject shootPos;
     [SerializeField]ArduinoTest arduinoTest;
     float cooldown = 0;
+    float ucooldown = 0;
     float power;
     float oldPitch;
+    Queue<float> pitchHistory =
+        new Queue<float>();
     // Start is called before the first frame update
     void Start()
     {
@@ -19,26 +22,52 @@ public class Shoot : MonoBehaviour
     void Update()
     {
         cooldown -= Time.deltaTime;
+
         float pitch = arduinoTest.pitch;
 
-        power = pitch - oldPitch;
+        // åªç›ÇÃPitchÇï€ë∂
+        pitchHistory.Enqueue(pitch);
 
-        oldPitch = pitch;
-
-        if(power < -15 && cooldown <= 0)
+        // 5ÉtÉåÅ[ÉÄï™ÇΩÇ‹ÇÈÇ‹Ç≈ë“Ç¬
+        if (pitchHistory.Count > 5)
         {
-            shoot();
+            float oldPitch =
+                pitchHistory.Dequeue();
 
-            cooldown = 0.3f;
+            power =
+                pitch - oldPitch;
+
+            if (power < -15 && cooldown <= 0)
+            {
+                shoot();
+
+                cooldown = 0.3f;
+            }
+
+            if (power > 30 && cooldown <= 0)
+            {
+                UShoot();
+
+                cooldown = 0.3f;
+            }
+
+            Debug.Log(power);
         }
-        Debug.Log(power);
     }
 
     void shoot()
     {
-        float p = -power;
         GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
-        bullet.GetComponent<Rigidbody>().AddForce(50 * p * shootPos.transform.forward);
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        rb.linearVelocity = shootPos.transform.forward * 40f;
+    }
+
+    void UShoot()
+    {
+        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation); 
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+
+        rb.linearVelocity = (shootPos.transform.up + shootPos.transform.forward) * 10f;
         Destroy(bullet, 10);
     }
 }

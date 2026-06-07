@@ -2,8 +2,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 
-Adafruit_BNO055 bno =
-    Adafruit_BNO055(55);
+Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 void setup()
 {
@@ -26,14 +25,11 @@ void loop()
 
     bno.getEvent(&event);
 
-    float yaw =
-        event.orientation.x;
+    float yaw = event.orientation.x;
 
-    float pitch =
-        event.orientation.y;
+    float pitch = event.orientation.y;
 
-    float roll =
-        event.orientation.z;
+    float roll = event.orientation.z;
 
     Serial.print(yaw);
     Serial.print(",");

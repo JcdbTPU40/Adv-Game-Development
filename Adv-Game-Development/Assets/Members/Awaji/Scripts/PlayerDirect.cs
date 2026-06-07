@@ -16,8 +16,8 @@ public class PlayerDirect : MonoBehaviour
     {
         targetRot =
             Quaternion.Euler(
-                -arduinoTest.pitch,
-                arduinoTest.yaw,
+                0,
+                arduinoTest.yaw - 90,
                 0
             );
 
