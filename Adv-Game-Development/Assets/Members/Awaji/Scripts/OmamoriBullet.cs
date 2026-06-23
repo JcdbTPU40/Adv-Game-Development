@@ -1,21 +1,19 @@
 using UnityEngine;
+using Toufuku.Rescue;
 
 public class OmamoriBullet : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    // このお守りのタイプ。選択ボタン(#9)で弾を生成するときに SetType でセットする想定。
+    // インスペクタからもテスト用に設定できるように SerializeField にしておく。
+    [SerializeField] private OmamoriType type = OmamoriType.Kenkou;
 
-    // Update is called once per frame
-    void Update()
+    /// <summary>
+    /// 弾生成時にお守りタイプを差し込む用（#9 の発射側から呼ぶ）。
+    /// </summary>
+    public void SetType(OmamoriType t)
     {
-        
+        type = t;
     }
-
-    // TODO: このお守りのタイプ。相性判定をここに足す（合わなければ Miss 扱い）
-    // public OmamoriType type;
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -26,13 +24,21 @@ public class OmamoriBullet : MonoBehaviour
             HitZoneTarget target = collision.gameObject.GetComponent<HitZoneTarget>();
             HitZone zone = target != null ? target.EvaluateZone(hitPoint) : HitZone.Inner;
 
-            // TODO: お守りの相性が合わなければ zone = HitZone.Miss にしてコンボを切る
-            //       例) if (!IsCompatible(target, this.type)) zone = HitZone.Miss;
+            // 救済判定(#13)：お守りの種類を客に渡し、相性◯/✗とゲージ増減を処理させる。
+            CustomerRescue rescue = collision.gameObject.GetComponent<CustomerRescue>();
+            if (rescue != null)
+            {
+                Affinity affinity = rescue.ApplyHit(type);
+
+                // 相性が合わなければ Miss 扱いにしてコンボを切る（誤投擲フィードバックは #14）。
+                if (affinity == Affinity.Bad)
+                    zone = HitZone.Miss;
+            }
 
             if (ScoreManager.Instance != null)
                 ScoreManager.Instance.RegisterHit(zone);
 
-            Destroy(collision.gameObject);
+            // 客の退場（救済成功/失敗）は CustomerRescue が管理するので、ここでは破棄しない。
             Destroy(gameObject); // 通常弾は単体ヒット → 当たったら消す
         }
         else
