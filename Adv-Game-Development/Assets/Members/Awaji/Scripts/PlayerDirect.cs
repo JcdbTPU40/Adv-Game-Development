@@ -5,19 +5,23 @@ public class PlayerDirect : MonoBehaviour
 {
     [SerializeField]ArduinoTest arduinoTest;
     Quaternion targetRot;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    float yawOffset = 180f;
+
     void Start()
     {
-
+        yawOffset = 180f;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.A))
+            yawOffset = arduinoTest.yaw;
+
         targetRot =
             Quaternion.Euler(
                 0,
-                arduinoTest.yaw - 180,
+                arduinoTest.yaw - yawOffset,
                 0
             );
 
