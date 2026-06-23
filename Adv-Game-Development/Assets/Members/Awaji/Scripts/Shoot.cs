@@ -36,7 +36,7 @@ public class Shoot : MonoBehaviour
 
             power =
                 pitch - oldPitch;
-
+            /*
             if (power < -15 && cooldown <= 0)
             {
                 shoot();
@@ -50,7 +50,20 @@ public class Shoot : MonoBehaviour
 
                 cooldown = 0.3f;
             }
+            */
+            if (Input.GetMouseButton(0) && cooldown <= 0)
+            {
+                shoot();
 
+                cooldown = 0.3f;
+            }
+
+            if (Input.GetMouseButton(1) && cooldown <= 0)
+            {
+                UShoot();
+
+                cooldown = 0.3f;
+            }
             Debug.Log(power);
         }
     }
@@ -59,7 +72,7 @@ public class Shoot : MonoBehaviour
     {
         GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        rb.linearVelocity = shootPos.transform.forward * 40f;
+        rb.linearVelocity = shootPos.transform.forward * 25f;
     }
 
     void UShoot()
@@ -67,7 +80,7 @@ public class Shoot : MonoBehaviour
         GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation); 
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
 
-        rb.linearVelocity = (shootPos.transform.up + shootPos.transform.forward) * 10f;
+        rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 10f;
         Destroy(bullet, 10);
     }
 }
