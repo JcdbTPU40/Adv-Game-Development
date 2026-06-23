@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class ArduinoTest : MonoBehaviour
 {
-    SerialPort serialPort = new SerialPort("COM8", 115200);
+    SerialPort serialPort = new SerialPort("COM3", 115200);
 
     public float yaw;
     public float pitch;
