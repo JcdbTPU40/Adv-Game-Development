@@ -25,10 +25,10 @@ public class Shoot : MonoBehaviour
 
         float pitch = arduinoTest.pitch;
 
-        // Œ»Ý‚ÌPitch‚ð•Û‘¶
+        // ï¿½ï¿½ï¿½Ý‚ï¿½Pitchï¿½ï¿½Û‘ï¿½
         pitchHistory.Enqueue(pitch);
 
-        // 5ƒtƒŒ[ƒ€•ª‚½‚Ü‚é‚Ü‚Å‘Ò‚Â
+        // 5ï¿½tï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½Ü‚Å‘Ò‚ï¿½
         if (pitchHistory.Count > 5)
         {
             float oldPitch =
@@ -36,7 +36,7 @@ public class Shoot : MonoBehaviour
 
             power =
                 pitch - oldPitch;
-            /*
+            
             if (power < -15 && cooldown <= 0)
             {
                 shoot();
@@ -50,7 +50,7 @@ public class Shoot : MonoBehaviour
 
                 cooldown = 0.3f;
             }
-            */
+            
             if (Input.GetMouseButton(0) && cooldown <= 0)
             {
                 shoot();
