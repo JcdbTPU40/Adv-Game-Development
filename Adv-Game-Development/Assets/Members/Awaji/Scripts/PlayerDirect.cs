@@ -3,7 +3,7 @@ using System.Collections;
 
 public class PlayerDirect : MonoBehaviour
 {
-    [SerializeField]ArduinoTest arduinoTest;
+    public ConecteController con;
     Quaternion targetRot;
     float yawOffset = 180f;
 
@@ -16,12 +16,12 @@ public class PlayerDirect : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.A))
-            yawOffset = arduinoTest.yaw;
+            yawOffset = con.yaw;
 
         targetRot =
             Quaternion.Euler(
                 0,
-                arduinoTest.yaw - yawOffset,
+                con.yaw - yawOffset,
                 0
             );
 
