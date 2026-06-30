@@ -19,8 +19,14 @@ namespace Toufuku.Rescue
     [RequireComponent(typeof(CustomerMood))]
     public class CustomerRescue : MonoBehaviour
     {
-        [Header("この客が求めているお守り（正解）")]
-        [Tooltip("暫定。正式には #16 の客タイプ→正解お守りデータから設定する。")]
+        [Header("相性テーブル（#12）")]
+        [Tooltip("お守り5種×客タイプの相性テーブル(ScriptableObject)。割り当てると下の客タイプで相性を判定する。未設定なら従来どおり correctOmamori との一致で判定。")]
+        [SerializeField] private OmamoriAffinityTable affinityTable;
+        [Tooltip("この客のタイプ。affinityTable 設定時に使う。正式には #16 のスポーン側から設定する想定。")]
+        [SerializeField] private CustomerType customerType = CustomerType.Kenkou;
+
+        [Header("この客が求めているお守り（正解／フォールバック）")]
+        [Tooltip("相性テーブル未設定のときに使う正解お守り。暫定。正式には #16 の客タイプ→正解お守りデータから設定する。")]
         [SerializeField] private OmamoriType correctOmamori = OmamoriType.Kenkou;
 
         [Header("お守り命中によるゲージ削り量（正の値）")]
@@ -45,6 +51,16 @@ namespace Toufuku.Rescue
         }
 
         /// <summary>
+        /// スポーン時にこの客のタイプと相性テーブルを差し込む用（#16 のスポーン側から呼ぶ想定）。
+        /// table を渡すとテーブル判定に切り替わる。
+        /// </summary>
+        public void Setup(CustomerType type, OmamoriAffinityTable table = null)
+        {
+            customerType = type;
+            if (table != null) affinityTable = table;
+        }
+
+        /// <summary>
         /// お守りが命中したときに OmamoriBullet から呼ぶ。
         /// 相性判定の結果を返すので、呼び出し側でコンボ/スコア処理に使える。
         /// </summary>
@@ -52,7 +68,10 @@ namespace Toufuku.Rescue
         /// <returns>相性◯/✗の判定結果</returns>
         public Affinity ApplyHit(OmamoriType hitType)
         {
-            Affinity affinity = AffinityResolver.Resolve(correctOmamori, hitType);
+            // 相性テーブル(#12)があれば客タイプで判定。無ければ従来の正解一致で判定。
+            Affinity affinity = affinityTable != null
+                ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
+                : AffinityResolver.Resolve(correctOmamori, hitType);
 
             // 結末確定後はゲージを動かさない（二重判定防止）。
             if (_mood == null || _mood.IsFinished) return affinity;
