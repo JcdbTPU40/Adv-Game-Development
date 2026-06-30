@@ -61,6 +61,20 @@ namespace Toufuku.Rescue
         }
 
         /// <summary>
+        /// 客タイプ定義(#16)を丸ごと差し込む版。スポーン側はカタログから引いた
+        /// <see cref="CustomerProfile"/> を渡すだけで、客タイプ・正解お守り（フォールバック）が
+        /// まとめて設定される。table を渡せば相性テーブル判定に切り替わる。
+        /// 見た目(Sprite/Prefab/色)の適用はスポーン側の担当（このコンポーネントは判定のみ）。
+        /// </summary>
+        public void Setup(CustomerProfile profile, OmamoriAffinityTable table = null)
+        {
+            if (profile == null) return;
+            customerType = profile.CustomerType;
+            correctOmamori = profile.CorrectOmamori;
+            if (table != null) affinityTable = table;
+        }
+
+        /// <summary>
         /// お守りが命中したときに OmamoriBullet から呼ぶ。
         /// 相性判定の結果を返すので、呼び出し側でコンボ/スコア処理に使える。
         /// </summary>
