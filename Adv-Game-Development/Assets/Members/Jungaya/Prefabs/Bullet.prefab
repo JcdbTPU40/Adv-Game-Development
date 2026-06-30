@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8240134244023801529}
   - component: {fileID: -5917956788751562456}
   - component: {fileID: -7576237040572358360}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Bullet
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -126,6 +126,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f34bc5ebb3ba5f84f86f1644fb73339f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OmamoriBullet
+  type: 0
+  shoot: {fileID: 0}
 --- !u!54 &-7576237040572358360
 Rigidbody:
   m_ObjectHideFlags: 0

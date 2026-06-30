@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 6098341762285286869}
   - component: {fileID: 5056069219854806739}
   - component: {fileID: 7700185151662841670}
+  - component: {fileID: 7759788330633642217}
   m_Layer: 0
   m_Name: Customer
   m_TagString: Customer
@@ -170,7 +171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5eb21a8a17a80e4bae2a9049876da3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerMood
-  maxGauge: 100
+  maxGauge: 200
   startGauge: 50
   naturalRiseRate: 5
   breakthroughDuration: 0.25
@@ -228,7 +229,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68e71f9606a442c4a533b570f27b89cd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfileApplier
   catalog: {fileID: 11400000, guid: a016feb484070384fa9816aec415b657, type: 2}
   pickRandomOnStart: 1
@@ -238,3 +239,18 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   targetSprite: {fileID: 0}
   viewMount: {fileID: 0}
+--- !u!114 &7759788330633642217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858027800831740336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61f137622c4d3da4d98f4cae7e385e78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Customer_Move
+  speed: 3
+  goal: {fileID: 0}
+  goalObjectName: CustomerGoal
