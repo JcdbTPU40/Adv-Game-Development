@@ -113,6 +113,19 @@ namespace Toufuku.Rescue
             onReluctance?.Invoke();
         }
 
+        /// <summary>
+        /// 渋り演出の“戻り先”となる基準色を更新する（#16）。
+        /// 代表カラー適用時に <see cref="CustomerProfileApplier"/> から呼ばれ、
+        /// フラッシュ後に元マテリアル色ではなく客タイプの代表カラーへ戻るようにする。
+        /// </summary>
+        public void SetBaseColor(Color c)
+        {
+            _baseColor = c;
+            // フラッシュ中でなければ即座に基準色へそろえておく。
+            if (_colorCo == null && HasColorTarget)
+                ApplyColor(_baseColor);
+        }
+
         private IEnumerator WobbleRoutine()
         {
             Vector3 axis = wobbleAxis.sqrMagnitude > 0.0001f ? wobbleAxis.normalized : Vector3.forward;
