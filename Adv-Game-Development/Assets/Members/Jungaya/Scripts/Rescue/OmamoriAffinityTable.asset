@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28aed8ca9f1d4723bf12e8964bc13b2d, type: 3}
+  m_Name: OmamoriAffinityTable
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.OmamoriAffinityTable
+  rows:
+  - customer: 0
+    goodOmamori: 00000000
+  - customer: 1
+    goodOmamori: 01000000
+  - customer: 2
+    goodOmamori: 02000000
+  - customer: 3
+    goodOmamori: 03000000
+  - customer: 4
+    goodOmamori: 04000000
