@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 8300185151662841669}
   - component: {fileID: 2845311605628472545}
   - component: {fileID: 6098341762285286869}
+  - component: {fileID: 5056069219854806739}
   m_Layer: 0
   m_Name: Customer
   m_TagString: Customer
@@ -189,5 +190,30 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onGlow:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5056069219854806739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858027800831740336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4540096618e5a3544b764659ccd026fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerReluctance
+  wobbleDuration: 0.22
+  wobbleAngle: 14
+  wobbleOscillations: 3
+  wobbleAxis: {x: 0, y: 0, z: 1}
+  wobbleTarget: {fileID: 0}
+  useColorFlash: 1
+  reluctantColor: {r: 0.45, g: 0.52, b: 0.62, a: 1}
+  colorFlashDuration: 0.25
+  targetRenderer: {fileID: 0}
+  targetSprite: {fileID: 0}
+  onReluctance:
     m_PersistentCalls:
       m_Calls: []
