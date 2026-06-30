@@ -416,6 +416,8 @@ MonoBehaviour:
   emptyColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   fullColor: {r: 0.95, g: 0.2, b: 0.2, a: 1}
   backColor: {r: 0, g: 0, b: 0, a: 0.6}
+  glowColor: {r: 1, g: 0.95, b: 0.6, a: 1}
+  glowPulseSpeed: 6
 --- !u!1 &949380589
 GameObject:
   m_ObjectHideFlags: 0
@@ -704,6 +706,8 @@ MonoBehaviour:
   spawnPoint: {fileID: 0}
   speed: 25
   bulletLife: 5
+  selector: {fileID: 1974254735}
+  fallbackType: 0
 --- !u!1001 &1456756739
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -826,6 +830,52 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1650199f84c40014ba73a722dd5011bf, type: 3}
+--- !u!1 &1974254734
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1974254736}
+  - component: {fileID: 1974254735}
+  m_Layer: 0
+  m_Name: OmamoriSelector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1974254735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1974254734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b15a4f8af25edc40ab3ffee99356a47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OmamoriSelector
+  current: 0
+  showDebugLabel: 1
+--- !u!4 &1974254736
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1974254734}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1208772720339587300
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -897,3 +947,4 @@ SceneRoots:
   - {fileID: 450734211}
   - {fileID: 252967063}
   - {fileID: 1449430490}
+  - {fileID: 1974254736}

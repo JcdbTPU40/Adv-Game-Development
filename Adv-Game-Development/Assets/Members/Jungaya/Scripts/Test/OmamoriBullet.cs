@@ -28,6 +28,14 @@ public class OmamoriBullet : MonoBehaviour
             CustomerRescue rescue = collision.gameObject.GetComponent<CustomerRescue>();
             if (rescue != null)
             {
+                // すでに結末確定済み（解消/怒り）の客はノーカウント。
+                // 退場演出中の余韻フレームに当ててもスコア/コンボが二重に動かないようにする。
+                if (rescue.IsResolved)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+
                 Affinity affinity = rescue.ApplyHit(type);
 
                 // 相性が合わなければ Miss 扱いにしてコンボを切る（誤投擲フィードバックは #14）。
