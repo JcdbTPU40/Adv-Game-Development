@@ -1,13 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Toufuku.Rescue;
 
 public class Shoot : MonoBehaviour
 {
-    [SerializeField] GameObject[] bullet;
+    [SerializeField]GameObject bullet_Sample;
     [SerializeField]GameObject shootPos;
-    [SerializeField] ConecteController conecteController;
-    int bullet_type = 0;
+    [SerializeField]ArduinoTest arduinoTest;
+
+    [Header("お守り種類の供給元（#9）。未設定なら fallbackType を使う")]
+    [SerializeField] OmamoriSelector selector;
+    [SerializeField] OmamoriType fallbackType = OmamoriType.Kenkou;
     float cooldown = 0;
     float ucooldown = 0;
     float power;
@@ -24,11 +28,11 @@ public class Shoot : MonoBehaviour
     {
         cooldown -= Time.deltaTime;
 
-        float pitch = conecteController.pitch;
+        float pitch = arduinoTest.pitch;
 
         // ���݂�Pitch��ۑ�
         pitchHistory.Enqueue(pitch);
-        type();
+
         // 5�t���[�������܂�܂ő҂�
         if (pitchHistory.Count > 5)
         {
@@ -71,41 +75,27 @@ public class Shoot : MonoBehaviour
 
     void shoot()
     {
-        GameObject b = Instantiate(bullet[bullet_type], shootPos.transform.position, shootPos.transform.rotation);
-        Rigidbody rb = b.GetComponent<Rigidbody>();
+        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
+        StampType(bullet);
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
         rb.linearVelocity = shootPos.transform.forward * 25f;
-        Destroy(b, 10);
     }
 
     void UShoot()
     {
-        GameObject b = Instantiate(bullet[bullet_type], shootPos.transform.position, shootPos.transform.rotation);
-        Rigidbody rb = b.GetComponent<Rigidbody>();
+        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
+        StampType(bullet);
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+
         rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 10f;
-        Destroy(b, 10);
+        Destroy(bullet, 10);
     }
 
-    void type()
+    // 生成した弾に現在のお守り種類を埋め込む（#10 の相性判定で使う）。
+    void StampType(GameObject bullet)
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            bullet_type = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            bullet_type = 1;
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            bullet_type = 2;
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha4))
-        {
-            bullet_type = 3;
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha5))
-        {
-            bullet_type = 4;
-        }
+        var ob = bullet.GetComponent<OmamoriBullet>();
+        if (ob != null)
+            ob.SetType(selector != null ? selector.Current : fallbackType);
     }
 }

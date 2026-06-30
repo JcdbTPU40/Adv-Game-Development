@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 6039513711454844138}
   - component: {fileID: 8300185151662841669}
   - component: {fileID: 2845311605628472545}
+  - component: {fileID: 6098341762285286869}
+  - component: {fileID: 5056069219854806739}
   m_Layer: 0
   m_Name: Customer
   m_TagString: Customer
@@ -144,24 +146,74 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8e55b12213ec664b8f246242c7ce59a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerRescue
+  affinityTable: {fileID: 11400000, guid: 7e7139a6e3816c6438b0049708ecd3dc, type: 2}
+  customerType: 0
   correctOmamori: 0
-  maxGauge: 100
-  startGauge: 50
-  naturalRiseRate: 5
   goodHitReduce: 40
   badHitReduce: 5
-  onRescued:
-    m_PersistentCalls:
-      m_Calls: []
-  onAngry:
-    m_PersistentCalls:
-      m_Calls: []
   onGoodHit:
     m_PersistentCalls:
       m_Calls: []
   onBadHit:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6098341762285286869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858027800831740336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5eb21a8a17a80e4bae2a9049876da3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerMood
+  maxGauge: 100
+  startGauge: 50
+  naturalRiseRate: 5
+  breakthroughDuration: 0.25
+  resolveLingerTime: 0.6
   onGaugeChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onBreakthrough:
+    m_PersistentCalls:
+      m_Calls: []
+  onResolved:
+    m_PersistentCalls:
+      m_Calls: []
+  onAngry:
+    m_PersistentCalls:
+      m_Calls: []
+  onGlow:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5056069219854806739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858027800831740336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4540096618e5a3544b764659ccd026fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerReluctance
+  wobbleDuration: 0.22
+  wobbleAngle: 14
+  wobbleOscillations: 3
+  wobbleAxis: {x: 0, y: 0, z: 1}
+  wobbleTarget: {fileID: 0}
+  useColorFlash: 1
+  reluctantColor: {r: 0.45, g: 0.52, b: 0.62, a: 1}
+  colorFlashDuration: 0.25
+  targetRenderer: {fileID: 0}
+  targetSprite: {fileID: 0}
+  onReluctance:
     m_PersistentCalls:
       m_Calls: []

@@ -4,80 +4,60 @@ using UnityEngine.Events;
 namespace Toufuku.Rescue
 {
     /// <summary>
-    /// 救済判定（減少 / 成功 / 失敗）— Issue #13
+    /// 救済判定（相性◯/✗ → ゲージ削り）— Issue #13
     ///
     /// 仕様（企画書 6章）:
-    ///   ・客は不満ゲージ（モヤモヤゲージ）を持つ。満ちる＝悪い / 0＝救済。
-    ///   ・相性◯のお守りを当てると大きく減る。
-    ///   ・相性✗（誤投擲）でも少しだけ減る ＋ コンボ途切れ（#14）。
-    ///   ・ゲージは時間で自然に増える（抵抗）。せっかち客は rise 速度が速いだけ。
-    ///   ・ゲージ 0   → 救済成功（解消して退場、縁＋・評価＋）。
-    ///   ・ゲージ満タン → 失敗（怒って退場、評価−）。
+    ///   ・相性◯のお守りを当てると大きく削れる（突破）。
+    ///   ・相性✗（誤投擲）でも少しだけ削れる ＋ コンボ途切れ（#14）。
     ///
-    /// このコンポーネントを客プレハブに付け、OmamoriBullet 命中時に
-    /// ApplyHit(...) を呼ぶことで判定が回ります。
-    ///
-    /// ※ ゲージ変数・ステートは #11 と重複し得る部分です。#11 がマージされたら
-    ///   そちらの実装に寄せて、ここは「判定ロジック」だけに絞ってもOK。
+    /// 役割分担（#11 マージ後）:
+    ///   不満ゲージの「値・ステート（抵抗/突破/解消）・自然上昇・結末確定・退場」は
+    ///   CustomerMood(#11) が一元管理する。ここは “相性判定だけ” に絞り、
+    ///   命中時に CustomerMood.ReduceGauge(...) を呼ぶ。
+    ///   ※ 同じ GameObject に CustomerMood が必要（RequireComponent）。
     /// </summary>
+    [RequireComponent(typeof(CustomerMood))]
     public class CustomerRescue : MonoBehaviour
     {
-        public enum RescueState
-        {
-            Active,  // 救済中（判定対象）
-            Rescued, // 救済成功（解消）
-            Angry    // 救済失敗（怒り）
-        }
+        [Header("相性テーブル（#12）")]
+        [Tooltip("お守り5種×客タイプの相性テーブル(ScriptableObject)。割り当てると下の客タイプで相性を判定する。未設定なら従来どおり correctOmamori との一致で判定。")]
+        [SerializeField] private OmamoriAffinityTable affinityTable;
+        [Tooltip("この客のタイプ。affinityTable 設定時に使う。正式には #16 のスポーン側から設定する想定。")]
+        [SerializeField] private CustomerType customerType = CustomerType.Kenkou;
 
-        [Header("この客が求めているお守り（正解）")]
-        [Tooltip("暫定。正式には #16 の客タイプ→正解お守りデータから設定する。")]
+        [Header("この客が求めているお守り（正解／フォールバック）")]
+        [Tooltip("相性テーブル未設定のときに使う正解お守り。暫定。正式には #16 の客タイプ→正解お守りデータから設定する。")]
         [SerializeField] private OmamoriType correctOmamori = OmamoriType.Kenkou;
 
-        [Header("不満ゲージ")]
-        [Tooltip("ゲージ最大値。これに達すると失敗（怒る）。")]
-        [SerializeField] private float maxGauge = 100f;
-        [Tooltip("開始時のゲージ量。")]
-        [SerializeField] private float startGauge = 50f;
-        [Tooltip("1秒あたりの自然上昇量（抵抗）。せっかち客はこれを大きくする。")]
-        [SerializeField] private float naturalRiseRate = 5f;
-
-        [Header("お守り命中によるゲージ変化（マイナス＝減少）")]
-        [Tooltip("相性◯のとき減らす量。")]
+        [Header("お守り命中によるゲージ削り量（正の値）")]
+        [Tooltip("相性◯（突破）のとき削る量。")]
         [SerializeField] private float goodHitReduce = 40f;
-        [Tooltip("相性✗（誤投擲）のとき減らす量。少しだけ。")]
+        [Tooltip("相性✗（誤投擲）のとき削る量。少しだけ。")]
         [SerializeField] private float badHitReduce = 5f;
 
-        [Header("判定時イベント（VFX/SE/スコア接続用）")]
-        public UnityEvent onRescued;          // 救済成功
-        public UnityEvent onAngry;            // 救済失敗
-        public UnityEvent onGoodHit;          // 相性◯ヒット
-        public UnityEvent onBadHit;           // 相性✗ヒット（コンボ途切れは #14 でここに接続）
-        public UnityEvent<float> onGaugeChanged; // 引数: 0〜1 の正規化ゲージ（HUD用）
+        [Header("判定時イベント（SE/スコア接続用）")]
+        public UnityEvent onGoodHit; // 相性◯ヒット（突破）
+        public UnityEvent onBadHit;  // 相性✗ヒット（コンボ途切れは #14 でここに接続）
 
-        private float _gauge;
-        private RescueState _state = RescueState.Active;
+        private CustomerMood _mood;
 
-        public RescueState State => _state;
-        public float Gauge => _gauge;
-        public float GaugeNormalized => maxGauge > 0f ? _gauge / maxGauge : 0f;
-        public bool IsResolved => _state != RescueState.Active;
+        /// <summary>ゲージ・ステートは CustomerMood が正本。参照したい場合はこちらから。</summary>
+        public CustomerMood Mood => _mood;
+        public bool IsResolved => _mood != null && _mood.IsFinished;
 
         private void Awake()
         {
-            _gauge = Mathf.Clamp(startGauge, 0f, maxGauge);
+            _mood = GetComponent<CustomerMood>();
         }
 
-        private void Start()
+        /// <summary>
+        /// スポーン時にこの客のタイプと相性テーブルを差し込む用（#16 のスポーン側から呼ぶ想定）。
+        /// table を渡すとテーブル判定に切り替わる。
+        /// </summary>
+        public void Setup(CustomerType type, OmamoriAffinityTable table = null)
         {
-            onGaugeChanged?.Invoke(GaugeNormalized);
-        }
-
-        private void Update()
-        {
-            if (_state != RescueState.Active) return;
-
-            // 抵抗：時間とともに不満が満ちていく
-            ModifyGauge(naturalRiseRate * Time.deltaTime);
+            customerType = type;
+            if (table != null) affinityTable = table;
         }
 
         /// <summary>
@@ -88,61 +68,26 @@ namespace Toufuku.Rescue
         /// <returns>相性◯/✗の判定結果</returns>
         public Affinity ApplyHit(OmamoriType hitType)
         {
-            Affinity affinity = AffinityResolver.Resolve(correctOmamori, hitType);
+            // 相性テーブル(#12)があれば客タイプで判定。無ければ従来の正解一致で判定。
+            Affinity affinity = affinityTable != null
+                ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
+                : AffinityResolver.Resolve(correctOmamori, hitType);
 
-            if (_state != RescueState.Active) return affinity; // 確定後はゲージを動かさない（二重判定防止）
+            // 結末確定後はゲージを動かさない（二重判定防止）。
+            if (_mood == null || _mood.IsFinished) return affinity;
 
             if (affinity == Affinity.Good)
             {
-                ModifyGauge(-goodHitReduce);
+                _mood.ReduceGauge(goodHitReduce, isBreakthrough: true); // 突破
                 onGoodHit?.Invoke();
             }
             else
             {
-                ModifyGauge(-badHitReduce); // 誤投擲でも少しは削れる
-                onBadHit?.Invoke();         // ← コンボ途切れ（#14）はここに繋ぐ
+                _mood.ReduceGauge(badHitReduce, isBreakthrough: false); // 誤投擲でも少し削れる
+                onBadHit?.Invoke();                                     // ← コンボ途切れ（#14）はここに繋ぐ
             }
 
             return affinity;
-        }
-
-        /// <summary>
-        /// ゲージを delta だけ動かし、境界に達したら救済判定を確定する。
-        /// </summary>
-        private void ModifyGauge(float delta)
-        {
-            _gauge = Mathf.Clamp(_gauge + delta, 0f, maxGauge);
-            onGaugeChanged?.Invoke(GaugeNormalized);
-
-            if (_gauge <= 0f)
-            {
-                Resolve(RescueState.Rescued);
-            }
-            else if (_gauge >= maxGauge)
-            {
-                Resolve(RescueState.Angry);
-            }
-        }
-
-        private void Resolve(RescueState result)
-        {
-            if (_state != RescueState.Active) return;
-            _state = result;
-
-            if (result == RescueState.Rescued)
-            {
-                Debug.Log($"[Rescue] 救済成功！ ({name})", this);
-                onRescued?.Invoke();
-            }
-            else // Angry
-            {
-                Debug.Log($"[Rescue] 救済失敗…怒った ({name})", this);
-                onAngry?.Invoke();
-            }
-
-            // TODO: 退場アニメ/演出が終わってから Destroy する形に差し替え予定。
-            //       いまは検証用に即時破棄。
-            Destroy(gameObject);
         }
     }
 }
