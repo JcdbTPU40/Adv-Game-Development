@@ -1141,7 +1141,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1452209356}
-  - component: {fileID: 1452209355}
+  - component: {fileID: 1452209357}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1149,21 +1149,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1452209355
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1452209354}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c301379150a47d7408d461e4ce6d0758, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ArduinoTest
-  yaw: 0
-  pitch: 0
-  roll: 0
 --- !u!4 &1452209356
 Transform:
   m_ObjectHideFlags: 0
@@ -1179,6 +1164,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1452209357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1452209354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1ef38f083fc1944eba4b4cef7fc7fd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConecteController
+  deviceID: OONUSA_READY
 --- !u!1 &1496810646
 GameObject:
   m_ObjectHideFlags: 0
@@ -1448,7 +1446,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24579e616f48d43439fa3ff75d134310, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDirect
-  arduinoTest: {fileID: 1452209355}
+  con: {fileID: 1452209357}
 --- !u!114 &1603664613
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1461,9 +1459,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccf71eb25869a3c4a89c96a3c0a55a69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Shoot
-  bullet_Sample: {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
+  bullet:
+  - {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
+  - {fileID: 4368980920736088987, guid: 3d9b114a1842cd54882870dab4cb6dd3, type: 3}
+  - {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
+  - {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
+  - {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
   shootPos: {fileID: 798612114}
-  arduinoTest: {fileID: 1452209355}
+  conecteController: {fileID: 1452209357}
 --- !u!4 &1603664614
 Transform:
   m_ObjectHideFlags: 0

@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class Shoot : MonoBehaviour
 {
-    [SerializeField]GameObject bullet_Sample;
+    [SerializeField] GameObject[] bullet;
     [SerializeField]GameObject shootPos;
-    [SerializeField]ArduinoTest arduinoTest;
+    [SerializeField] ConecteController conecteController;
+    int bullet_type = 0;
     float cooldown = 0;
     float ucooldown = 0;
     float power;
@@ -23,11 +24,11 @@ public class Shoot : MonoBehaviour
     {
         cooldown -= Time.deltaTime;
 
-        float pitch = arduinoTest.pitch;
+        float pitch = conecteController.pitch;
 
         // ���݂�Pitch��ۑ�
         pitchHistory.Enqueue(pitch);
-
+        type();
         // 5�t���[�������܂�܂ő҂�
         if (pitchHistory.Count > 5)
         {
@@ -70,17 +71,41 @@ public class Shoot : MonoBehaviour
 
     void shoot()
     {
-        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        GameObject b = Instantiate(bullet[bullet_type], shootPos.transform.position, shootPos.transform.rotation);
+        Rigidbody rb = b.GetComponent<Rigidbody>();
         rb.linearVelocity = shootPos.transform.forward * 25f;
+        Destroy(b, 10);
     }
 
     void UShoot()
     {
-        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation); 
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
-
+        GameObject b = Instantiate(bullet[bullet_type], shootPos.transform.position, shootPos.transform.rotation);
+        Rigidbody rb = b.GetComponent<Rigidbody>();
         rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 10f;
-        Destroy(bullet, 10);
+        Destroy(b, 10);
+    }
+
+    void type()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            bullet_type = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            bullet_type = 1;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            bullet_type = 2;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+        {
+            bullet_type = 3;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+        {
+            bullet_type = 4;
+        }
     }
 }

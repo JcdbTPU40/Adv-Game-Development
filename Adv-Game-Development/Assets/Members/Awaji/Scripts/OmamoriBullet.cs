@@ -6,13 +6,14 @@ public class OmamoriBullet : MonoBehaviour
     // このお守りのタイプ。選択ボタン(#9)で弾を生成するときに SetType でセットする想定。
     // インスペクタからもテスト用に設定できるように SerializeField にしておく。
     [SerializeField] private OmamoriType type = OmamoriType.Kenkou;
-
+    [SerializeField] Shoot shoot;
     /// <summary>
     /// 弾生成時にお守りタイプを差し込む用（#9 の発射側から呼ぶ）。
     /// </summary>
     public void SetType(OmamoriType t)
     {
         type = t;
+        
     }
 
     private void OnCollisionEnter(Collision collision)

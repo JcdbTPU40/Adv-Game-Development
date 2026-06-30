@@ -7,6 +7,7 @@ public class Shoot_Bullet : MonoBehaviour
     [SerializeField] GameObject omamori_bullet;
     [SerializeField] GameObject shootPos;
     [SerializeField] float bullet_speed = 3.0f;
+    [SerializeField] int bullet_type = 0;
     Vector3 mousePos;
     Vector3 youPos;
     Plane plane = new Plane();
