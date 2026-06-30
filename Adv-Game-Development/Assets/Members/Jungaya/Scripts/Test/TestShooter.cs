@@ -1,10 +1,12 @@
 using UnityEngine;
+using Toufuku.Rescue;
 
 /// <summary>
 /// 検証用の簡易発射。マウス左クリックで、カーソルが指すワールド地点へ向けて
 /// 弾プレハブを撃つ。弾には Rigidbody + Collider + OmamoriBullet が必要。
 /// カーソルを客の中心/端に合わせて当てれば、命中ゾーン（中心/中/外）を試せる。
-/// 本番のコントローラ入力ができたら不要になるテスト専用スクリプト。
+/// OmamoriSelector を割り当てれば、数字キー 1〜5 で撃つお守り種類を切り替えて
+/// 相性◯/✗（#10）も試せる。本番入力ができたら不要になるテスト専用スクリプト。
 /// </summary>
 public class TestShooter : MonoBehaviour
 {
@@ -15,6 +17,10 @@ public class TestShooter : MonoBehaviour
     [SerializeField] Transform spawnPoint;
     [SerializeField] float speed = 25f;
     [SerializeField] float bulletLife = 5f;
+
+    [Header("お守り種類の供給元（#9/#10 テスト）。未設定なら fallbackType を使う")]
+    [SerializeField] OmamoriSelector selector;
+    [SerializeField] OmamoriType fallbackType = OmamoriType.Kenkou;
 
     Camera cam;
 
@@ -52,6 +58,12 @@ public class TestShooter : MonoBehaviour
         Vector3 dir = (aimPoint - origin).normalized;
 
         GameObject bullet = Instantiate(bulletPrefab, origin, Quaternion.LookRotation(dir));
+
+        // 弾に種類を埋め込む（#10 の相性判定で使う）。
+        var ob = bullet.GetComponent<OmamoriBullet>();
+        if (ob != null)
+            ob.SetType(selector != null ? selector.Current : fallbackType);
+
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null) rb.linearVelocity = dir * speed;
 

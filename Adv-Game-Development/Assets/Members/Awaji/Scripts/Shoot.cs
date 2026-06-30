@@ -1,12 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Toufuku.Rescue;
 
 public class Shoot : MonoBehaviour
 {
     [SerializeField]GameObject bullet_Sample;
     [SerializeField]GameObject shootPos;
     [SerializeField]ArduinoTest arduinoTest;
+
+    [Header("お守り種類の供給元（#9）。未設定なら fallbackType を使う")]
+    [SerializeField] OmamoriSelector selector;
+    [SerializeField] OmamoriType fallbackType = OmamoriType.Kenkou;
     float cooldown = 0;
     float ucooldown = 0;
     float power;
@@ -71,16 +76,26 @@ public class Shoot : MonoBehaviour
     void shoot()
     {
         GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
+        StampType(bullet);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         rb.linearVelocity = shootPos.transform.forward * 25f;
     }
 
     void UShoot()
     {
-        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation); 
+        GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
+        StampType(bullet);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
 
         rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 10f;
         Destroy(bullet, 10);
+    }
+
+    // 生成した弾に現在のお守り種類を埋め込む（#10 の相性判定で使う）。
+    void StampType(GameObject bullet)
+    {
+        var ob = bullet.GetComponent<OmamoriBullet>();
+        if (ob != null)
+            ob.SetType(selector != null ? selector.Current : fallbackType);
     }
 }
