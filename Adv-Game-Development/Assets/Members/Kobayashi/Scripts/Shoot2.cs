@@ -77,7 +77,8 @@ public class Shoot2 : MonoBehaviour
         GameObject bullet = Instantiate(bullet_Sample, shootPos.transform.position, shootPos.transform.rotation);
         StampType(bullet);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        rb.linearVelocity = shootPos.transform.forward * 25f;
+        rb.linearVelocity = shootPos.transform.forward * 27f;
+        Destroy(bullet, 10);
     }
 
     void UShoot()
@@ -86,7 +87,7 @@ public class Shoot2 : MonoBehaviour
         StampType(bullet);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
 
-        rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 10f;
+        rb.linearVelocity = (shootPos.transform.up + (shootPos.transform.forward * 1.5f)) * 9f;
         Destroy(bullet, 10);
     }
 
