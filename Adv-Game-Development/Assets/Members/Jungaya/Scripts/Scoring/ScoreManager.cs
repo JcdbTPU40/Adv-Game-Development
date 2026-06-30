@@ -76,7 +76,10 @@ public class ScoreManager : MonoBehaviour
 
         Combo = 0;
 
-        // TODO: 「渋る」リアクション、ミスSE、コンボ途切れ演出のフックをここに追加
+        // 「渋る」リアクション（#14）は客ごとの CustomerReluctance が CustomerRescue.onBadHit を
+        // 購読して再生する（誤投擲＝相性✗ヒット時のみ）。ここは「外し」も含む全ミス共通の処理なので、
+        // 客固有の渋る演出はここには置かない。
+        // TODO: ミスSE・コンボ途切れ演出（HUD点滅など）の全体共通フックはここに追加。
     }
 
     /// <summary>スコアとコンボを初期化（テスト・リトライ用）。</summary>
