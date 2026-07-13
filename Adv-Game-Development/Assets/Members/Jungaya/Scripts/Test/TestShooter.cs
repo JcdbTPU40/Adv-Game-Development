@@ -1,12 +1,17 @@
 using UnityEngine;
 using Toufuku.Rescue;
+using Toufuku.GameInput;
 
 /// <summary>
-/// 検証用の簡易発射。マウス左クリックで、カーソルが指すワールド地点へ向けて
+/// 検証用の簡易発射。発射入力で、照準が指すワールド地点へ向けて
 /// 弾プレハブを撃つ。弾には Rigidbody + Collider + OmamoriBullet が必要。
 /// カーソルを客の中心/端に合わせて当てれば、命中ゾーン（中心/中/外）を試せる。
 /// OmamoriSelector を割り当てれば、数字キー 1〜5 で撃つお守り種類を切り替えて
-/// 相性◯/✗（#10）も試せる。本番入力ができたら不要になるテスト専用スクリプト。
+/// 相性◯/✗（#10）も試せる。
+///
+/// #20: 入力は IInputProvider 経由（未設定ならマウス直読みにフォールバック）。
+///      ESP32 コントローラ版は inputProviderSource を差し替えるだけでよい。
+/// #32: GameSession が終了中（リザルト）のときは発射しない。
 /// </summary>
 public class TestShooter : MonoBehaviour
 {
@@ -31,16 +36,28 @@ public class TestShooter : MonoBehaviour
     [SerializeField] OmamoriSelector selector;
     [SerializeField] OmamoriType fallbackType = OmamoriType.Kenkou;
 
+    [Header("入力の供給元（#20）。IInputProvider 実装（例: MouseInputProvider）をドラッグ。未設定ならマウス直読み")]
+    [SerializeField] MonoBehaviour inputProviderSource;
+
     Camera cam;
+    IInputProvider _input;
 
     void Awake()
     {
         cam = Camera.main;
+
+        _input = inputProviderSource as IInputProvider;
+        if (inputProviderSource != null && _input == null)
+            Debug.LogWarning("[TestShooter] inputProviderSource が IInputProvider を実装していません", this);
     }
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        // セッション終了中（リザルト画面）は入力停止（#32）
+        if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
+
+        bool fire = _input != null ? _input.FireTriggered : Input.GetMouseButtonDown(0);
+        if (fire)
             Fire();
     }
 
@@ -53,8 +70,9 @@ public class TestShooter : MonoBehaviour
         }
         if (cam == null) cam = Camera.main;
 
-        // カーソルが指すワールド地点（着弾点）を求める
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        // 照準が指すワールド地点（着弾点）を求める（#20: 入力は抽象化済み）
+        Vector3 aimScreenPos = _input != null ? _input.AimScreenPosition : Input.mousePosition;
+        Ray ray = cam.ScreenPointToRay(aimScreenPos);
         Vector3 aimPoint;
         if (Physics.Raycast(ray, out RaycastHit hit, maxRayDistance, aimMask, QueryTriggerInteraction.Ignore))
         {

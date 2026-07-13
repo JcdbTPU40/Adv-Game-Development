@@ -17,6 +17,9 @@ public class Customer_Spawner : MonoBehaviour
 
     void Update()
     {
+        // セッション終了中（リザルト）はスポーン停止（#32）
+        if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
+
         spawn_Time -= Time.deltaTime;
         if (spawn_Time <= 0f)
         {
