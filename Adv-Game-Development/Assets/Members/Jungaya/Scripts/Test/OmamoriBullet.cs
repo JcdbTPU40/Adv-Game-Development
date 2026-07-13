@@ -29,10 +29,14 @@ public class OmamoriBullet : MonoBehaviour
             CustomerRescue rescue = collision.gameObject.GetComponent<CustomerRescue>();
             if (rescue != null)
             {
-                // すでに結末確定済み（解消/怒り）の客はノーカウント。
-                // 退場演出中の余韻フレームに当ててもスコア/コンボが二重に動かないようにする。
+                // すでに結末確定済み（解消/怒り）の客への追撃。
                 if (rescue.IsResolved)
                 {
+                    // 解消済み（救済成功）への再ヒット＝過剰押し売り（#33 案B）。
+                    // 縁が少し入り、神社評価(#30)が微減する。怒り退場中はノーカウントのまま。
+                    if (rescue.Mood != null && rescue.Mood.IsResolved && ScoreManager.Instance != null)
+                        ScoreManager.Instance.RegisterOverSell();
+
                     Destroy(gameObject);
                     return;
                 }

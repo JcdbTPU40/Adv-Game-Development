@@ -406,6 +406,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OmamoriSelector
   current: 0
   showDebugLabel: 1
+  inputProviderSource: {fileID: 1624669431}
 --- !u!4 &839193287
 Transform:
   m_ObjectHideFlags: 0
@@ -450,7 +451,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b51858795123aea449726da62b4668fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Customer_Spawner
-  spawnInterval: 0.5
+  spawnInterval: 3
   customer: {fileID: 6858027800831740336, guid: 1650199f84c40014ba73a722dd5011bf, type: 3}
   laneHalfWidth: 3.3
 --- !u!4 &1320574904
@@ -554,13 +555,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1536656669}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.9848078, z: 0.17364816, w: 0}
+  m_LocalRotation: {x: -0, y: -0.9618767, z: 0.2734835, w: 0}
   m_LocalPosition: {x: 0, y: 5.3, z: 39}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 20, y: -180, z: 0}
+  m_LocalEulerAnglesHint: {x: 31.743, y: -180, z: 0}
 --- !u!114 &1536656673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -751,6 +752,135 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1618597461}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1624669428
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1624669430}
+  - component: {fileID: 1624669429}
+  - component: {fileID: 1624669434}
+  - component: {fileID: 1624669433}
+  - component: {fileID: 1624669432}
+  - component: {fileID: 1624669431}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1624669429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1ef38f083fc1944eba4b4cef7fc7fd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConecteController
+  deviceID: OONUSA_READY
+--- !u!4 &1624669430
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.62057, y: 1.28953, z: 35}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1624669431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0473238bc6bb7174c888bc8ca86b0d6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.MouseInputProvider
+--- !u!114 &1624669432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c5c4e61fd567b743aba5140cc7629ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SessionHud
+  fontSize: 26
+  resultFontSize: 34
+--- !u!114 &1624669433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f239ccc8faaebb6408fa50b4e11ea7c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameSession
+  secondsPerMonth: 60
+  totalMonths: 3
+  autoStart: 1
+  onMonthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onSessionStart:
+    m_PersistentCalls:
+      m_Calls: []
+  onSessionEnd:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1624669434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9794384396afa49a39b8d4a480cb69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineRating
+  maxRating: 100
+  startRating: 50
+  resolveGain: 5
+  angryLoss: 10
+  overSellLoss: 2
+  rankSThreshold: 80
+  rankAThreshold: 60
+  rankBThreshold: 40
+  multiplierC: 0.8
+  multiplierB: 1
+  multiplierA: 1.2
+  multiplierS: 1.5
+  onRatingChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onRankChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1680664380
 GameObject:
   m_ObjectHideFlags: 0
@@ -1175,6 +1305,7 @@ GameObject:
   - component: {fileID: 4639079292573397881}
   - component: {fileID: 6419933567451945112}
   - component: {fileID: 4001012391852639311}
+  - component: {fileID: 8734802895695332746}
   m_Layer: 0
   m_Name: ScoreManager
   m_TagString: Untagged
@@ -2304,6 +2435,8 @@ GameObject:
   - component: {fileID: 3637365702715688177}
   - component: {fileID: 3309476629195775835}
   - component: {fileID: 4748935194137684863}
+  - component: {fileID: 4748935194137684865}
+  - component: {fileID: 4748935194137684864}
   m_Layer: 0
   m_Name: ShootObject
   m_TagString: Untagged
@@ -2336,6 +2469,7 @@ MonoBehaviour:
   centerScore: 300
   comboStep: 0.1
   maxMultiplier: 3
+  overSellScore: 30
 --- !u!4 &4748935194137684862
 Transform:
   m_ObjectHideFlags: 0
@@ -2345,8 +2479,8 @@ Transform:
   m_GameObject: {fileID: 4543673335870321239}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.00000005960465, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.5, z: 40}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 1.4943, z: 38.7296}
+  m_LocalScale: {x: 1, y: 0.9885, z: 3.5408}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8491216784668677460}
@@ -2373,6 +2507,37 @@ MonoBehaviour:
   aimMask:
     serializedVersion: 2
     m_Bits: 55
+  selector: {fileID: 839193286}
+  fallbackType: 0
+  inputProviderSource: {fileID: 1624669431}
+--- !u!114 &4748935194137684864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4543673335870321239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24579e616f48d43439fa3ff75d134310, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDirect
+  con: {fileID: 1624669429}
+--- !u!114 &4748935194137684865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4543673335870321239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db0094036a4f5344a96fce4d0100a39b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Shoot2
+  bullet_Sample: {fileID: 4368980920736088987, guid: 3d9b114a1842cd54882870dab4cb6dd3, type: 3}
+  shootPos: {fileID: 975640109603861780}
+  con: {fileID: 1624669429}
   selector: {fileID: 839193286}
   fallbackType: 0
 --- !u!1 &5567286405221242980
@@ -2651,6 +2816,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ScoreHud
   fontSize: 26
   color: {r: 1, g: 1, b: 1, a: 1}
+  gokago: {fileID: 8734802895695332746}
 --- !u!33 &6843884597414136853
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -2996,6 +3162,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8734802895695332746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 503512184345329157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af37d8231b4e2464ca188e2a51a4afab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GokagoTime
+  comboThreshold: 10
+  duration: 10
+  scoreMultiplier: 2
+  onGokagoStart:
+    m_PersistentCalls:
+      m_Calls: []
+  onGokagoEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  onWeatherClearRequest:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &8764358992494969210
 GameObject:
   m_ObjectHideFlags: 0
@@ -3118,3 +3308,4 @@ SceneRoots:
   - {fileID: 839193287}
   - {fileID: 28046679}
   - {fileID: 1612996222}
+  - {fileID: 1624669430}
