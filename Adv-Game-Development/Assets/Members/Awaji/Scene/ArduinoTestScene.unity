@@ -1425,8 +1425,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1603664614}
-  - component: {fileID: 1603664613}
   - component: {fileID: 1603664612}
+  - component: {fileID: 1603664615}
   m_Layer: 0
   m_Name: ShootObjeMain
   m_TagString: Untagged
@@ -1447,21 +1447,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDirect
   con: {fileID: 1452209357}
---- !u!114 &1603664613
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1603664611}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ccf71eb25869a3c4a89c96a3c0a55a69, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Shoot
-  bullet_Sample: {fileID: 3394144679035145210, guid: 8f14b652b29bb8a4aa2e58770cd366d4, type: 3}
-  shootPos: {fileID: 798612114}
-  arduinoTest: {fileID: 0}
 --- !u!4 &1603664614
 Transform:
   m_ObjectHideFlags: 0
@@ -1479,6 +1464,23 @@ Transform:
   - {fileID: 1496810651}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1603664615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603664611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db0094036a4f5344a96fce4d0100a39b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Shoot2
+  bullet_Sample: {fileID: 3394144679035145210, guid: c3b7115c35fdb1547a046b54c1e8dd68, type: 3}
+  shootPos: {fileID: 1603664611}
+  con: {fileID: 1452209357}
+  selector: {fileID: 0}
+  fallbackType: 0
 --- !u!1 &2021296081
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,11 +2,20 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
+#include "BluetoothSerial.h"
+
+BluetoothSerial SerialBT;
+
+Adafruit_BNO055 bno =
+    Adafruit_BNO055(55);
 
 void setup()
 {
     Serial.begin(115200);
+
+    // Bluetooth名
+    SerialBT.begin("ESP32_BNO055");
+
     Wire.begin(21, 22);
 
     if(!bno.begin())
@@ -25,19 +34,23 @@ void loop()
 
     bno.getEvent(&event);
 
-    float yaw = event.orientation.x;
+    float yaw =
+        event.orientation.x;
 
-    float pitch = event.orientation.y;
+    float pitch =
+        event.orientation.y;
 
-    float roll = event.orientation.z;
+    float roll =
+        event.orientation.z;
 
-    Serial.print(yaw);
-    Serial.print(",");
+    // Bluetooth送信
+    SerialBT.print(yaw);
+    SerialBT.print(",");
 
-    Serial.print(pitch);
-    Serial.print(",");
+    SerialBT.print(pitch);
+    SerialBT.print(",");
 
-    Serial.println(roll);
+    SerialBT.println(roll);
 
-    delay(50);
+    delay(20);
 }
