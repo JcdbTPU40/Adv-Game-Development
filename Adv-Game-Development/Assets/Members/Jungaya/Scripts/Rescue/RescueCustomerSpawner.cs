@@ -45,6 +45,9 @@ namespace Toufuku.Rescue
         {
             if (customerPrefab == null || catalog == null) return;
 
+            // セッション終了中（リザルト）はスポーン停止（#32）
+            if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
+
             _timer -= Time.deltaTime;
             if (_timer <= 0f)
             {
@@ -63,6 +66,10 @@ namespace Toufuku.Rescue
             float x = Random.Range(spawnXRange.x, spawnXRange.y);
             Vector3 pos = new Vector3(x, spawnY, spawnZ);
             GameObject go = Instantiate(customerPrefab, pos, Quaternion.identity);
+
+            // 解消/怒り → 神社評価(#30) の結線。プレハブに付け忘れていても動くよう保険で付与。
+            if (go.GetComponent<CustomerMood>() != null && go.GetComponent<ShrineRatingHook>() == null)
+                go.AddComponent<ShrineRatingHook>();
 
             CustomerProfile profile = catalog != null ? catalog.GetRandom() : null;
 
