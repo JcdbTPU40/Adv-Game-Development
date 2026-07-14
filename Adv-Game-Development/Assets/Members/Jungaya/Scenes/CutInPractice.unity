@@ -304,7 +304,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutInProceduralTexture
   mode: 1
+<<<<<<< Updated upstream
   accentColor: {r: 1, g: 0.78, b: 0.2, a: 1}
+=======
+  accentColor:
+    r: 1
+    g: 0.78
+    b: 0.2
+    a: 1
+  _texture: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!114 &68988884
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -365,6 +374,7 @@ MonoBehaviour:
     Enabled: 1
     m_Value: 0
   OutputChannel: 1
+<<<<<<< Updated upstream
   StandbyUpdate: 2
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
@@ -372,6 +382,18 @@ MonoBehaviour:
     TrackingTarget: {fileID: 0}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
+=======
+  ActivationId: 5
+  m_QueuePriority: 0
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  <Extensions>k__BackingField: []
+  <PreviousStateIsValid>k__BackingField: 1
+  <FollowTargetChanged>k__BackingField: 0
+  <LookAtTargetChanged>k__BackingField: 0
+  Target: {TrackingTarget: {fileID: 0}, LookAtTarget: {fileID: 0}, CustomLookAtTarget: 0}
+>>>>>>> Stashed changes
   Lens:
     FieldOfView: 35
     OrthographicSize: 10
@@ -391,7 +413,20 @@ MonoBehaviour:
       Curvature: {x: 2, y: 11}
       BarrelClipping: 0.25
       Anamorphism: 0
+<<<<<<< Updated upstream
   BlendHint: 0
+=======
+    m_OrthoFromCamera: 0
+    m_PhysicalFromCamera: 0
+    m_AspectFromCamera: 1.7777778
+    m_SourceCamera: {fileID: 728526755}
+  BlendHint: 0
+  m_Pipeline:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!4 &267465907
 Transform:
   m_ObjectHideFlags: 0
@@ -455,6 +490,7 @@ MonoBehaviour:
     Enabled: 1
     m_Value: 0
   OutputChannel: 1
+<<<<<<< Updated upstream
   StandbyUpdate: 2
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
@@ -462,6 +498,18 @@ MonoBehaviour:
     TrackingTarget: {fileID: 0}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
+=======
+  ActivationId: 7
+  m_QueuePriority: 0
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  <Extensions>k__BackingField: []
+  <PreviousStateIsValid>k__BackingField: 0
+  <FollowTargetChanged>k__BackingField: 1
+  <LookAtTargetChanged>k__BackingField: 1
+  Target: {TrackingTarget: {fileID: 0}, LookAtTarget: {fileID: 0}, CustomLookAtTarget: 0}
+>>>>>>> Stashed changes
   Lens:
     FieldOfView: 28
     OrthographicSize: 10
@@ -481,7 +529,20 @@ MonoBehaviour:
       Curvature: {x: 2, y: 11}
       BarrelClipping: 0.25
       Anamorphism: 0
+<<<<<<< Updated upstream
   BlendHint: 0
+=======
+    m_OrthoFromCamera: 0
+    m_PhysicalFromCamera: 0
+    m_AspectFromCamera: 1.7777778
+    m_SourceCamera: {fileID: 728526755}
+  BlendHint: 0
+  m_Pipeline:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!1 &291694069
 GameObject:
   m_ObjectHideFlags: 0
@@ -525,7 +586,15 @@ MonoBehaviour:
   band: {fileID: 47689717}
   flash: {fileID: 753394180}
   speedLines: {fileID: 1892177173}
+<<<<<<< Updated upstream
   accentColor: {r: 1, g: 0.78, b: 0.2, a: 1}
+=======
+  accentColor:
+    r: 1
+    g: 0.78
+    b: 0.2
+    a: 1
+>>>>>>> Stashed changes
   bandOffscreenX: 2600
   bandSlideDuration: 0.35
   holdDuration: 0.6
@@ -545,6 +614,30 @@ MonoBehaviour:
   dashDuration: 0.35
   zanshinHold: 0.5
   dashOverrun: 3
+<<<<<<< Updated upstream
+=======
+  _isPlaying: 0
+  _chromatic: {fileID: 0}
+  _lensDistortion: {fileID: 0}
+  _vignette: {fileID: 0}
+  _baseChromatic: 0
+  _baseVignette: 0
+  _brain: {fileID: 0}
+  _defaultBlend:
+    Style: 0
+    Time: 0
+    CustomCurve:
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  _playerStartPos: {x: 0, y: 0, z: 0}
+  _playerStartScale: {x: 0, y: 0, z: 0}
+  _enemyTopStartLocalPos: {x: 0, y: 0, z: 0}
+  _enemyTopStartLocalRot: {x: 0, y: 0, z: 0, w: 0}
+  _enemyTopMat: {fileID: 0}
+  _cutFlashMat: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!4 &291694071
 Transform:
   m_ObjectHideFlags: 0
@@ -560,6 +653,117 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< Updated upstream
+=======
+--- !u!1 &313422052
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 5718053150557570392, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4335648594613597151}
+  - component: {fileID: 4335648594613597155}
+  - component: {fileID: 4335648594613597154}
+  m_Layer: 0
+  m_Name: EnemyTop
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &471669762
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 6056488078754334747, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 471669763}
+  - component: {fileID: 471669765}
+  - component: {fileID: 471669764}
+  m_Layer: 0
+  m_Name: EnemyBottom
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &471669763
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 493442249072334683, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471669762}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 0.5, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4335648594613597149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &471669764
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 8286235663583642852, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471669762}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 6f573be10099b4843815d39737299923, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &471669765
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 5089512132682302990, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471669762}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+>>>>>>> Stashed changes
 --- !u!1 &522133214
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,7 +950,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutInProceduralTexture
   mode: 1
+<<<<<<< Updated upstream
   accentColor: {r: 1, g: 0.78, b: 0.2, a: 1}
+=======
+  accentColor:
+    r: 1
+    g: 0.78
+    b: 0.2
+    a: 1
+  _texture: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!114 &594740503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5985,12 +6198,21 @@ MonoBehaviour:
     Style: 1
     Time: 0.8
     CustomCurve:
+<<<<<<< Updated upstream
       serializedVersion: 2
+=======
+>>>>>>> Stashed changes
       m_Curve: []
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
   CustomBlends: {fileID: 0}
+<<<<<<< Updated upstream
+=======
+  m_OutputCamera: {fileID: 728526755}
+  m_TargetOverride: {fileID: 0}
+  m_LastFrameUpdated: 454
+>>>>>>> Stashed changes
 --- !u!114 &728526758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6110,6 +6332,25 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+<<<<<<< Updated upstream
+=======
+--- !u!1 &1190165266
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 981218993375735684, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4335648594613597149}
+  m_Layer: 0
+  m_Name: Enemy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+>>>>>>> Stashed changes
 --- !u!1 &1271975588
 GameObject:
   m_ObjectHideFlags: 0
@@ -21004,6 +21245,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2065356086}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< Updated upstream
+=======
+--- !u!1 &1721805678
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 3578585389468919315, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4335648594613597150}
+  - component: {fileID: 4335648594613597153}
+  - component: {fileID: 4335648594613597152}
+  m_Layer: 0
+  m_Name: CutFlashLine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+>>>>>>> Stashed changes
 --- !u!1 &1739801473
 GameObject:
   m_ObjectHideFlags: 0
@@ -21037,6 +21299,7 @@ MonoBehaviour:
     Enabled: 1
     m_Value: 0
   OutputChannel: 1
+<<<<<<< Updated upstream
   StandbyUpdate: 2
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
@@ -21044,6 +21307,18 @@ MonoBehaviour:
     TrackingTarget: {fileID: 0}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
+=======
+  ActivationId: 6
+  m_QueuePriority: 0
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  <Extensions>k__BackingField: []
+  <PreviousStateIsValid>k__BackingField: 0
+  <FollowTargetChanged>k__BackingField: 1
+  <LookAtTargetChanged>k__BackingField: 1
+  Target: {TrackingTarget: {fileID: 0}, LookAtTarget: {fileID: 0}, CustomLookAtTarget: 0}
+>>>>>>> Stashed changes
   Lens:
     FieldOfView: 45
     OrthographicSize: 10
@@ -21063,7 +21338,20 @@ MonoBehaviour:
       Curvature: {x: 2, y: 11}
       BarrelClipping: 0.25
       Anamorphism: 0
+<<<<<<< Updated upstream
   BlendHint: 0
+=======
+    m_OrthoFromCamera: 0
+    m_PhysicalFromCamera: 0
+    m_AspectFromCamera: 1.7777778
+    m_SourceCamera: {fileID: 728526755}
+  BlendHint: 0
+  m_Pipeline:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!4 &1739801475
 Transform:
   m_ObjectHideFlags: 0
@@ -21138,7 +21426,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutInProceduralTexture
   mode: 0
+<<<<<<< Updated upstream
   accentColor: {r: 1, g: 0.78, b: 0.2, a: 1}
+=======
+  accentColor:
+    r: 1
+    g: 0.78
+    b: 0.2
+    a: 1
+  _texture: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!222 &1892177175
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -21199,6 +21496,7 @@ MonoBehaviour:
     Enabled: 1
     m_Value: 10
   OutputChannel: 1
+<<<<<<< Updated upstream
   StandbyUpdate: 2
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
@@ -21206,6 +21504,18 @@ MonoBehaviour:
     TrackingTarget: {fileID: 0}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
+=======
+  ActivationId: 4
+  m_QueuePriority: 10
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  <Extensions>k__BackingField: []
+  <PreviousStateIsValid>k__BackingField: 1
+  <FollowTargetChanged>k__BackingField: 0
+  <LookAtTargetChanged>k__BackingField: 0
+  Target: {TrackingTarget: {fileID: 0}, LookAtTarget: {fileID: 0}, CustomLookAtTarget: 0}
+>>>>>>> Stashed changes
   Lens:
     FieldOfView: 40
     OrthographicSize: 10
@@ -21225,7 +21535,20 @@ MonoBehaviour:
       Curvature: {x: 2, y: 11}
       BarrelClipping: 0.25
       Anamorphism: 0
+<<<<<<< Updated upstream
   BlendHint: 0
+=======
+    m_OrthoFromCamera: 0
+    m_PhysicalFromCamera: 0
+    m_AspectFromCamera: 1.7777778
+    m_SourceCamera: {fileID: 728526755}
+  BlendHint: 0
+  m_Pipeline:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!4 &1950834727
 Transform:
   m_ObjectHideFlags: 0
@@ -21332,6 +21655,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+<<<<<<< Updated upstream
 --- !u!4 &4335648594613597149 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3296748974565270094, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
@@ -21347,6 +21671,170 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8884028016781944640, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
   m_PrefabInstance: {fileID: 4335648594613597148}
   m_PrefabAsset: {fileID: 0}
+=======
+--- !u!4 &4335648594613597149
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 3296748974565270094, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190165266}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 471669763}
+  - {fileID: 4335648594613597151}
+  - {fileID: 4335648594613597150}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4335648594613597150
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 1165260691269686288, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721805678}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.34202015, w: 0.9396927}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 0, y: 0.05, z: 0.05}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4335648594613597149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4335648594613597151
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 8884028016781944640, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313422052}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
+  m_LocalScale: {x: 1, y: 0.5, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4335648594613597149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &4335648594613597152
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 8887182708970847608, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721805678}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: ceaf8684211922847a926179fd1974ac, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &4335648594613597153
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 4146987258869949932, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721805678}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &4335648594613597154
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 6957256282152441100, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313422052}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 6f573be10099b4843815d39737299923, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &4335648594613597155
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 8790651353541907446, guid: dfb963ce1ca1cc04988d9570a6037d4e, type: 3}
+  m_PrefabInstance: {fileID: 4335648594613597148}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313422052}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+>>>>>>> Stashed changes
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
