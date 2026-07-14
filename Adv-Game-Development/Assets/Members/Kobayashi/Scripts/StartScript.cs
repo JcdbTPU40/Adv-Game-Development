@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 
 public class StartScript : MonoBehaviour
 {
+    [SerializeField] string sceneName;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -14,7 +15,7 @@ public class StartScript : MonoBehaviour
     {
         if (Input.anyKeyDown)
         {
-            SceneManager.LoadScene("ArduinoTestScene", LoadSceneMode.Single);
+            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
         }
     }
 }

@@ -682,6 +682,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bce58546d1f9b645b83c23ad998f970, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StartScript
+  sceneName: ArduinoTestScene
 --- !u!4 &1348011344
 Transform:
   m_ObjectHideFlags: 0

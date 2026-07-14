@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 404099494511434820}
   - component: {fileID: 7772149843644997948}
   - component: {fileID: 8313842247578220461}
+  - component: {fileID: 361228796697832998}
   m_Layer: 0
   m_Name: Customer
   m_TagString: Customer
@@ -127,4 +128,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61f137622c4d3da4d98f4cae7e385e78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Customer_Move
-  speed: 10
+  speed: -10
+  moveSign: 1
+--- !u!54 &361228796697832998
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2674803111216995572}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
