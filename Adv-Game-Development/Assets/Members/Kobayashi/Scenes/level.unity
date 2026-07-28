@@ -369,7 +369,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f9252ab0f21d474eb5a03e799031f1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneChanger
-  _loadScene: ArduinoTestScene
+  _loadScene: TestGame
 --- !u!1 &328642341
 GameObject:
   m_ObjectHideFlags: 0
@@ -1088,7 +1088,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f9252ab0f21d474eb5a03e799031f1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneChanger
-  _loadScene: ArduinoTestScene
+  _loadScene: TestGame
 --- !u!1 &1394467720
 GameObject:
   m_ObjectHideFlags: 0

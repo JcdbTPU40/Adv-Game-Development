@@ -12,11 +12,11 @@ EditorBuildSettings:
     path: Assets/Members/Kobayashi/Scenes/Start.unity
     guid: 5711f66bcf590fc4fa1ac747ba300ad5
   - enabled: 1
-    path: Assets/Members/Kobayashi/Scenes/ArduinoTestScene.unity
-    guid: 28743f54bf49bde4282304489fb1c074
-  - enabled: 1
     path: Assets/Members/Kobayashi/Scenes/level.unity
     guid: 19752cec3503a6a439652f4fe82e5634
+  - enabled: 1
+    path: Assets/Members/Kobayashi/Scenes/TestGame.unity
+    guid: 5eb5a6213ec95c84eb1646995f7baf19
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
