@@ -315,6 +315,7 @@ namespace Toufuku.Rescue.Outline
             static readonly int ColorId = Shader.PropertyToID("_OutlineColor");
             static readonly int PatternId = Shader.PropertyToID("_OutlinePatternId");
             static readonly int DepthBiasId = Shader.PropertyToID("_OutlineDepthBiasEpsilon");
+            static readonly int MaskTexelSizeId = Shader.PropertyToID("_OutlineMaskTexelSize");
 
             static readonly MaterialPropertyBlock s_Mpb = new MaterialPropertyBlock();
             static readonly List<OutlineTarget> s_Scratch = new List<OutlineTarget>(32);
@@ -327,6 +328,7 @@ namespace Toufuku.Rescue.Outline
                 public Material material;
                 public List<DrawItem> items;
                 public float depthBias;
+                public Vector4 maskTexelSize;
             }
 
             public struct DrawItem
@@ -386,6 +388,8 @@ namespace Toufuku.Rescue.Outline
                 {
                     passData.material = _material;
                     passData.depthBias = _settings.depthBiasEpsilon;
+                    // フラグメントで SV_POSITION.xy * texelSize からスクリーンUVを作るために渡す。
+                    passData.maskTexelSize = new Vector4(1f / w, 1f / h, w, h);
                     passData.items = new List<DrawItem>(s_Scratch.Count);
                     for (int i = 0; i < s_Scratch.Count; i++)
                     {
@@ -416,6 +420,7 @@ namespace Toufuku.Rescue.Outline
                             s_Mpb.SetColor(ColorId, item.color);
                             s_Mpb.SetFloat(PatternId, item.patternId);
                             s_Mpb.SetFloat(DepthBiasId, data.depthBias);
+                            s_Mpb.SetVector(MaskTexelSizeId, data.maskTexelSize);
                             item.renderer.SetPropertyBlock(s_Mpb);
 
                             int sub = GetSubMeshCount(item.renderer);

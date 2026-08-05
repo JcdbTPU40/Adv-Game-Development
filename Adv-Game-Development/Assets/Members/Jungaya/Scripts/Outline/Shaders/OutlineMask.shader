@@ -52,6 +52,8 @@ Shader "Toufuku/Outline/Mask"
             float4 _OutlineColor;
             float  _OutlinePatternId; // OutlinePattern enum 値（0/1/2）
             float  _OutlineDepthBiasEpsilon;
+            // Mask RT のテクセルサイズ。xy = 1/width, 1/height（Compose と同名プロパティ）。
+            float4 _OutlineMaskTexelSize;
 
             struct Attributes
             {
@@ -61,32 +63,36 @@ Shader "Toufuku/Outline/Mask"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float2 screenUV : TEXCOORD0;
             };
 
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-                // マスクRTが低解像度でも、カメラ深度はフル解像度なので
-                // SV_POSITION（RTピクセル座標）からUVを取るとずれる。
-                // クリップ空間→NDC からスクリーンUVを作る。
-                float4 ndc = OUT.positionCS * rcp(OUT.positionCS.w);
-                float2 uv = ndc.xy * 0.5 + 0.5;
-            #if UNITY_UV_STARTS_AT_TOP
-                if (_ProjectionParams.x < 0)
-                    uv.y = 1.0 - uv.y;
-            #endif
-                OUT.screenUV = uv;
+                // screenUV はフラグメントの SV_POSITION から作る。
+                // （頂点で w 除算済み UV を補間するとパースペクティブ補正が二重になり誤る）
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_Target
             {
+                // フラグメントの SV_POSITION.xy は現在のレンダーターゲット（マスクRT）のピクセル座標。
+                // マスクRT とカメラ深度テクスチャは同じビューポートを覆うので、
+                // それぞれの解像度で正規化すれば同一の [0,1] UV になる。
+                // → 低解像度マスクでも _CameraDepthTexture を正しくサンプルできる。
+                //
+                // 代替案の ComputeScreenPos(positionCS) を float4 で渡して /w する方式も正しいが、
+                // SV_POSITION は既にラスタライズ後のピクセル座標なので補間誤差が無く、
+                // マスクRTサイズが分かっている今はこちらが単純。
+                float2 screenUV = IN.positionCS.xy * _OutlineMaskTexelSize.xy;
+                // GetNormalizedScreenSpaceUV と同じ Y 補正。DirectX 系で UV 原点が上のとき深度テクスチャと揃える。
+                // （不要にすると遮蔽境界が上下反転してずれるため残す）
+                TransformNormalizedScreenUV(screenUV);
+
                 // スクリーンUVでカメラ深度を取り、自分が奥なら discard（遮蔽）。
                 // 低解像度マスク時は深度テクスチャとの解像度差でエッジが1〜2pxずれることがある。
                 // _OutlineDepthBiasEpsilon で調整（Settings.depthBiasEpsilon）。
-                float sceneRaw = SampleSceneDepth(IN.screenUV);
+                float sceneRaw = SampleSceneDepth(screenUV);
                 float fragRaw = IN.positionCS.z;
 
 #if UNITY_REVERSED_Z
