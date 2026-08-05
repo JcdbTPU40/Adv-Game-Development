@@ -5,6 +5,11 @@ namespace Toufuku.Rescue.Outline
     ///
     /// 現状は <see cref="Solid"/> のみ実装。Dashed / Wavy は Compose シェーダの
     /// ApplyPattern にフックを切ってあるだけで中身は未実装（#色覚対応）。
+    ///
+    /// マスクRTの A チャンネルへ載せるときは「存在フラグ」と同居させるため、
+    /// シェーダ側で <c>A = (1 + patternId) / 255</c> とエンコードする
+    /// （0 = マスク無し、1 = Solid、2 = Dashed、3 = Wavy）。
+    /// enum の数値自体（0/1/2）は変えない。オフセット +1 はシェーダ載せ時だけの話。
     /// </summary>
     public enum OutlinePattern
     {

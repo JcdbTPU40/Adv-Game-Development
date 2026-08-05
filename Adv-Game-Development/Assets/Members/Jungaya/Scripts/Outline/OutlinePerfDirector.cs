@@ -34,6 +34,13 @@ namespace Toufuku.Rescue.Outline
             new Color(0.75f, 0.35f, 1.00f), // 厄除け：紫
         };
 
+        [Header("暗色検証（#45 B）")]
+        [Tooltip("ON なら先頭の1体を #44 黒客相当の暗い輪郭色にする。存在フラグ(A)方式の確認用。")]
+        [SerializeField] bool includeDarkTestCustomer = true;
+
+        [Tooltip("#44 MockCrowdDirector.blackCustomerColor 相当。")]
+        [SerializeField] Color darkTestColor = new Color(0.04f, 0.04f, 0.06f);
+
         [SerializeField]
         Band[] bands =
         {
@@ -107,6 +114,12 @@ namespace Toufuku.Rescue.Outline
                 Color c = omamoriColors != null && omamoriColors.Length > 0
                     ? omamoriColors[i % omamoriColors.Length]
                     : Color.white;
+                // 先頭1体を暗色に差し替え、暗い輪郭でも A>0 で検出できることを常時検証できるようにする。
+                if (includeDarkTestCustomer && i == 0)
+                {
+                    c = darkTestColor;
+                    go.name = $"OutlineCustomer_{i:00}_DarkTest";
+                }
                 outline.SetColor(c);
                 outline.SetPattern(OutlinePattern.Solid);
 

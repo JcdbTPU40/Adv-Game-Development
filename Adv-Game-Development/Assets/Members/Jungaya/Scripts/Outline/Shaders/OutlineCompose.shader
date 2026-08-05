@@ -3,6 +3,8 @@
 // マスクRTを N px ダイレート（最大値フィルタ）して外周リングを作り、
 // Stencil NotEqual(Ref 1) でオブジェクト内側を除外してカメラカラーへ合成する。
 // 太さは画面ピクセル固定（#44 で ScreenConstant を採用した経緯に合わせる）。
+//
+// マスク A の意味: (1 + patternId) / 255。0=無し、それ以外=存在。暗い色でも検出できる。
 Shader "Toufuku/Outline/Compose"
 {
     Properties
@@ -84,7 +86,7 @@ Shader "Toufuku/Outline/Compose"
             half ApplyPattern(int patternId, float2 screenUV, half ringMask)
             {
                 // TODO(#色覚対応): Dashed / Wavy をここに実装
-                // patternId: 0=Solid, 1=Dashed, 2=Wavy
+                // patternId: 0=Solid, 1=Dashed, 2=Wavy（enum 値。A エンコードの +1 は既に剥が済み）
                 return ringMask;
             }
 
@@ -94,16 +96,20 @@ Shader "Toufuku/Outline/Compose"
             }
 
             // 半径 thicknessPx のボックス最大値フィルタでダイレートする。
-            // 負荷が問題なら 横→縦の2パス分離や半径低下が軽量化候補（Docs #45 参照）。
-            void DilateMask(float2 uv, out half3 color, out half coverage, out half patternA)
+            // 存在判定は A>0（色の明るさではない）。暗い輪郭色でも同等に検出する。
+            // 近傍に複数の客がいる場合は「中心に近いサンプルを優先」。
+            //   理由: 先勝ちだと走査順（左上→右下）に依存して縁の色が偏るため。
+            //   距離が同じなら先に見つかった方を維持（安定）。
+            void DilateMask(float2 uv, out half3 color, out half coverage, out int patternId)
             {
                 int radius = (int)max(1.0, round(_OutlineThicknessPx));
                 radius = min(radius, 8); // 暴走防止の上限
 
                 half3 bestColor = 0;
                 half bestCov = 0;
-                half bestPat = 0;
-                float bestScore = 0;
+                int bestPat = 0;
+                // 未選択を示すため負の距離。見つかったら dist² を入れる。
+                float bestDist2 = -1.0;
 
                 [loop]
                 for (int y = -radius; y <= radius; y++)
@@ -113,36 +119,40 @@ Shader "Toufuku/Outline/Compose"
                     {
                         float2 offset = float2(x, y) * _OutlineMaskTexelSize.xy;
                         half4 s = SampleMask(uv + offset);
-                        // Solid(A=0)でも検知できるよう RGB の最大を存在判定に使う。
-                        half cov = max(s.r, max(s.g, s.b));
-                        if (cov > bestScore)
+                        // A>0 が存在フラグ。RGB の明るさは見ない。
+                        if (s.a <= 0.0h)
+                            continue;
+
+                        float dist2 = (float)(x * x + y * y);
+                        // 初回、またはより近いサンプルだけ採用。
+                        if (bestDist2 < 0.0 || dist2 < bestDist2)
                         {
-                            bestScore = cov;
+                            bestDist2 = dist2;
                             bestColor = s.rgb;
-                            bestCov = cov;
-                            bestPat = s.a;
+                            bestCov = 1.0h;
+                            // A = (1 + patternId) / 255 → patternId = round(A*255) - 1
+                            bestPat = (int)round((float)s.a * 255.0) - 1;
                         }
                     }
                 }
 
                 color = bestColor;
                 coverage = bestCov;
-                patternA = bestPat;
+                patternId = bestPat;
             }
 
             half4 Frag(Varyings IN) : SV_Target
             {
                 half3 dilateColor;
                 half coverage;
-                half patternA;
-                DilateMask(IN.uv, dilateColor, coverage, patternA);
+                int patternId;
+                DilateMask(IN.uv, dilateColor, coverage, patternId);
 
                 // 元マスクにも値がある＝内側。ステンシルでも弾くが、解像度スケール時の保険。
                 half4 center = SampleMask(IN.uv);
-                half centerCov = max(center.r, max(center.g, center.b));
+                half centerCov = center.a > 0.0h ? 1.0h : 0.0h;
                 half ring = saturate(coverage - centerCov);
 
-                int patternId = (int)round(patternA * 255.0);
                 ring = ApplyPattern(patternId, IN.uv, ring);
 
                 if (ring <= 0.001h)

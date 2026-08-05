@@ -1,9 +1,16 @@
 // アウトライン用マスクパス（#45）。
 //
 // 役割:
-//   - カラー: RGB=輪郭色 / A=パターンID/255 をマスクRTへ書く
+//   - カラー: RGB=輪郭色 / A=存在フラグ＋パターンID の合成値 をマスクRTへ書く
 //   - ステンシル: Ref 1 を立てて「オブジェクト内側」をマーク（Compose が NotEqual で除外）
 //   - 深度: ZTest LEqual でカメラ深度をテストし、遮蔽物の裏は書かない / ZWrite Off で深度は壊さない
+//
+// A チャンネルのエンコード:
+//   A = (1 + patternId) / 255
+//   patternId は OutlinePattern の数値そのもの（Solid=0, Dashed=1, Wavy=2）。
+//   → 0 = マスク無し、1/255 = Solid、2/255 = Dashed、3/255 = Wavy。
+//   暗い輪郭色でも max(rgb) に頼らず A>0 で存在判定できる（#44 黒客対策）。
+//   enum 値は変えず、+1 オフセットはシェーダ載せ時のエンコード専用。
 //
 // ColorMask について:
 //   古典的なステンシルのみ方式では ColorMask 0 だが、本実装はマスクRTへ色を書くため RGBA を出力する。
@@ -13,7 +20,8 @@ Shader "Toufuku/Outline/Mask"
     Properties
     {
         [HDR] _OutlineColor ("Outline Color", Color) = (1, 1, 1, 1)
-        _OutlinePatternId ("Pattern Id (0-1)", Float) = 0
+        // OutlinePattern の数値（0/1/2）。A へ載せるときはシェーダ内で +1 エンコードする。
+        _OutlinePatternId ("Pattern Id (enum 0-2)", Float) = 0
     }
 
     SubShader
@@ -52,7 +60,7 @@ Shader "Toufuku/Outline/Mask"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             float4 _OutlineColor;
-            float  _OutlinePatternId;
+            float  _OutlinePatternId; // OutlinePattern enum 値（0/1/2）
 
             struct Attributes
             {
@@ -73,8 +81,9 @@ Shader "Toufuku/Outline/Mask"
 
             half4 frag(Varyings IN) : SV_Target
             {
-                // A にパターンIDを載せる。Solid=0 でも RGB で存在判定するため Compose は max(rgb) を見る。
-                return half4(_OutlineColor.rgb, saturate(_OutlinePatternId));
+                // 存在フラグ付きエンコード。Compose は A>0 で存在、round(A*255)-1 で patternId を復元。
+                half a = (1.0h + (half)_OutlinePatternId) / 255.0h;
+                return half4(_OutlineColor.rgb, a);
             }
             ENDHLSL
         }

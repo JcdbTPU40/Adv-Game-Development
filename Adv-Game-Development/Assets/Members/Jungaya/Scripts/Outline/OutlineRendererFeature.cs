@@ -285,7 +285,8 @@ namespace Toufuku.Rescue.Outline
                         {
                             renderer = t.TargetRenderer,
                             color = t.Color,
-                            patternId = (int)t.Pattern / 255f,
+                            // OutlinePattern の数値そのもの（0/1/2）。A への +1 エンコードは Mask シェーダ側。
+                            patternId = (float)(int)t.Pattern,
                         });
                     }
 
