@@ -29,6 +29,7 @@ Shader "Toufuku/Outline/Compose"
             Cull Off
             ZWrite Off
             ZTest Always
+            // プリマルチプライド: rgb は alpha を掛け済み、alpha は 0〜1。
             Blend One OneMinusSrcAlpha
 
             // マスクで立てた内側ステンシルを除外 → ダイレート外周の「縁」だけが残る。
@@ -170,8 +171,11 @@ Shader "Toufuku/Outline/Compose"
                 float rainScale = lerp(1.0, _OutlineRainIntensityScale, saturate(_OutlineRainAmount));
 
                 half intensity = (half)(_OutlineIntensity * distScale * rainScale);
-                half3 rgb = dilateColor * intensity * ring;
-                return half4(rgb, ring * intensity);
+                // プリマルチプライド: alpha は 0〜1 に抑え、強度は RGB にだけ掛ける。
+                // intensity を alpha に載せると OneMinusSrcAlpha が負になり背景が沈む。
+                half alpha = saturate(ring);
+                half3 rgb = dilateColor * intensity * alpha;
+                return half4(rgb, alpha);
             }
             ENDHLSL
         }
