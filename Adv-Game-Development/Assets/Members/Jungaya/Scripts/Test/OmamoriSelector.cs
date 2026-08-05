@@ -55,12 +55,12 @@ public class OmamoriSelector : MonoBehaviour
             return;
         }
 
-        // フォールバック：数字キーで切り替え（プロバイダ未設定時）。
+        // フォールバック：数字キーで切り替え（プロバイダ未設定時）。企画書v3 §3 の enum 順。
         if (Input.GetKeyDown(KeyCode.Alpha1)) Select(OmamoriType.Kenkou);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) Select(OmamoriType.Gakugyou);
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) Select(OmamoriType.Renai);
-        else if (Input.GetKeyDown(KeyCode.Alpha4)) Select(OmamoriType.Kinun);
-        else if (Input.GetKeyDown(KeyCode.Alpha5)) Select(OmamoriType.Yakuyoke);
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) Select(OmamoriType.Yakuyoke);
+        else if (Input.GetKeyDown(KeyCode.Alpha4)) Select(OmamoriType.Enmusubi);
+        else if (Input.GetKeyDown(KeyCode.Alpha5)) Select(OmamoriType.Kinun);
     }
 
     private void OnGUI()
@@ -68,6 +68,6 @@ public class OmamoriSelector : MonoBehaviour
         if (!showDebugLabel) return;
         GUI.Label(
             new Rect(10, 10, 480, 24),
-            $"お守り: {current}   (1:健康 2:学業 3:恋愛 4:金運 5:厄除け)");
+            $"お守り: {current}   (1:健康 2:学業成就 3:厄除け安全 4:縁結び 5:金運)");
     }
 }

@@ -2,7 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// 検証用の簡易HUD（OnGUIオーバーレイ）。Canvas不要、シーンに1つ置くだけ。
-/// 縁・コンボ・倍率・最大コンボ・直近の命中ゾーンと獲得点を画面左上に表示する。
+/// 縁・コンボ・倍率・最大コンボ・直近の命中ゾーンと獲得点を画面右上に表示する
+/// （企画書v3 §7：縁は HUD 右上に表示。上中央の月表示 SessionHud と重ならない配置）。
 ///
 /// #31: ポーリングをやめ、ScoreManager のイベント購読で値を更新する版。
 /// 本番UI/SE も同じイベント（onEnChanged 等）を購読すればよい。
@@ -47,7 +48,6 @@ public class ScoreHud : MonoBehaviour
         sm.onComboChanged += OnComboChanged;
         sm.onMultiplierChanged += OnMultiplierChanged;
         sm.onMiss += OnMiss;
-        sm.onOverSell += OnOverSell;
 
         // 初期値を反映
         _en = sm.En;
@@ -77,7 +77,6 @@ public class ScoreHud : MonoBehaviour
             sm.onComboChanged -= OnComboChanged;
             sm.onMultiplierChanged -= OnMultiplierChanged;
             sm.onMiss -= OnMiss;
-            sm.onOverSell -= OnOverSell;
         }
 
         var rating = ShrineRating.Instance;
@@ -95,7 +94,6 @@ public class ScoreHud : MonoBehaviour
     void OnComboChanged(int combo) => _combo = combo;
     void OnMultiplierChanged(float multiplier) => _multiplier = multiplier;
     void OnMiss() { /* コンボ途切れ演出（HUD点滅など）を足すならここ */ }
-    void OnOverSell() { /* 押し売りSE/演出を足すならここ */ }
     void OnRatingChanged(float normalized) => _ratingNormalized = normalized;
     void OnRankChanged(ShrineRank rank) => _rank = rank;
 
@@ -120,12 +118,17 @@ public class ScoreHud : MonoBehaviour
         }
         style.normal.textColor = color;
 
+        // 企画書v3 §7：縁は HUD 右上に表示する。左上のハードコードをやめ、
+        // 画面幅から右上基準で算出する（デバッグボタンも同じ基準で追従）。
+        float panelW = 400f;
+        float panelX = Screen.width - panelW - 14f;
+
         // 背景パネル
         GUI.color = new Color(0f, 0f, 0f, 0.45f);
-        GUI.DrawTexture(new Rect(10, 10, 400, 300), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panelX, 10, panelW, 300), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
-        float x = 24, y = 18, h = fontSize + 8;
+        float x = panelX + 14f, y = 18, h = fontSize + 8;
         GUI.Label(new Rect(x, y + h * 0, 400, h), $"縁(En) : {_en}", style);
         GUI.Label(new Rect(x, y + h * 1, 400, h), $"コンボ : {_combo}  (Max {sm.MaxCombo})", style);
         GUI.Label(new Rect(x, y + h * 2, 400, h), $"倍率   : x{_multiplier:0.00}", style);

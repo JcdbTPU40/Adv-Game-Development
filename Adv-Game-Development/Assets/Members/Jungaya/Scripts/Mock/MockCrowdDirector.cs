@@ -94,21 +94,26 @@ namespace Toufuku.Rescue.Mock
         [SerializeField] private Material outlineMaterial;
 
         // ── 色 ──────────────────────────────────────────────────
-        [Header("輪郭発光5色（お守り5種に対応）")]
-        [Tooltip("0:健康 1:学業 2:縁結び 3:金運 4:厄除け。実機テスト中に直接いじって調整する。")]
+        [Header("色の正（お守り5色パレット v3 §3）")]
+        [Tooltip("お守り5色パレット（唯一の正）。未設定時のみ下のフォールバック配列を使う。")]
+        [SerializeField] private OmamoriPalette palette;
+
+        [Header("フォールバック用（palette 未設定時のみ使用）")]
+        [Tooltip("0:健康 1:学業成就 2:厄除け安全 3:縁結び 4:金運（企画書v3 §3 の enum 順）。正は OmamoriPalette。palette 設定時は反映されない。")]
         [SerializeField]
         private Color[] omamoriColors =
         {
             new Color(0.20f, 1.00f, 0.45f),  // 健康：緑
-            new Color(0.30f, 0.65f, 1.00f),  // 学業：青
+            new Color(0.30f, 0.65f, 1.00f),  // 学業成就：青
+            new Color(0.75f, 0.35f, 1.00f),  // 厄除け安全：紫
             new Color(1.00f, 0.40f, 0.70f),  // 縁結び：桃
             new Color(1.00f, 0.85f, 0.15f),  // 金運：金
-            new Color(0.75f, 0.35f, 1.00f),  // 厄除け：紫
         };
 
-        [Tooltip("黒客の輪郭色。他5色と識別できるかが #44 の検証ポイント。")]
+        [Tooltip("黒客の輪郭色のフォールバック。正は OmamoriPalette.BlackCustomerColor。他5色と識別できるかが #44 の検証ポイント。")]
         [SerializeField] private Color blackCustomerColor = new Color(0.04f, 0.04f, 0.06f);
 
+        [Header("客本体の色")]
         [Tooltip("客本体の色。輪郭を主役にするためニュートラルな灰にしてある。")]
         [SerializeField] private Color bodyColor = new Color(0.72f, 0.70f, 0.66f);
 
@@ -203,6 +208,20 @@ namespace Toufuku.Rescue.Mock
         [SerializeField] private MockCustomerOutline.OutlineMode outlineMode = MockCustomerOutline.OutlineMode.InvertedHull;
         [SerializeField] private MockCustomerOutline.WidthMode outlineWidthMode = MockCustomerOutline.WidthMode.ScreenConstant;
 
+        // 太さをディレクタ側でも持つ理由:
+        //   プレハブの値だけだと、実行中に [ / ] で太さを変えても「その時点で居る客」にしか効かず、
+        //   その後に補充された客が元の細さで出てきて画面がまだらになる。
+        //   ディレクタが正の値を持っていればスポーン時にも同じ値を焼けるので、
+        //   実測しながら太さを振っても全員が揃う。
+        [Tooltip("輪郭の太さ（ワールド単位）。0以下ならプレハブ側の値をそのまま使う。実行中に [ / ] で増減できる。")]
+        [SerializeField] private float outlineWidth = 0.09f;
+
+        [Tooltip("[ / ] キー1回あたりの太さの増減量。")]
+        [SerializeField] private float outlineWidthStep = 0.015f;
+
+        [Tooltip("実行中に振れる太さの下限・上限。")]
+        [SerializeField] private Vector2 outlineWidthRange = new Vector2(0.02f, 0.4f);
+
         // ── 内部状態 ────────────────────────────────────────────
         private readonly List<Member> _members = new List<Member>();
         private readonly List<Slot> _slots = new List<Slot>();
@@ -292,6 +311,10 @@ namespace Toufuku.Rescue.Mock
 
         private void Start()
         {
+            // v3 §3 の色統一が効いていないことに気づけるよう、palette 未設定は一度だけ警告する。
+            if (palette == null)
+                Debug.LogWarning("[MockCrowd] palette(OmamoriPalette) が未設定です。フォールバック色を使います（v3 §3 の色統一が効いていません）。", this);
+
             if (customerParent == null) customerParent = transform;
 
             BuildSlots();
@@ -373,7 +396,7 @@ namespace Toufuku.Rescue.Mock
 
         /// <summary>
         /// 「現在数 + 補充待ち」を目標体数に合わせる。
-        /// 足りなければチケットを積み、余っていればチケット→実体の順に減らす。
+        /// 足りなければチケットを積み、余っていれば未発火のチケットだけを取り消す。
         /// </summary>
         private void BalanceToTarget()
         {
@@ -386,12 +409,13 @@ namespace Toufuku.Rescue.Mock
                 have++;
             }
 
-            while (have > want)
+            // 企画書v3 §7/§8：目標体数を下回っても既にいる客は強制退場させない。
+            // 解消/怒りによる自然減で追いつくのを待つ（補充だけが新上限に従う）。
+            // 取り消せるのは未発火の補充チケットのみ。チケットを使い切っても
+            // have > want のままなら、実体は消さずにそのままループを抜ける。
+            while (have > want && _tickets.Count > 0)
             {
-                if (_tickets.Count > 0)
-                    _tickets.RemoveAt(_tickets.Count - 1);
-                else
-                    DespawnOne();
+                _tickets.RemoveAt(_tickets.Count - 1);
                 have--;
             }
         }
@@ -490,8 +514,9 @@ namespace Toufuku.Rescue.Mock
         }
 
         /// <summary>
-        /// 目標体数が下がったときに1体減らす。
-        /// まだ歩行中の客（＝定位置に着いていない＝一番目立たない）を優先して消す。
+        /// 1体減らす。まだ歩行中の客（＝定位置に着いていない＝一番目立たない）を優先して消す。
+        /// ※ シーンリセット/明示的な全消し専用。BalanceToTarget からは呼ばないこと（v3 §7/§8：
+        ///   目標体数を下回っても既にいる客は強制退場させず、自然減を待つ）。
         /// </summary>
         private void DespawnOne()
         {
@@ -534,14 +559,18 @@ namespace Toufuku.Rescue.Mock
 
             if (black)
             {
-                color = blackCustomerColor;
+                // 色の正は OmamoriPalette（v3 §3）。未設定時のみフォールバックを使う。
+                color = palette != null ? palette.BlackCustomerColor : blackCustomerColor;
             }
             else
             {
                 index = NextColorIndex();
-                color = (omamoriColors != null && omamoriColors.Length > 0)
-                    ? omamoriColors[index % omamoriColors.Length]
-                    : Color.white;
+                if (palette != null)
+                    color = palette.GetColor(index);
+                else
+                    color = (omamoriColors != null && omamoriColors.Length > 0)
+                        ? omamoriColors[index % omamoriColors.Length]
+                        : Color.white;
             }
 
             m.Tag.Assign(index, color, black);
@@ -551,13 +580,18 @@ namespace Toufuku.Rescue.Mock
                 m.Outline.Setup(color, bodyColor, outlineMaterial);
                 m.Outline.SetMode(outlineMode);
                 m.Outline.SetWidthMode(outlineWidthMode);
+                // 0以下ならプレハブ側の値を尊重する（従来どおりの挙動）。
+                if (outlineWidth > 0f) m.Outline.SetOutlineWidth(outlineWidth);
             }
         }
 
         /// <summary>5色を順に巡回させ、どの色も必ず出るようにする。</summary>
         private int NextColorIndex()
         {
-            int n = (omamoriColors != null && omamoriColors.Length > 0) ? omamoriColors.Length : 5;
+            // お守り種別数の正は palette.Count（v3 §3）。未設定時のみフォールバック配列から求める。
+            int n = (palette != null && palette.Count > 0)
+                ? palette.Count
+                : ((omamoriColors != null && omamoriColors.Length > 0) ? omamoriColors.Length : 5);
             int index = _nextColorIndex % n;
             _nextColorIndex = (_nextColorIndex + 1) % n;
             return index;
@@ -795,6 +829,31 @@ namespace Toufuku.Rescue.Mock
                 Member m = _members[i];
                 if (m != null && m.Outline != null) m.Outline.SetWidthMode(next);
             }
+        }
+
+        /// <summary>現在の輪郭の太さ（ワールド単位）。0以下ならプレハブ側の値を使っている。</summary>
+        public float OutlineWidth => outlineWidth;
+
+        /// <summary>
+        /// 輪郭の太さを全員ぶん変える。以後スポーンする客にも同じ値が焼かれる。
+        /// 実測しながら「何ミリなら小中学生が判別できるか」を詰めるための操作。
+        /// </summary>
+        public void SetOutlineWidth(float world)
+        {
+            outlineWidth = Mathf.Clamp(world, outlineWidthRange.x, outlineWidthRange.y);
+            for (int i = 0; i < _members.Count; i++)
+            {
+                Member m = _members[i];
+                if (m != null && m.Outline != null) m.Outline.SetOutlineWidth(outlineWidth);
+            }
+        }
+
+        /// <summary>輪郭の太さを1段階ぶん増減する（キー操作から呼ばれる）。</summary>
+        public void StepOutlineWidth(int direction)
+        {
+            // outlineWidth が 0以下（プレハブ任せ）のときは、まず既定値から始める。
+            float basis = outlineWidth > 0f ? outlineWidth : outlineWidthRange.x;
+            SetOutlineWidth(basis + outlineWidthStep * direction);
         }
 
         /// <summary>輪郭の太さモードをトグルする。</summary>

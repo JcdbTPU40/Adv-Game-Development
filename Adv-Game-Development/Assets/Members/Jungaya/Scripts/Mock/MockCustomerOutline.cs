@@ -56,15 +56,30 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("太さの決め方。ScreenConstant は距離に比例させて画面上の太さを一定に保つ。")]
         [SerializeField] private WidthMode widthMode = WidthMode.ScreenConstant;
 
+        // ── 太さの既定値について（実測で調整済み）────────────────────────
+        // 初期値は outlineWidth=0.035 / referenceDistance=20 / widthClamp=(0.015, 0.35) だったが、
+        // TestGame の実配置では輪郭が細すぎて見えなかった。原因は referenceDistance の較正ずれ:
+        //
+        //   カメラ (0, 5.3, 39) に対し、客の定位置バンドは z=12〜33。実距離は約 7〜27m で、
+        //   最も客が多い「近」バンド(z 27〜33)は 7.4〜12.8m しかない。
+        //   ScreenConstant は width = outlineWidth × (距離 / referenceDistance) なので、
+        //   基準 20m に対し近バンドの係数は 0.37〜0.64 まで落ち、さらに下限 0.015 でクランプされる。
+        //   → 1080p 換算で約 1.3px。ほぼ視認できない太さになっていた。
+        //
+        // そこで基準距離を実際の代表距離(近バンド中央 ≒ 12m)に合わせ、幅も引き上げた。
+        // 現在の値は 1080p 換算で全バンドおよそ 5px 相当（ScreenConstant なので距離によらず一定）。
+        // 実行中に [ / ] キーで増減できるので、実測しながら詰めること。
         [Header("インバートハル（案A）")]
         [Tooltip("押し出し幅（ワールド単位）。ScreenConstant のときは referenceDistance での幅になる。")]
-        [SerializeField] private float outlineWidth = 0.035f;
+        [SerializeField] private float outlineWidth = 0.09f;
 
-        [Tooltip("ScreenConstant の基準距離(m)。この距離で outlineWidth ちょうどになる。")]
-        [SerializeField] private float referenceDistance = 20f;
+        [Tooltip("ScreenConstant の基準距離(m)。この距離で outlineWidth ちょうどになる。客の代表距離に合わせること。")]
+        [SerializeField] private float referenceDistance = 12f;
 
-        [Tooltip("押し出し幅の下限・上限（ワールド単位）。極端な近接/遠方での破綻よけ。")]
-        [SerializeField] private Vector2 widthClamp = new Vector2(0.015f, 0.35f);
+        // 下限はあくまで「破綻よけの安全弁」。ここを上げすぎると、実行中に [ ] で細くしても
+        // 効かなくなり（HUD の表示と実際の見た目がずれる）、較正ミスに気づけなくなる。
+        [Tooltip("押し出し幅の下限・上限（ワールド単位）。極端な近接/遠方での破綻よけ。下限は安全弁なので低めに置くこと。")]
+        [SerializeField] private Vector2 widthClamp = new Vector2(0.02f, 0.6f);
 
         [Tooltip("輪郭に使うマテリアル（Toufuku/Mock/OutlineHull）。色はMPBで客ごとに差し替える。")]
         [SerializeField] private Material outlineMaterial;
@@ -152,6 +167,9 @@ namespace Toufuku.Rescue.Mock
             outlineWidth = world;
             ApplyOutline();
         }
+
+        /// <summary>現在の太さの基準値（ワールド単位）。実行中の調整結果を読むため。</summary>
+        public float OutlineWidth => outlineWidth;
 
         // ── 内部 ────────────────────────────────────────────────
 

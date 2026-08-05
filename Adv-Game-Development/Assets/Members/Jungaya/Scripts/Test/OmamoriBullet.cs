@@ -29,14 +29,14 @@ public class OmamoriBullet : MonoBehaviour
             CustomerRescue rescue = collision.gameObject.GetComponent<CustomerRescue>();
             if (rescue != null)
             {
-                // すでに結末確定済み（解消/怒り）の客への追撃。
+                // すでに結末確定済み（解消/怒り）の客への追撃に対する防御的ガード。
+                // 過剰押し売り（#33 案B）は企画書 v3 §16【B】で廃案。結末確定時に当たり判定を
+                // 消す仕様（CustomerMood.DisableHitDetection）により通常ここには到達しない。
+                // 到達した場合はコンポーネントの設定漏れなので、スコアもミスも一切計上せず
+                // 弾だけ破棄する。
                 if (rescue.IsResolved)
                 {
-                    // 解消済み（救済成功）への再ヒット＝過剰押し売り（#33 案B）。
-                    // 縁が少し入り、神社評価(#30)が微減する。怒り退場中はノーカウントのまま。
-                    if (rescue.Mood != null && rescue.Mood.IsResolved && ScoreManager.Instance != null)
-                        ScoreManager.Instance.RegisterOverSell();
-
+                    Debug.LogWarning("[OmamoriBullet] 結末確定済みの客に命中しました（当たり判定の無効化漏れの疑い）", collision.gameObject);
                     Destroy(gameObject);
                     return;
                 }

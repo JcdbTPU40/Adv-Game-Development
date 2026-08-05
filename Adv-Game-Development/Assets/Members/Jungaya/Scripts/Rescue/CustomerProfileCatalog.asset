@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: CustomerProfileCatalog
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfileCatalog
   profiles:
-  - {fileID: 11400000, guid: 4678b4a3b8f896b438a74b477cdb1383, type: 2}
   - {fileID: 11400000, guid: d7e94a6fa5e483841b875cb09e172306, type: 2}
-  - {fileID: 11400000, guid: 4a5297ba8970c0f4195e2024657a4318, type: 2}
-  - {fileID: 11400000, guid: 8b73b87a3c833164685072197fb268dc, type: 2}
+  - {fileID: 11400000, guid: 4678b4a3b8f896b438a74b477cdb1383, type: 2}
   - {fileID: 11400000, guid: 611da8b27eb60e7469bc363103066591, type: 2}
+  - {fileID: 11400000, guid: 8b73b87a3c833164685072197fb268dc, type: 2}
+  - {fileID: 11400000, guid: 4a5297ba8970c0f4195e2024657a4318, type: 2}
   affinityTable: {fileID: 11400000, guid: 7e7139a6e3816c6438b0049708ecd3dc, type: 2}
