@@ -96,7 +96,9 @@ Shader "Toufuku/Outline/Compose"
                 return SAMPLE_TEXTURE2D_X(_OutlineMaskTex, sampler_OutlineMaskTex, uv);
             }
 
-            // 半径 thicknessPx のボックス最大値フィルタでダイレートする。
+            // 半径はマスクRTのテクセル単位（C# 側で thicknessPx * maskResolutionScale に換算済み）。
+            // 画面上の見かけ太さを揃えるため。負荷が問題なら 2パス分離や半径低下が候補（Docs #45）。
+            //
             // 存在判定は A>0（色の明るさではない）。暗い輪郭色でも同等に検出する。
             // 近傍に複数の客がいる場合は「中心に近いサンプルを優先」。
             //   理由: 先勝ちだと走査順（左上→右下）に依存して縁の色が偏るため。

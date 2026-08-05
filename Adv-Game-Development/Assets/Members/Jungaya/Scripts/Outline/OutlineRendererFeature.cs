@@ -11,16 +11,17 @@ namespace Toufuku.Rescue.Outline
     /// <summary>
     /// ステンシル＋マスクRT方式のアウトライン Renderer Feature（#45）。
     ///
-    /// 構成:
-    ///   1) OutlineMaskPass … 登録済み OutlineTarget をオーバーライド材でマスクRTへ描く。
-    ///      ZTest LEqual でカメラ深度をテスト → 鳥居・提灯の裏はマスクに書かれない。
-    ///      同時にカメラ depth-stencil へ Stencil Ref=1 を立てて「内側」をマークする。
-    ///   2) OutlineComposePass … マスクを N px ダイレートし、Stencil NotEqual で内側を除外して縁だけ合成。
+    /// 構成（3パス）:
+    ///   1) OutlineStencilPass … フル解像度のカメラ depth-stencil に内側フラグだけを立てる（ColorMask 0）。
+    ///      ZTest LEqual で遮蔽（鳥居・提灯の裏）を従来どおり効かせる。
+    ///   2) OutlineMaskPass … 任意解像度のマスクRTへ色＋パターンを書く。深度アタッチメント無し。
+    ///      遮蔽は _CameraDepthTexture の手動サンプル＋discard。これで maskResolutionScale&lt;1 が可能。
+    ///   3) OutlineComposePass … マスクをダイレートし、Stencil NotEqual で内側を除外して縁だけ合成。
     ///
-    /// なぜステンシル＋マスクか:
-    ///   #44 のインバートハルは検証用として妥当だったが、本番ではドローコール2倍と
-    ///   メッシュ依存の太さ制御が展示す規模（16体）で不利。フルスクリーンの縁取りなら
-    ///   太さを画面ピクセル固定にでき、#44 で採用した ScreenConstant の見え方を踏襲できる。
+    /// なぜ色マスクとステンシルを分離したか:
+    ///   マスクRTを低解像度にすると RenderGraph がカラーと深度アタッチメントのサイズ一致を要求しエラーになる。
+    ///   Docs 4章の本命逃げ道「マスクRT 1/2」を塞がないため、ステンシルはフル解像度のまま残す。
+    ///   MRT や追加の R8 存在チャンネルは帯域が増えるので採用しない（A チャンネルに存在フラグを載せている）。
     ///
     /// Native RenderPass について:
     ///   本 Feature はフルスクリーン Compose でカメラの depth-stencil をバインドする。
@@ -41,16 +42,19 @@ namespace Toufuku.Rescue.Outline
             [Range(1f, 12f)]
             public float thicknessPx = 3f;
 
-            [Tooltip("合成時の発光強度。")]
+            [Tooltip("合成時の発光強度。RGB にだけ掛かる（alpha は 0〜1）。")]
             [Range(0f, 4f)]
             public float intensity = 1.4f;
 
             [Tooltip("マスク描画の対象レイヤー。")]
             public LayerMask layerMask = ~0;
 
-            [Tooltip("マスクRTの解像度スケール。1=フル、0.5=半分（軽量化候補）。")]
+            [Tooltip("マスクRTの解像度スケール。1=フル、0.5=半分（軽量化候補）。ステンシルは常にフル解像度。")]
             [Range(0.25f, 1f)]
             public float maskResolutionScale = 1f;
+
+            [Tooltip("低解像度マスク時の遮蔽エッジ調整用。手動深度比較のバイアス（生深度）。")]
+            public float depthBiasEpsilon = 1e-4f;
 
             [Header("雨天減衰（仮パラメータ）")]
             [Tooltip("仮: 雨天時の強度倍率。実機調整前提。")]
@@ -67,6 +71,9 @@ namespace Toufuku.Rescue.Outline
             [Range(0.05f, 1f)]
             public float farIntensity = 0.55f;
 
+            [Tooltip("ステンシル専用シェーダ（空なら Toufuku/Outline/Stencil を探す）。")]
+            public Shader stencilShader;
+
             [Tooltip("マスク描画に使うシェーダ（空なら Toufuku/Outline/Mask を探す）。")]
             public Shader maskShader;
 
@@ -78,10 +85,12 @@ namespace Toufuku.Rescue.Outline
         public class OutlineFrameData : ContextItem
         {
             public TextureHandle maskTexture;
+            public float maskResolutionScale = 1f;
 
             public override void Reset()
             {
                 maskTexture = TextureHandle.nullHandle;
+                maskResolutionScale = 1f;
             }
         }
 
@@ -89,8 +98,10 @@ namespace Toufuku.Rescue.Outline
 
         [SerializeField] Settings settings = new Settings();
 
+        OutlineStencilPass _stencilPass;
         OutlineMaskPass _maskPass;
         OutlineComposePass _composePass;
+        Material _stencilMaterial;
         Material _maskMaterial;
         Material _composeMaterial;
 
@@ -112,12 +123,17 @@ namespace Toufuku.Rescue.Outline
 
             EnsureMaterials();
 
+            _stencilPass ??= new OutlineStencilPass();
             _maskPass ??= new OutlineMaskPass();
             _composePass ??= new OutlineComposePass();
 
-            // Opaque の後＝カメラ深度が揃った状態でマスクを書き、その直後に縁を合成する。
+            // Opaque の後＝カメラ深度が揃った状態でステンシル→マスク→合成。
+            _stencilPass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
             _maskPass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
             _composePass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
+
+            // 色マスクは手動深度比較のため Depth テクスチャが必要。Compose も距離減衰で使う。
+            _maskPass.ConfigureInput(ScriptableRenderPassInput.Depth);
             _composePass.ConfigureInput(ScriptableRenderPassInput.Depth);
         }
 
@@ -129,20 +145,20 @@ namespace Toufuku.Rescue.Outline
                 return;
 
             EnsureMaterials();
-            if (_maskMaterial == null || _composeMaterial == null) return;
+            if (_stencilMaterial == null || _maskMaterial == null || _composeMaterial == null) return;
 
-            // 雨天・距離減衰の仮パラメータを Feature 設定から Weather へ同期してからグローバルへ流す。
             OutlineWeather.RainIntensityScale = settings.rainIntensityScale;
             OutlineWeather.NearDistance = settings.nearDistance;
             OutlineWeather.FarDistance = settings.farDistance;
             OutlineWeather.FarIntensity = settings.farIntensity;
             OutlineWeather.ApplyGlobals();
 
+            _stencilPass.Setup(_stencilMaterial, settings);
             _maskPass.Setup(_maskMaterial, settings);
             _composePass.Setup(_composeMaterial, settings);
-            // Compose は depth-stencil を読むため中間カラーが必要。
             _composePass.requiresIntermediateTexture = true;
 
+            renderer.EnqueuePass(_stencilPass);
             renderer.EnqueuePass(_maskPass);
             renderer.EnqueuePass(_composePass);
         }
@@ -151,16 +167,27 @@ namespace Toufuku.Rescue.Outline
         {
             if (s_Instance == this) s_Instance = null;
 
+            CoreUtils.Destroy(_stencilMaterial);
             CoreUtils.Destroy(_maskMaterial);
             CoreUtils.Destroy(_composeMaterial);
+            _stencilMaterial = null;
             _maskMaterial = null;
             _composeMaterial = null;
+            _stencilPass = null;
             _maskPass = null;
             _composePass = null;
         }
 
         void EnsureMaterials()
         {
+            if (_stencilMaterial == null)
+            {
+                var shader = settings.stencilShader != null
+                    ? settings.stencilShader
+                    : Shader.Find("Toufuku/Outline/Stencil");
+                if (shader != null) _stencilMaterial = CoreUtils.CreateEngineMaterial(shader);
+            }
+
             if (_maskMaterial == null)
             {
                 var shader = settings.maskShader != null
@@ -178,25 +205,116 @@ namespace Toufuku.Rescue.Outline
             }
         }
 
+        /// <summary>有効な OutlineTarget を収集する共通処理。</summary>
+        static void CollectTargets(Settings settings, List<OutlineTarget> dst)
+        {
+            dst.Clear();
+            var active = OutlineTarget.ActiveTargets;
+            for (int i = 0; i < active.Count; i++)
+            {
+                var t = active[i];
+                if (t == null || !t.isActiveAndEnabled) continue;
+                if (t.TargetRenderer == null || !t.TargetRenderer.enabled) continue;
+                if (((1 << t.TargetRenderer.gameObject.layer) & settings.layerMask) == 0) continue;
+                dst.Add(t);
+            }
+        }
+
+        static int GetSubMeshCount(Renderer renderer)
+        {
+            if (renderer is MeshRenderer mf)
+            {
+                var filter = mf.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
+                    return filter.sharedMesh.subMeshCount;
+            }
+            else if (renderer is SkinnedMeshRenderer smr && smr.sharedMesh != null)
+            {
+                return smr.sharedMesh.subMeshCount;
+            }
+            return 1;
+        }
+
+        // ── Stencil Pass ─────────────────────────────────────────
+
+        /// <summary>
+        /// フル解像度のカメラ depth-stencil に内側フラグだけを立てる。
+        /// カラーアタッチメント無し（ColorMask 0）。遮蔽は ZTest LEqual。
+        /// </summary>
+        sealed class OutlineStencilPass : ScriptableRenderPass
+        {
+            static readonly List<OutlineTarget> s_Scratch = new List<OutlineTarget>(32);
+
+            Material _material;
+            Settings _settings;
+
+            class PassData
+            {
+                public Material material;
+                public List<Renderer> renderers;
+            }
+
+            public OutlineStencilPass()
+            {
+                profilingSampler = new ProfilingSampler("OutlineStencil");
+            }
+
+            public void Setup(Material material, Settings settings)
+            {
+                _material = material;
+                _settings = settings;
+            }
+
+            public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+            {
+                if (_material == null) return;
+
+                var resourceData = frameData.Get<UniversalResourceData>();
+                if (!resourceData.activeDepthTexture.IsValid()) return;
+                if (!resourceData.activeColorTexture.IsValid()) return;
+
+                CollectTargets(_settings, s_Scratch);
+                if (s_Scratch.Count == 0) return;
+
+                using (var builder = renderGraph.AddRasterRenderPass<PassData>("Outline Stencil", out var passData, profilingSampler))
+                {
+                    passData.material = _material;
+                    passData.renderers = new List<Renderer>(s_Scratch.Count);
+                    for (int i = 0; i < s_Scratch.Count; i++)
+                        passData.renderers.Add(s_Scratch[i].TargetRenderer);
+
+                    // ステンシル書き込みのため depth-stencil を ReadWrite。
+                    // カラーは ColorMask 0 だが、RenderGraph はカラーアタッチメントを要求することがあるため
+                    // 既存のカメラカラーをバインドする（書き込まない）。
+                    builder.SetRenderAttachment(resourceData.activeColorTexture, 0, AccessFlags.Write);
+                    builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture, AccessFlags.ReadWrite);
+
+                    builder.SetRenderFunc(static (PassData data, RasterGraphContext ctx) =>
+                    {
+                        for (int i = 0; i < data.renderers.Count; i++)
+                        {
+                            var r = data.renderers[i];
+                            if (r == null) continue;
+                            int sub = GetSubMeshCount(r);
+                            for (int s = 0; s < sub; s++)
+                                ctx.cmd.DrawRenderer(r, data.material, s, 0);
+                        }
+                    });
+                }
+            }
+        }
+
         // ── Mask Pass ────────────────────────────────────────────
 
         /// <summary>
-        /// 登録済みレンダラをマスクRTへ描き、ステンシルで内側をマークする。
-        ///
-        /// 遮蔽の仕組み:
-        ///   SetRenderAttachmentDepth でカメラの depth-stencil をバインドし、
-        ///   シェーダ側 ZTest LEqual / ZWrite Off。Opaque 描画後の深度に対してテストするため、
-        ///   鳥居・提灯など手前の遮蔽物の裏に回った面は深度テストで落ち、マスクにもステンシルにも書かれない。
-        ///   → 遮蔽越しに輪郭が透けて見えない。
-        ///
-        /// ステンシル:
-        ///   Ref 1 / Comp Always / Pass Replace。内側ピクセルにフラグを立てる。
-        ///   Compose 側は Comp NotEqual で内側を除外し、ダイレートした外周リングだけを残す。
+        /// 任意解像度のマスクRTへ色＋パターンを書く。深度アタッチメント無し。
+        /// 遮蔽はシェーダ内で _CameraDepthTexture を比較して discard。
         /// </summary>
         sealed class OutlineMaskPass : ScriptableRenderPass
         {
             static readonly int ColorId = Shader.PropertyToID("_OutlineColor");
             static readonly int PatternId = Shader.PropertyToID("_OutlinePatternId");
+            static readonly int DepthBiasId = Shader.PropertyToID("_OutlineDepthBiasEpsilon");
 
             static readonly MaterialPropertyBlock s_Mpb = new MaterialPropertyBlock();
             static readonly List<OutlineTarget> s_Scratch = new List<OutlineTarget>(32);
@@ -208,6 +326,7 @@ namespace Toufuku.Rescue.Outline
             {
                 public Material material;
                 public List<DrawItem> items;
+                public float depthBias;
             }
 
             public struct DrawItem
@@ -233,20 +352,8 @@ namespace Toufuku.Rescue.Outline
                 if (_material == null) return;
 
                 var resourceData = frameData.Get<UniversalResourceData>();
-                if (!resourceData.activeDepthTexture.IsValid()) return;
 
-                // 有効なターゲットをスナップショット（Execute 中にリストが変わらないように）。
-                s_Scratch.Clear();
-                var active = OutlineTarget.ActiveTargets;
-                for (int i = 0; i < active.Count; i++)
-                {
-                    var t = active[i];
-                    if (t == null || !t.isActiveAndEnabled) continue;
-                    if (t.TargetRenderer == null || !t.TargetRenderer.enabled) continue;
-                    if (((1 << t.TargetRenderer.gameObject.layer) & _settings.layerMask) == 0) continue;
-                    s_Scratch.Add(t);
-                }
-
+                CollectTargets(_settings, s_Scratch);
                 if (s_Scratch.Count == 0) return;
 
                 var camColor = resourceData.activeColorTexture;
@@ -273,10 +380,12 @@ namespace Toufuku.Rescue.Outline
 
                 var outlineData = frameData.GetOrCreate<OutlineFrameData>();
                 outlineData.maskTexture = mask;
+                outlineData.maskResolutionScale = scale;
 
                 using (var builder = renderGraph.AddRasterRenderPass<PassData>("Outline Mask", out var passData, profilingSampler))
                 {
                     passData.material = _material;
+                    passData.depthBias = _settings.depthBiasEpsilon;
                     passData.items = new List<DrawItem>(s_Scratch.Count);
                     for (int i = 0; i < s_Scratch.Count; i++)
                     {
@@ -290,9 +399,11 @@ namespace Toufuku.Rescue.Outline
                         });
                     }
 
+                    // 深度アタッチメントは付けない → 任意解像度のマスクRTが可能。
                     builder.SetRenderAttachment(mask, 0, AccessFlags.Write);
-                    // カメラ深度でテストしつつステンシルへ内側フラグを書く。深度値自体は書き換えない（シェーダ ZWrite Off）。
-                    builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture, AccessFlags.ReadWrite);
+
+                    if (resourceData.cameraDepthTexture.IsValid())
+                        builder.UseTexture(resourceData.cameraDepthTexture, AccessFlags.Read);
 
                     builder.SetRenderFunc(static (PassData data, RasterGraphContext ctx) =>
                     {
@@ -301,26 +412,14 @@ namespace Toufuku.Rescue.Outline
                             var item = data.items[i];
                             if (item.renderer == null) continue;
 
-                            // 本体の MPB（_BaseColor 等）を壊さないよう Get→追記→Set。
                             item.renderer.GetPropertyBlock(s_Mpb);
                             s_Mpb.SetColor(ColorId, item.color);
                             s_Mpb.SetFloat(PatternId, item.patternId);
+                            s_Mpb.SetFloat(DepthBiasId, data.depthBias);
                             item.renderer.SetPropertyBlock(s_Mpb);
 
-                            int subMeshCount = 1;
-                            var mf = item.renderer as MeshRenderer;
-                            if (mf != null)
-                            {
-                                var filter = mf.GetComponent<MeshFilter>();
-                                if (filter != null && filter.sharedMesh != null)
-                                    subMeshCount = filter.sharedMesh.subMeshCount;
-                            }
-                            else if (item.renderer is SkinnedMeshRenderer smr && smr.sharedMesh != null)
-                            {
-                                subMeshCount = smr.sharedMesh.subMeshCount;
-                            }
-
-                            for (int s = 0; s < subMeshCount; s++)
+                            int sub = GetSubMeshCount(item.renderer);
+                            for (int s = 0; s < sub; s++)
                                 ctx.cmd.DrawRenderer(item.renderer, data.material, s, 0);
                         }
                     });
@@ -349,7 +448,7 @@ namespace Toufuku.Rescue.Outline
             {
                 public Material material;
                 public TextureHandle mask;
-                public float thicknessPx;
+                public float thicknessInMaskPx;
                 public float intensity;
                 public Vector4 maskTexelSize;
             }
@@ -381,8 +480,13 @@ namespace Toufuku.Rescue.Outline
                 {
                     passData.material = _material;
                     passData.mask = outlineData.maskTexture;
-                    passData.thicknessPx = _settings.thicknessPx;
                     passData.intensity = _settings.intensity;
+
+                    // thicknessPx は「画面上のピクセル」。ダイレート半径はマスクRTのテクセル単位。
+                    // maskResolutionScale=0.5 ならマスク1px が画面上≈2px なので、
+                    // radius_mask = thicknessPx * scale に換算して見かけの太さを揃える。
+                    float scale = Mathf.Clamp(outlineData.maskResolutionScale, 0.25f, 1f);
+                    passData.thicknessInMaskPx = Mathf.Max(1f, _settings.thicknessPx * scale);
 
                     var maskDesc = renderGraph.GetTextureDesc(outlineData.maskTexture);
                     passData.maskTexelSize = new Vector4(
@@ -397,7 +501,6 @@ namespace Toufuku.Rescue.Outline
                         builder.UseTexture(resourceData.cameraDepthTexture, AccessFlags.Read);
 
                     builder.SetRenderAttachment(resourceData.activeColorTexture, 0, AccessFlags.Write);
-                    // ステンシルテストで内側を除外するため depth-stencil をバインドする。
                     if (resourceData.activeDepthTexture.IsValid())
                         builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture, AccessFlags.Read);
 
@@ -406,9 +509,8 @@ namespace Toufuku.Rescue.Outline
                         s_Mpb.Clear();
                         s_Mpb.SetTexture(MaskTexId, data.mask);
                         s_Mpb.SetVector(MaskTexelSizeId, data.maskTexelSize);
-                        s_Mpb.SetFloat(ThicknessId, data.thicknessPx);
+                        s_Mpb.SetFloat(ThicknessId, data.thicknessInMaskPx);
                         s_Mpb.SetFloat(IntensityId, data.intensity);
-                        // Core Blit.hlsl 互換。
                         s_Mpb.SetVector(Shader.PropertyToID("_BlitScaleBias"), new Vector4(1f, 1f, 0f, 0f));
 
                         ctx.cmd.DrawProcedural(Matrix4x4.identity, data.material, 0, MeshTopology.Triangles, 3, 1, s_Mpb);
