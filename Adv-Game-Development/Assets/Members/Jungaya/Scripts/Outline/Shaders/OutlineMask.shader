@@ -19,7 +19,7 @@ Shader "Toufuku/Outline/Mask"
         [HDR] _OutlineColor ("Outline Color", Color) = (1, 1, 1, 1)
         // OutlinePattern の数値（0/1/2）。A へ載せるときはシェーダ内で +1 エンコードする。
         _OutlinePatternId ("Pattern Id (enum 0-2)", Float) = 0
-        _OutlineDepthBiasEpsilon ("Depth Bias", Float) = 0.0001
+        _OutlineDepthBiasEpsilon ("Depth Bias (meters)", Float) = 0.03
     }
 
     SubShader
@@ -91,18 +91,16 @@ Shader "Toufuku/Outline/Mask"
 
                 // スクリーンUVでカメラ深度を取り、自分が奥なら discard（遮蔽）。
                 // 低解像度マスク時は深度テクスチャとの解像度差でエッジが1〜2pxずれることがある。
-                // _OutlineDepthBiasEpsilon で調整（Settings.depthBiasEpsilon）。
+                // バイアスはメートル単位（Settings.depthBiasEpsilon）。raw depth は非線形なので使わない。
                 float sceneRaw = SampleSceneDepth(screenUV);
-                float fragRaw = IN.positionCS.z;
+                float sceneEye = LinearEyeDepth(sceneRaw, _ZBufferParams);
+                // SV_POSITION.z はクリップ空間 Z。LinearEyeDepth は raw/デバイス深度を想定するため、
+                // フラグメント深度も同じ経路で線形化する（positionCS.z は既に w 除算後の NDC/デバイス深度相当）。
+                float fragEye = LinearEyeDepth(IN.positionCS.z, _ZBufferParams);
 
-#if UNITY_REVERSED_Z
-                // Reversed-Z: 値が大きいほど手前。frag が scene より小さい＝奥 → 捨てる。
-                if (fragRaw < sceneRaw - _OutlineDepthBiasEpsilon)
+                // 視線距離で比較。frag が scene より奥（値が大きい）なら遮蔽されて捨てる。
+                if (fragEye > sceneEye + _OutlineDepthBiasEpsilon)
                     discard;
-#else
-                if (fragRaw > sceneRaw + _OutlineDepthBiasEpsilon)
-                    discard;
-#endif
 
                 // 存在フラグ付きエンコード。Compose は A>0 で存在、round(A*255)-1 で patternId を復元。
                 half a = (1.0h + (half)_OutlinePatternId) / 255.0h;

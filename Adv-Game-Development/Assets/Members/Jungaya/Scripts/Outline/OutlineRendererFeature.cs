@@ -53,8 +53,8 @@ namespace Toufuku.Rescue.Outline
             [Range(0.25f, 1f)]
             public float maskResolutionScale = 1f;
 
-            [Tooltip("低解像度マスク時の遮蔽エッジ調整用。手動深度比較のバイアス（生深度）。")]
-            public float depthBiasEpsilon = 1e-4f;
+            [Tooltip("遮蔽判定の深度バイアス（メートル）。低解像度マスク時のエッジ調整用。LinearEyeDepth 空間で比較する。")]
+            public float depthBiasEpsilon = 0.03f;
 
             [Header("雨天減衰（仮パラメータ）")]
             [Tooltip("仮: 雨天時の強度倍率。実機調整前提。")]
