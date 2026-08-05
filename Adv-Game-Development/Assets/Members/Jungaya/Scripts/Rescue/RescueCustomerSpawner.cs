@@ -11,6 +11,7 @@ namespace Toufuku.Rescue
     ///   付いていなければ <see cref="CustomerRescue"/> へ直接 Setup する（最低限の判定だけ動く）。
     ///
     /// 既存の Customer_Spawner とは独立。Rescue 系の動作確認用にシーンへ1つ置いて使う想定。
+    /// ※ 常時補充制を本実装する際の注意：上限低下で体数が超過しても、既にいる客は強制退場させず自然減を待つこと（企画書v3 §7/§8。MockCrowdDirector.BalanceToTarget と同方針）。
     /// </summary>
     public class RescueCustomerSpawner : MonoBehaviour
     {

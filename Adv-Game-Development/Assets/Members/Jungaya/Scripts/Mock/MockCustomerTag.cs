@@ -17,7 +17,7 @@ namespace Toufuku.Rescue.Mock
     /// </summary>
     public class MockCustomerTag : MonoBehaviour
     {
-        [Tooltip("お守り5種のインデックス（0:健康 1:学業 2:縁結び 3:金運 4:厄除け）。黒客は -1。")]
+        [Tooltip("お守り5種のインデックス（0:健康 1:学業成就 2:厄除け安全 3:縁結び 4:金運）。黒客は -1。")]
         [SerializeField] private int colorIndex = -1;
 
         [Tooltip("黒客なら ON。輪郭もゲージも黒系になる。")]

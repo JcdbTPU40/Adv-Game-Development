@@ -132,7 +132,7 @@ namespace Toufuku.Rescue.MockEditor
             Material mat = EnsureMaterial(OutlineMatPath, shader);
             // 実際の色と太さは MaterialPropertyBlock で客ごとに上書きされる。ここは既定値。
             if (mat.HasProperty("_OutlineColor")) mat.SetColor("_OutlineColor", Color.white);
-            if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0.035f);
+            if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0.09f);
             EditorUtility.SetDirty(mat);
             return mat;
         }

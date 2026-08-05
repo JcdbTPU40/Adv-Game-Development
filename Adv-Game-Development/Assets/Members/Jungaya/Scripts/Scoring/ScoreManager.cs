@@ -27,10 +27,6 @@ public class ScoreManager : MonoBehaviour
     [Tooltip("倍率の上限")]
     [SerializeField] float maxMultiplier = 3.0f;
 
-    [Header("過剰押し売り（#33 案B）")]
-    [Tooltip("救済済みの客に再ヒットしたときに入る縁。コンボ倍率はかからない。")]
-    [SerializeField] int overSellScore = 30;
-
     // ---------- 公開イベント（#31） ----------
     /// <summary>縁が変化した（引数: 現在の累計縁）。</summary>
     public event Action<int> onEnChanged;
@@ -40,8 +36,6 @@ public class ScoreManager : MonoBehaviour
     public event Action<float> onMultiplierChanged;
     /// <summary>ミス（外し／相性✗）が起きた。コンボ途切れ演出・SE用。</summary>
     public event Action onMiss;
-    /// <summary>過剰押し売り（#33）が起きた。SE/演出用。</summary>
-    public event Action onOverSell;
     /// <summary>ResetAll が呼ばれた（リトライ用。#32 のセッションが購読）。</summary>
     public event Action onReset;
 
@@ -118,25 +112,6 @@ public class ScoreManager : MonoBehaviour
         onComboChanged?.Invoke(Combo);
         onMultiplierChanged?.Invoke(TotalMultiplier);
         onMiss?.Invoke(); // ミスSE・コンボ途切れ演出（HUD点滅など）はここを購読する
-    }
-
-    /// <summary>
-    /// 過剰押し売り（#33 案B）。救済済みの客への再ヒット。
-    /// 縁が少しだけ入る（コンボ倍率なし・コンボも伸びない）。評価微減は ShrineRating 側。
-    /// </summary>
-    public void RegisterOverSell()
-    {
-        En += overSellScore;
-        LastGain = overSellScore;
-
-        Debug.Log($"[Score] OVERSELL : +{overSellScore}（押し売りしすぎ！ 評価微減）  (En {En})");
-
-        onEnChanged?.Invoke(En);
-        onOverSell?.Invoke(); // SE/演出用
-
-        // 神社評価(#30)を微減させる
-        if (ShrineRating.Instance != null)
-            ShrineRating.Instance.RegisterOverSell();
     }
 
     /// <summary>ご加護タイム(#29)から呼ぶ。上乗せ倍率の設定/解除。</summary>

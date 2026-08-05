@@ -22,7 +22,9 @@ namespace Toufuku.Rescue
         [Header("相性テーブル（#12）")]
         [Tooltip("お守り5種×客タイプの相性テーブル(ScriptableObject)。割り当てると下の客タイプで相性を判定する。未設定なら従来どおり correctOmamori との一致で判定。")]
         [SerializeField] private OmamoriAffinityTable affinityTable;
-        [Tooltip("この客のタイプ。affinityTable 設定時に使う。正式には #16 のスポーン側から設定する想定。")]
+        [Tooltip("この客のタイプ。affinityTable 設定時に使う。正式には #16 のスポーン側から設定する想定。" +
+                 "※ affinityTable が設定されている場合、判定に使われるのは customerType であり correctOmamori ではない。" +
+                 "シーン上でオーバーライドするときは必ず両方を揃えること。")]
         [SerializeField] private CustomerType customerType = CustomerType.Kenkou;
 
         [Header("この客が求めているお守り（正解／フォールバック）")]
@@ -83,6 +85,8 @@ namespace Toufuku.Rescue
         public Affinity ApplyHit(OmamoriType hitType)
         {
             // 相性テーブル(#12)があれば客タイプで判定。無ければ従来の正解一致で判定。
+            // ※ テーブル設定時、correctOmamori は判定に使われない。customerType の設定漏れ
+            //   （correctOmamori だけオーバーライド等）は全員 Kenkou 扱いになるので注意。
             Affinity affinity = affinityTable != null
                 ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
                 : AffinityResolver.Resolve(correctOmamori, hitType);

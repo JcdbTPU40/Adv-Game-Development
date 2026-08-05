@@ -19,9 +19,9 @@ public enum ShrineRank
 /// ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を保持）。
 /// ・客の解消/怒りは <see cref="ShrineRatingHook"/> が CustomerMood の
 ///   onResolved / onAngry を購読して Register○○() を呼んでくる。
-/// ・過剰押し売り(#33)の微減は ScoreManager.RegisterOverSell 経由で入る。
 /// ・評価→縁倍率(EnMultiplier)は ScoreManager の獲得計算に自動で乗る。
 ///
+/// ※ 展示ビルドでは毎プレイ必ずランクCスタート（v3 §7）。
 /// ※ 展示ビルドでは「評価低下で早期終了」は不採用（回転率優先）。
 /// </summary>
 public class ShrineRating : MonoBehaviour
@@ -30,16 +30,14 @@ public class ShrineRating : MonoBehaviour
 
     [Header("評価値")]
     [SerializeField] float maxRating = 100f;
-    [Tooltip("ゲーム開始時の評価値。")]
-    [SerializeField] float startRating = 50f;
+    [Tooltip("ゲーム開始時の評価値。企画書v3 §7により、必ずランクC圏（rankBThreshold 未満）にすること。")]
+    [SerializeField] float startRating = 30f;
 
     [Header("増減量")]
     [Tooltip("救済成功（解消）1人あたりの加点。")]
     [SerializeField] float resolveGain = 5f;
     [Tooltip("救済失敗（怒り）1人あたりの減点。")]
     [SerializeField] float angryLoss = 10f;
-    [Tooltip("過剰押し売り（#33）1回あたりの微減。")]
-    [SerializeField] float overSellLoss = 2f;
 
     [Header("ランク閾値（この値以上でそのランク）")]
     [SerializeField] float rankSThreshold = 80f;
@@ -91,7 +89,23 @@ public class ShrineRating : MonoBehaviour
 
         _rating = Mathf.Clamp(startRating, 0f, maxRating);
         _rank = RankOf(_rating);
+
+        // 企画書v3 §7：毎プレイ必ずランクCスタートの実行時ガード。
+        if (RankOf(_rating) != ShrineRank.C)
+            Debug.LogError($"[Rating] 開始ランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
     }
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Inspector で設定値を変えたときのチェック（エディタ専用）。
+    /// 企画書v3 §7「毎プレイ必ずランクCスタート」を満たさない値を早期に警告する。
+    /// </summary>
+    void OnValidate()
+    {
+        if (startRating >= rankBThreshold)
+            Debug.LogWarning($"[Rating] startRating ({startRating}) がランクC圏を外れています（v3 §7 違反）。rankBThreshold ({rankBThreshold}) 未満にしてください。", this);
+    }
+#endif
 
     void Start()
     {
@@ -106,15 +120,17 @@ public class ShrineRating : MonoBehaviour
     /// <summary>救済失敗（怒り）→ 減点。ShrineRatingHook から呼ばれる。</summary>
     public void RegisterAngry() => Modify(-angryLoss, "怒り");
 
-    /// <summary>過剰押し売り（#33）→ 微減。ScoreManager から呼ばれる。</summary>
-    public void RegisterOverSell() => Modify(-overSellLoss, "押し売り");
-
     /// <summary>評価を初期値へ戻す（リトライ用。GameSession #32 が呼ぶ）。</summary>
     public void ResetAll()
     {
         _rating = Mathf.Clamp(startRating, 0f, maxRating);
         Debug.Log("[Rating] Reset");
         ApplyChange();
+
+        // 企画書v3 §7：リトライ経路（GameSession.Retry → ResetAll）でも
+        // 必ずランクCに戻ることを保証する実行時ガード。
+        if (RankOf(_rating) != ShrineRank.C)
+            Debug.LogError($"[Rating] リセット後のランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
     }
 
     void Modify(float delta, string reason)

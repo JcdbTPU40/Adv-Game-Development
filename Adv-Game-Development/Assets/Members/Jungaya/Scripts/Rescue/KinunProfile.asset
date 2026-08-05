@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9f773d9de1046c6aa9b32464625ca1e, type: 3}
   m_Name: KinunProfile
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfile
-  customerType: 3
-  correctOmamori: 3
+  customerType: 4
+  correctOmamori: 4
+  palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   placeholderSprite: {fileID: 0}
   viewPrefab: {fileID: 0}
-  representativeColor: {r: 1, g: 0.8431373, b: 0, a: 1}
+  representativeColor: {r: 1, g: 0.78, b: 0.1, a: 1}
   displayName: "\u91D1\u904B"
   designerNote: 

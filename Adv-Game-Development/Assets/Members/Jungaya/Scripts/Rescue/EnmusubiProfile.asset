@@ -10,12 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f773d9de1046c6aa9b32464625ca1e, type: 3}
-  m_Name: RenaiProfile
+  m_Name: EnmusubiProfile
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfile
-  customerType: 2
-  correctOmamori: 2
+  customerType: 3
+  correctOmamori: 3
+  palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   placeholderSprite: {fileID: 0}
   viewPrefab: {fileID: 0}
-  representativeColor: {r: 1, g: 0.4117647, b: 0.7058824, a: 1}
+  representativeColor: {r: 1, g: 0.4, b: 0.62, a: 1}
   displayName: "\u7E01\u7D50\u3073"
   designerNote: 

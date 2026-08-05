@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfile
   customerType: 0
   correctOmamori: 0
+  palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   placeholderSprite: {fileID: 0}
   viewPrefab: {fileID: 0}
-  representativeColor: {r: 0.4862745, g: 0.9882354, b: 0, a: 1}
+  representativeColor: {r: 0.2, g: 0.9, b: 0.35, a: 1}
   displayName: "\u5065\u5EB7"
   designerNote: 

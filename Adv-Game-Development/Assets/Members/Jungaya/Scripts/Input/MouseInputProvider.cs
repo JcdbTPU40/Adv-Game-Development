@@ -23,11 +23,12 @@ namespace Toufuku.GameInput
         {
             get
             {
+                // キー1〜5 → OmamoriType の enum 値（企画書v3 §3 の並び）に対応。
                 if (Input.GetKeyDown(KeyCode.Alpha1)) return 0; // 健康
-                if (Input.GetKeyDown(KeyCode.Alpha2)) return 1; // 学業
-                if (Input.GetKeyDown(KeyCode.Alpha3)) return 2; // 恋愛
-                if (Input.GetKeyDown(KeyCode.Alpha4)) return 3; // 金運
-                if (Input.GetKeyDown(KeyCode.Alpha5)) return 4; // 厄除け
+                if (Input.GetKeyDown(KeyCode.Alpha2)) return 1; // 学業成就
+                if (Input.GetKeyDown(KeyCode.Alpha3)) return 2; // 厄除け安全
+                if (Input.GetKeyDown(KeyCode.Alpha4)) return 3; // 縁結び
+                if (Input.GetKeyDown(KeyCode.Alpha5)) return 4; // 金運
                 return -1;
             }
         }

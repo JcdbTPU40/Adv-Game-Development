@@ -48,6 +48,10 @@ namespace Toufuku.Rescue
         [Tooltip("解消/怒りが確定してから退場（Destroy）するまでの余韻（秒）。0で光る演出を見せる猶予。")]
         [SerializeField] private float resolveLingerTime = 0.6f;
 
+        [Header("結末確定時の当たり判定")]
+        [Tooltip("結末確定（解消/怒り）と同時に enabled=false にする Collider。未設定（空 or null）なら子階層から自動収集する。")]
+        [SerializeField] private Collider[] hitColliders;
+
         [Header("イベント（VFX/SE/HUD/スコア接続用）")]
         public UnityEvent<float> onGaugeChanged;   // 引数: 0〜1 の正規化ゲージ（HUD用）
         public UnityEvent<MoodState> onStateChanged;// ステートが変わるたびに発火
@@ -162,8 +166,36 @@ namespace Toufuku.Rescue
                 onAngry?.Invoke();
             }
 
+            // 企画書 v3 §16【B】：救済成功後の再ヒットを不可能にするため、
+            // 結末確定（解消/怒りのどちらも）と同時に当たり判定を消す。
+            // 以後の弾は客をすり抜けて地面に当たり、外し（RegisterMiss）扱いになる。
+            DisableHitDetection();
+
             // 余韻（光る演出/怒り演出）を見せてから退場。
             StartCoroutine(LingerThenDespawn());
+        }
+
+        /// <summary>
+        /// 当たり判定の無効化。企画書 v3 §16【B】：救済成功後の再ヒットを不可能にするため、
+        /// 結末確定と同時に当たり判定を消す（解消済みの客に弾を当て続けて縁を稼ぐ抜け道を塞ぐ）。
+        /// Destroy ではなく enabled=false（余韻演出中も見た目は残す）。
+        /// </summary>
+        private void DisableHitDetection()
+        {
+            // Inspector 未設定（空 or null）でも動くよう、子階層から自動収集する（非アクティブ含む）。
+            if (hitColliders == null || hitColliders.Length == 0)
+                hitColliders = GetComponentsInChildren<Collider>(true);
+
+            // Rigidbody が付いている場合の落下対策：Collider を切る前に isKinematic にして、
+            // 余韻中に床をすり抜けて落ちるのを防ぐ。
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
+
+            for (int i = 0; i < hitColliders.Length; i++)
+            {
+                if (hitColliders[i] != null)
+                    hitColliders[i].enabled = false;
+            }
         }
 
         private IEnumerator LingerThenDespawn()

@@ -315,12 +315,13 @@ MonoBehaviour:
   customerPrefab: {fileID: 3874485989399354985, guid: cd0f488e5b98d5143961b7c5167a7a52, type: 3}
   customerParent: {fileID: 2081906548}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
+  palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   omamoriColors:
   - {r: 0.2, g: 1, b: 0.45, a: 1}
   - {r: 0.3, g: 0.65, b: 1, a: 1}
+  - {r: 0.75, g: 0.35, b: 1, a: 1}
   - {r: 1, g: 0.4, b: 0.7, a: 1}
   - {r: 1, g: 0.85, b: 0.15, a: 1}
-  - {r: 0.75, g: 0.35, b: 1, a: 1}
   blackCustomerColor: {r: 0.04, g: 0.04, b: 0.06, a: 1}
   bodyColor: {r: 0.72, g: 0.7, b: 0.66, a: 1}
   rank: 3
@@ -386,6 +387,9 @@ MonoBehaviour:
   freezeGauges: 0
   outlineMode: 0
   outlineWidthMode: 1
+  outlineWidth: 0.09
+  outlineWidthStep: 0.015
+  outlineWidthRange: {x: 0.02, y: 0.4}
 --- !u!4 &209540296
 Transform:
   m_ObjectHideFlags: 0

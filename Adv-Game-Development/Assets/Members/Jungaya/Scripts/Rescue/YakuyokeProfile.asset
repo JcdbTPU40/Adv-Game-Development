@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9f773d9de1046c6aa9b32464625ca1e, type: 3}
   m_Name: YakuyokeProfile
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerProfile
-  customerType: 4
-  correctOmamori: 4
+  customerType: 2
+  correctOmamori: 2
+  palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   placeholderSprite: {fileID: 0}
   viewPrefab: {fileID: 0}
-  representativeColor: {r: 0.7294118, g: 0.3333333, b: 0.8274511, a: 1}
-  displayName: "\u5384\u9664\u3051"
+  representativeColor: {r: 0.65, g: 0.25, b: 0.95, a: 1}
+  displayName: "\u5384\u9664\u3051\u5b89\u5168"
   designerNote: 

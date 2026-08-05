@@ -40,6 +40,10 @@ namespace Toufuku.Rescue.Mock
         [SerializeField] private KeyCode keyOutlineMode = KeyCode.O;
         [Tooltip("輪郭の太さモード（ワールド固定 ⇄ 画面上一定）。")]
         [SerializeField] private KeyCode keyWidthMode = KeyCode.W;
+        [Tooltip("輪郭を細くする。実測しながら適正値を探す用。")]
+        [SerializeField] private KeyCode keyWidthDown = KeyCode.LeftBracket;
+        [Tooltip("輪郭を太くする。実測しながら適正値を探す用。")]
+        [SerializeField] private KeyCode keyWidthUp = KeyCode.RightBracket;
         [Tooltip("ゲージ幅の距離スケール ON/OFF。")]
         [SerializeField] private KeyCode keyGaugeScale = KeyCode.G;
         [Tooltip("定位置を抽選し直す。")]
@@ -100,6 +104,8 @@ namespace Toufuku.Rescue.Mock
             if (Input.GetKeyDown(keyRank)) director.CycleRank();
             if (Input.GetKeyDown(keyOutlineMode)) director.ToggleOutlineMode();
             if (Input.GetKeyDown(keyWidthMode)) director.ToggleOutlineWidthMode();
+            if (Input.GetKeyDown(keyWidthDown)) director.StepOutlineWidth(-1);
+            if (Input.GetKeyDown(keyWidthUp)) director.StepOutlineWidth(+1);
             if (Input.GetKeyDown(keyReshuffle)) director.ReshuffleSlots();
             if (Input.GetKeyDown(keyFreezeGauges)) director.ToggleFreezeGauges();
 
@@ -186,7 +192,7 @@ namespace Toufuku.Rescue.Mock
             return
                 $"体数 {director.AliveCount}/{director.TargetCount}　定位置 {settled}（歩行中 {director.AliveCount - settled}／補充待ち {director.PendingCount}）\n" +
                 $"内訳 {targetSource}　祭事 {(director.FestivalMode ? "ON" : "OFF")}　ランク {director.Rank}\n" +
-                $"輪郭 {outline}／太さ {width}　ゲージ {gauge}\n" +
+                $"輪郭 {outline}／太さ {width} {director.OutlineWidth:0.000}　ゲージ {gauge}\n" +
                 $"補充テンポ スポーン遅延 {director.RespawnDelay:0.0}s ／ 歩行 {director.WalkDuration:0.0}s" +
                 (director.FreezeGauges ? "\n― ゲージ凍結中（退場なし）―" : string.Empty) +
                 (_paused ? "\n― 一時停止中 ―" : string.Empty);
@@ -197,7 +203,8 @@ namespace Toufuku.Rescue.Mock
             return
                 $"[{key8}/{key12}/{key15}] 体数 {preset8}/{preset12}/{preset15}　[{keyClearOverride}] 固定解除\n" +
                 $"[{keyFestival}] 祭事　[{keyRank}] ランク　[{keyFreezeGauges}] ゲージ凍結　[{keyPause}] 一時停止\n" +
-                $"[{keyOutlineMode}] 輪郭方式　[{keyWidthMode}] 太さ　[{keyGaugeScale}] ゲージ幅　[{keyReshuffle}] 配置替え";
+                $"[{keyOutlineMode}] 輪郭方式　[{keyWidthMode}] 太さモード　[{keyWidthDown}/{keyWidthUp}] 太さ −/＋\n" +
+                $"[{keyGaugeScale}] ゲージ幅　[{keyReshuffle}] 配置替え";
         }
     }
 }

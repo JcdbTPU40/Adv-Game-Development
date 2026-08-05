@@ -24,7 +24,7 @@ namespace Toufuku.GameInput
 
         /// <summary>
         /// このフレームで選択されたお守り番号（0〜4）。なければ -1。
-        /// OmamoriType の enum 値に対応する（0:健康 1:学業 2:恋愛 3:金運 4:厄除け）。
+        /// OmamoriType の enum 値に対応する（0:健康 1:学業成就 2:厄除け安全 3:縁結び 4:金運）。
         /// </summary>
         int OmamoriSelectTriggered { get; }
     }
