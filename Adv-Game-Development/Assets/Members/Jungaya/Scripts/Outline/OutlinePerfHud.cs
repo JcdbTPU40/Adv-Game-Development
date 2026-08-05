@@ -55,6 +55,7 @@ namespace Toufuku.Rescue.Outline
             public int Count;
             public bool OutlineOn;
             public bool Rain;
+            public int Pass; // スイープ巡番号。手動計測は -1
             public float AvgFps;
             public float Low1Fps;
             public float CpuMs;
@@ -128,11 +129,12 @@ namespace Toufuku.Rescue.Outline
         }
 
         /// <summary>
-        /// 体数×Outline×天候の12条件を自動計測する（#45 D）。
-        /// 順序をシャッフルしたうえで2巡し、ドリフトを見えるようにする。
-        /// コルーチンではなく Update ステートマシンで回す（PlayMode 中の MCP 呼び出しでも落ちにくい）。
+        /// 体数×Outline×天候の12条件を自動計測する（#45 H）。
+        /// 順序をシャッフルしたうえで複数巡し、ON−OFF 差分とノイズ幅で体数軸を判定する。
         /// </summary>
-        public void RunAxisSweep(int framesPerSample = 60)
+        /// <param name="framesPerSample">1条件あたりの平均フレーム数（60以上推奨）。</param>
+        /// <param name="passCount">巡回数（4以上推奨）。</param>
+        public void RunAxisSweep(int framesPerSample = 60, int passCount = 4)
         {
             if (_axisSweepActive) return;
 
@@ -147,12 +149,13 @@ namespace Toufuku.Rescue.Outline
                 _axisConditions.Add((counts[ci], outlineStates[oi], rainStates[ri]));
 
             _axisPass = 0;
+            _axisPassCount = Mathf.Max(1, passCount);
             _axisIndex = -1;
             _axisSettle = 0;
             _axisFramesPerSample = Mathf.Max(20, framesPerSample);
             _axisSweepActive = true;
             _axisPhase = AxisPhase.Shuffle;
-            Debug.Log($"[OutlinePerf] ===== 体数軸スイープ開始（{_axisConditions.Count}条件 × 2巡） =====");
+            Debug.Log($"[OutlinePerf] ===== 体数軸スイープ開始（{_axisConditions.Count}条件 × {_axisPassCount}巡, {framesPerSample}f） =====");
         }
 
         enum AxisPhase { Idle, Shuffle, Apply, Settle, Sample, Summarize }
@@ -161,9 +164,11 @@ namespace Toufuku.Rescue.Outline
         AxisPhase _axisPhase = AxisPhase.Idle;
         readonly List<(int count, bool outline, bool rain)> _axisConditions = new List<(int, bool, bool)>(12);
         int _axisPass;
+        int _axisPassCount = 4;
         int _axisIndex;
         int _axisSettle;
         int _axisFramesPerSample = 60;
+        int _samplePassTag = -1; // StopSampling が SampleRow.Pass に書く
 
         void TickAxisSweep()
         {
@@ -177,7 +182,7 @@ namespace Toufuku.Rescue.Outline
                         int j = Random.Range(0, i + 1);
                         (_axisConditions[i], _axisConditions[j]) = (_axisConditions[j], _axisConditions[i]);
                     }
-                    Debug.Log($"[OutlinePerf] --- pass {_axisPass + 1}/2 ---");
+                    Debug.Log($"[OutlinePerf] --- pass {_axisPass + 1}/{_axisPassCount} ---");
                     _axisIndex = -1;
                     _axisPhase = AxisPhase.Apply;
                     break;
@@ -187,7 +192,7 @@ namespace Toufuku.Rescue.Outline
                     if (_axisIndex >= _axisConditions.Count)
                     {
                         _axisPass++;
-                        if (_axisPass >= 2)
+                        if (_axisPass >= _axisPassCount)
                         {
                             _axisPhase = AxisPhase.Summarize;
                             break;
@@ -209,6 +214,7 @@ namespace Toufuku.Rescue.Outline
                     _axisSettle--;
                     if (_axisSettle <= 0)
                     {
+                        _samplePassTag = _axisPass;
                         BeginSample(_axisFramesPerSample);
                         _axisPhase = AxisPhase.Sample;
                     }
@@ -227,46 +233,167 @@ namespace Toufuku.Rescue.Outline
                     ExportCsv();
                     _axisSweepActive = false;
                     _axisPhase = AxisPhase.Idle;
+                    _samplePassTag = -1;
                     Debug.Log("[OutlinePerf] ===== 体数軸スイープ完了 =====");
                     break;
             }
         }
 
+        /// <summary>
+        /// ON−OFF の Δ を体数×天候ごとに集計し、巡間の標準偏差でノイズ幅を出す。
+        /// 判定は「Δ がノイズより明確に大きいか」「Δ が体数に対して平坦か」の両面で行う。
+        /// </summary>
         void LogBodyCountAxisSummary()
         {
-            float SumGpu(int count, bool outline, bool rain, out int n)
+            var sb = new StringBuilder();
+            sb.AppendLine("[OutlinePerf] 体数軸サマリ（ON−OFF 差分 / 巡間 std）:");
+            sb.AppendLine("  count,rain,Δgpu_mean,Δgpu_std,Δgpu_min,Δgpu_max,Δcpu_mean,Δfps_mean,Δdraws_mean,n_pairs");
+
+            var deltaCsv = new StringBuilder();
+            deltaCsv.AppendLine("count,rain,delta_gpu_mean,delta_gpu_std,delta_gpu_min,delta_gpu_max,delta_cpu_mean,delta_fps_mean,delta_draws_mean,n_pairs");
+
+            int[] counts = { 8, 12, 16 };
+            bool[] rains = { false, true };
+            var sunnyDeltas = new List<float>();
+            var allDeltaMeans = new List<(int count, bool rain, float mean, float std)>();
+
+            for (int ci = 0; ci < counts.Length; ci++)
+            for (int ri = 0; ri < rains.Length; ri++)
             {
-                double sum = 0;
-                n = 0;
+                int count = counts[ci];
+                bool rain = rains[ri];
+                var pairDeltasGpu = new List<float>();
+                var pairDeltasCpu = new List<float>();
+                var pairDeltasFps = new List<float>();
+                var pairDeltasDraws = new List<float>();
+
+                // 巡ごとに ON/OFF をペアにする（シャッフル順でも Pass タグで対応）。
+                int maxPass = -1;
                 for (int i = 0; i < _samples.Count; i++)
+                    if (_samples[i].Pass > maxPass) maxPass = _samples[i].Pass;
+
+                for (int pass = 0; pass <= maxPass; pass++)
                 {
-                    var r = _samples[i];
-                    if (r.Count != count || r.OutlineOn != outline || r.Rain != rain) continue;
-                    sum += r.GpuMs;
-                    n++;
+                    if (!TryFindSample(count, true, rain, pass, out var on)) continue;
+                    if (!TryFindSample(count, false, rain, pass, out var off)) continue;
+                    pairDeltasGpu.Add(on.GpuMs - off.GpuMs);
+                    pairDeltasCpu.Add(on.CpuMs - off.CpuMs);
+                    pairDeltasFps.Add(on.AvgFps - off.AvgFps);
+                    pairDeltasDraws.Add(on.DrawCalls - off.DrawCalls);
                 }
-                return n > 0 ? (float)(sum / n) : 0f;
+
+                if (pairDeltasGpu.Count == 0)
+                {
+                    sb.AppendLine($"  {count},{(rain ? "rain" : "sun")},NO_PAIRS");
+                    continue;
+                }
+
+                MeanStdMinMax(pairDeltasGpu, out float gMean, out float gStd, out float gMin, out float gMax);
+                MeanStdMinMax(pairDeltasCpu, out float cMean, out _, out _, out _);
+                MeanStdMinMax(pairDeltasFps, out float fMean, out _, out _, out _);
+                MeanStdMinMax(pairDeltasDraws, out float dMean, out _, out _, out _);
+
+                string rainLabel = rain ? "rain" : "sun";
+                sb.AppendLine($"  {count},{rainLabel},{gMean:F3},{gStd:F3},{gMin:F3},{gMax:F3},{cMean:F3},{fMean:F2},{dMean:F1},{pairDeltasGpu.Count}");
+                deltaCsv.AppendLine($"{count},{(rain ? 1 : 0)},{gMean:F3},{gStd:F3},{gMin:F3},{gMax:F3},{cMean:F3},{fMean:F2},{dMean:F1},{pairDeltasGpu.Count}");
+
+                allDeltaMeans.Add((count, rain, gMean, gStd));
+                if (!rain) sunnyDeltas.Add(gMean);
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("[OutlinePerf] 体数軸サマリ（Outline ON / 晴天 の GPU ms 平均）:");
-            float g8 = SumGpu(8, true, false, out int n8);
-            float g12 = SumGpu(12, true, false, out int n12);
-            float g16 = SumGpu(16, true, false, out int n16);
-            sb.AppendLine($"  8体:  GPU={g8:F3}ms (n={n8})");
-            sb.AppendLine($"  12体: GPU={g12:F3}ms (n={n12})");
-            sb.AppendLine($"  16体: GPU={g16:F3}ms (n={n16})");
-            float delta = g16 - g8;
-            sb.AppendLine($"  Δ(16-8)={delta:F3}ms");
-            bool significant = Mathf.Abs(delta) >= 0.1f && (g8 <= 1e-4f || Mathf.Abs(delta / Mathf.Max(g8, 1e-4f)) >= 0.05f);
-            sb.AppendLine(significant
-                ? "  判定: 8体と16体で GPU ms に差あり（体数依存のコストが見える）"
-                : "  判定: 8体と16体で GPU ms に有意な差なし → 支配的なのはフルスクリーンのダイレート");
+            // 判定: 晴天の ΔGPU が体数でどう動くか + ノイズ幅との比較
+            sb.AppendLine();
+            if (sunnyDeltas.Count >= 2)
+            {
+                float d8 = 0, d16 = 0;
+                float s8 = 0, s16 = 0;
+                for (int i = 0; i < allDeltaMeans.Count; i++)
+                {
+                    var a = allDeltaMeans[i];
+                    if (a.rain) continue;
+                    if (a.count == 8) { d8 = a.mean; s8 = a.std; }
+                    if (a.count == 16) { d16 = a.mean; s16 = a.std; }
+                }
+                float bodyDelta = d16 - d8;
+                // ノイズ幅の目安: 両側 std の合成（粗い）
+                float noise = Mathf.Sqrt(s8 * s8 + s16 * s16);
+                sb.AppendLine($"  晴天 ΔGPU: 8体={d8:F3}±{s8:F3} / 16体={d16:F3}±{s16:F3} / 体数差={bodyDelta:F3} / ノイズ幅≈{noise:F3}");
 
-            float sunny = SumGpu(16, true, false, out int ns);
-            float rainy = SumGpu(16, true, true, out int nr);
-            sb.AppendLine($"  雨天差(16/ON): 晴天 GPU={sunny:F3}ms (n={ns}) / 雨天 GPU={rainy:F3}ms (n={nr}) / Δ={rainy - sunny:F3}ms");
+                bool deltaAboveNoise = Mathf.Abs(d8) > 2f * s8 && Mathf.Abs(d16) > 2f * s16;
+                bool bodyFlat = Mathf.Abs(bodyDelta) <= Mathf.Max(0.05f, 2f * noise);
+
+                if (!deltaAboveNoise)
+                {
+                    sb.AppendLine("  判定: Δ がノイズ幅に埋もれている → Editor では体数軸を判定不能。実機で取り直すこと。");
+                    sb.AppendLine("  VERDICT=NOISE_LIMITED");
+                }
+                else if (bodyFlat)
+                {
+                    sb.AppendLine("  判定: Δ GPU はノイズより大きく、体数に対して平坦 → 体数を減らしても軽くならない（ダイレート支配）。");
+                    sb.AppendLine("  VERDICT=FLAT_DOMINATED_BY_DILATE");
+                }
+                else
+                {
+                    sb.AppendLine("  判定: Δ GPU が体数に対して有意に変化 → 体数依存のコストが見える。");
+                    sb.AppendLine("  VERDICT=SCALES_WITH_COUNT");
+                }
+            }
+            else
+            {
+                sb.AppendLine("  判定: ペア不足 → 判定不能");
+                sb.AppendLine("  VERDICT=INSUFFICIENT_DATA");
+            }
+
             Debug.Log(sb.ToString());
+
+            // Δ CSV も persistentDataPath に書く
+            string dir = Application.persistentDataPath;
+            string path = Path.Combine(dir, $"outline_perf_delta_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            File.WriteAllText(path, deltaCsv.ToString(), Encoding.UTF8);
+            Debug.Log($"[OutlinePerf] Δ CSV: {path}\n{deltaCsv}");
+        }
+
+        bool TryFindSample(int count, bool outline, bool rain, int pass, out SampleRow row)
+        {
+            for (int i = 0; i < _samples.Count; i++)
+            {
+                var r = _samples[i];
+                if (r.Count == count && r.OutlineOn == outline && r.Rain == rain && r.Pass == pass)
+                {
+                    row = r;
+                    return true;
+                }
+            }
+            row = default;
+            return false;
+        }
+
+        static void MeanStdMinMax(List<float> values, out float mean, out float std, out float min, out float max)
+        {
+            mean = 0f;
+            std = 0f;
+            min = 0f;
+            max = 0f;
+            if (values == null || values.Count == 0) return;
+            min = values[0];
+            max = values[0];
+            double sum = 0;
+            for (int i = 0; i < values.Count; i++)
+            {
+                float v = values[i];
+                sum += v;
+                if (v < min) min = v;
+                if (v > max) max = v;
+            }
+            mean = (float)(sum / values.Count);
+            if (values.Count < 2) { std = 0f; return; }
+            double var = 0;
+            for (int i = 0; i < values.Count; i++)
+            {
+                double d = values[i] - mean;
+                var += d * d;
+            }
+            std = (float)Mathf.Sqrt((float)(var / (values.Count - 1)));
         }
 
         void HandleKeys()
@@ -284,7 +411,11 @@ namespace Toufuku.Rescue.Outline
             if (Input.GetKeyDown(KeyCode.P))
             {
                 if (_sampling) StopSampling(store: true);
-                else StartSampling();
+                else
+                {
+                    _samplePassTag = -1; // 手動計測
+                    StartSampling();
+                }
             }
 
             if (Input.GetKeyDown(KeyCode.C))
@@ -334,6 +465,7 @@ namespace Toufuku.Rescue.Outline
                 Count = director != null ? director.AliveCount : 0,
                 OutlineOn = IsOutlineOn(),
                 Rain = OutlineWeather.IsRaining,
+                Pass = _samplePassTag,
                 AvgFps = avgFps,
                 Low1Fps = low1,
                 CpuMs = (float)(_accCpu / _accN),
@@ -345,7 +477,7 @@ namespace Toufuku.Rescue.Outline
             _samples.Add(row);
 
             Debug.Log(
-                $"[OutlinePerf] 計測完了 count={row.Count} outline={(row.OutlineOn ? "ON" : "OFF")} rain={(row.Rain ? "ON" : "OFF")} " +
+                $"[OutlinePerf] 計測完了 count={row.Count} outline={(row.OutlineOn ? "ON" : "OFF")} rain={(row.Rain ? "ON" : "OFF")} pass={row.Pass} " +
                 $"avgFps={row.AvgFps:F1} 1%low={row.Low1Fps:F1} cpu={row.CpuMs:F2}ms gpu={row.GpuMs:F2}ms " +
                 $"draws={row.DrawCalls:F0} setPass={row.SetPassCalls:F0} batches={row.Batches:F0}");
         }
@@ -399,12 +531,12 @@ namespace Toufuku.Rescue.Outline
         void ExportCsv()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("count,outline,rain,avg_fps,low1_fps,cpu_ms,gpu_ms,draw_calls,setpass_calls,batches");
+            sb.AppendLine("count,outline,rain,pass,avg_fps,low1_fps,cpu_ms,gpu_ms,draw_calls,setpass_calls,batches");
             for (int i = 0; i < _samples.Count; i++)
             {
                 var r = _samples[i];
                 sb.AppendLine(
-                    $"{r.Count},{(r.OutlineOn ? 1 : 0)},{(r.Rain ? 1 : 0)},{r.AvgFps:F2},{r.Low1Fps:F2}," +
+                    $"{r.Count},{(r.OutlineOn ? 1 : 0)},{(r.Rain ? 1 : 0)},{r.Pass},{r.AvgFps:F2},{r.Low1Fps:F2}," +
                     $"{r.CpuMs:F3},{r.GpuMs:F3},{r.DrawCalls:F1},{r.SetPassCalls:F1},{r.Batches:F1}");
             }
 
@@ -440,17 +572,29 @@ namespace Toufuku.Rescue.Outline
             long setPass = _setPassCalls.Valid ? _setPassCalls.LastValue : 0;
             long batches = _batches.Valid ? _batches.LastValue : 0;
 
-            var rect = new Rect(12, 12, 460, 220);
+            float thickness = 3f;
+            float scale = 1f;
+            var feature = OutlineRendererFeature.Instance;
+            if (feature != null)
+            {
+                thickness = feature.CurrentSettings.thicknessPx;
+                scale = feature.CurrentSettings.maskResolutionScale;
+            }
+            float radiusMask = OutlineRendererFeature.EffectiveRadiusMaskTexels(thickness, scale);
+            float thicknessScreen = OutlineRendererFeature.EffectiveThicknessScreenPx(thickness, scale);
+
+            var rect = new Rect(12, 12, 480, 250);
             GUI.Box(rect, "Outline Perf (#45)");
-            GUILayout.BeginArea(new Rect(20, 36, 440, 190));
+            GUILayout.BeginArea(new Rect(20, 36, 460, 220));
             GUILayout.Label($"Count: {director?.AliveCount ?? 0} / target {director?.TargetCount ?? 0}");
             GUILayout.Label($"Outline: {(IsOutlineOn() ? "ON" : "OFF")}   Rain: {(OutlineWeather.IsRaining ? "ON" : "OFF")} ({OutlineWeather.RainAmount:F2})");
+            GUILayout.Label($"Mask scale: {scale:F2}   radius(mask px): {radiusMask:F0}   実効太さ(screen px): {thicknessScreen:F1}");
             GUILayout.Label($"FPS avg: {avgFps:F1}   1% low: {low1:F1}");
             GUILayout.Label($"CPU main: {cpu:F2} ms   GPU: {gpu:F2} ms");
             GUILayout.Label($"DrawCalls: {draws}   SetPass: {setPass}   Batches: {batches}");
             GUILayout.Label(_sampling
                 ? $"Sampling... {_sampleRemaining} frames left"
-                : $"Samples stored: {_samples.Count}");
+                : $"Samples stored: {_samples.Count}" + (_axisSweepActive ? " (sweeping)" : ""));
             GUILayout.Label("1/2/3=count  O=outline  F=rain  P=sample  C=csv");
             GUILayout.EndArea();
         }

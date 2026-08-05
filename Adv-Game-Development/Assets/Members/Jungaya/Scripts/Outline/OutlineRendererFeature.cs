@@ -110,6 +110,26 @@ namespace Toufuku.Rescue.Outline
 
         public Settings CurrentSettings => settings;
 
+        /// <summary>
+        /// ダイレート半径（マスクテクセル）。量子化込みの実効値。
+        /// radius = max(1, round(thicknessPx * scale))
+        /// </summary>
+        public static float EffectiveRadiusMaskTexels(float thicknessPx, float maskResolutionScale)
+        {
+            float scale = Mathf.Clamp(maskResolutionScale, 0.25f, 1f);
+            return Mathf.Max(1f, Mathf.Round(thicknessPx * scale));
+        }
+
+        /// <summary>
+        /// 実効太さの画面ピクセル換算 = radius_mask / scale。
+        /// scale=0.25 では radius 下限により thicknessPx&lt;4 を表現できない点に注意。
+        /// </summary>
+        public static float EffectiveThicknessScreenPx(float thicknessPx, float maskResolutionScale)
+        {
+            float scale = Mathf.Clamp(maskResolutionScale, 0.25f, 1f);
+            return EffectiveRadiusMaskTexels(thicknessPx, scale) / scale;
+        }
+
         /// <summary>アウトライン描画が有効か。</summary>
         public bool OutlineEnabled
         {
@@ -488,10 +508,17 @@ namespace Toufuku.Rescue.Outline
                     passData.intensity = _settings.intensity;
 
                     // thicknessPx は「画面上のピクセル」。ダイレート半径はマスクRTのテクセル単位。
-                    // maskResolutionScale=0.5 ならマスク1px が画面上≈2px なので、
-                    // radius_mask = thicknessPx * scale に換算して見かけの太さを揃える。
+                    //
+                    // 換算: radius_mask = max(1, round(thicknessPx * maskResolutionScale))
+                    //   scale=1.0, thickness=3 → radius=3 → 画面上 3px
+                    //   scale=0.5, thickness=3 → radius=2 → 画面上 4px（33% 太い）
+                    //   scale=0.25, thickness=3 → radius=1（下限）→ 画面上 4px
+                    //
+                    // 量子化で太さは階段状になる。特に scale=0.25 では radius の下限 1 により
+                    // thicknessPx < 4 を画面上で表現できない（どれも 4px 相当に張り付く）。
+                    // 細さを保ったまま 1/4 にするなら thickness 側の設計見直しが必要。
                     float scale = Mathf.Clamp(outlineData.maskResolutionScale, 0.25f, 1f);
-                    passData.thicknessInMaskPx = Mathf.Max(1f, _settings.thicknessPx * scale);
+                    passData.thicknessInMaskPx = Mathf.Max(1f, Mathf.Round(_settings.thicknessPx * scale));
 
                     var maskDesc = renderGraph.GetTextureDesc(outlineData.maskTexture);
                     passData.maskTexelSize = new Vector4(
