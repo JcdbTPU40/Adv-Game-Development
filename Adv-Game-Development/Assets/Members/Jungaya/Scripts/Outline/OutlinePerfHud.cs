@@ -89,6 +89,7 @@ namespace Toufuku.Rescue.Outline
             FrameTimingManager.CaptureFrameTimings();
 
             HandleKeys();
+            TickAxisSweep();
 
             if (_sampling)
             {
@@ -97,6 +98,175 @@ namespace Toufuku.Rescue.Outline
                 if (_sampleRemaining <= 0)
                     StopSampling(store: true);
             }
+        }
+
+        /// <summary>計測中か（自動バッチ用）。</summary>
+        public bool IsSampling => _sampling;
+
+        /// <summary>蓄積済みサンプル数。</summary>
+        public int StoredSampleCount => _samples.Count;
+
+        /// <summary>コードから計測を開始する（P キー相当）。</summary>
+        public void BeginSample(int frames = -1)
+        {
+            if (frames > 0) sampleFrames = frames;
+            if (_sampling) StopSampling(store: false);
+            StartSampling();
+        }
+
+        /// <summary>サンプル履歴をクリアする。</summary>
+        public void ClearSamples() => _samples.Clear();
+
+        /// <summary>直近サンプルを1行テキストで返す（無ければ空文字）。</summary>
+        public string FormatLastSample()
+        {
+            if (_samples.Count == 0) return string.Empty;
+            var r = _samples[_samples.Count - 1];
+            return $"count={r.Count} outline={(r.OutlineOn ? "ON" : "OFF")} rain={(r.Rain ? "ON" : "OFF")} " +
+                   $"avgFps={r.AvgFps:F1} 1%low={r.Low1Fps:F1} cpu={r.CpuMs:F2}ms gpu={r.GpuMs:F2}ms " +
+                   $"draws={r.DrawCalls:F0} setPass={r.SetPassCalls:F0} batches={r.Batches:F0}";
+        }
+
+        /// <summary>
+        /// 体数×Outline×天候の12条件を自動計測する（#45 D）。
+        /// 順序をシャッフルしたうえで2巡し、ドリフトを見えるようにする。
+        /// コルーチンではなく Update ステートマシンで回す（PlayMode 中の MCP 呼び出しでも落ちにくい）。
+        /// </summary>
+        public void RunAxisSweep(int framesPerSample = 60)
+        {
+            if (_axisSweepActive) return;
+
+            ClearSamples();
+            _axisConditions.Clear();
+            int[] counts = { 8, 12, 16 };
+            bool[] outlineStates = { true, false };
+            bool[] rainStates = { false, true };
+            for (int ci = 0; ci < counts.Length; ci++)
+            for (int oi = 0; oi < outlineStates.Length; oi++)
+            for (int ri = 0; ri < rainStates.Length; ri++)
+                _axisConditions.Add((counts[ci], outlineStates[oi], rainStates[ri]));
+
+            _axisPass = 0;
+            _axisIndex = -1;
+            _axisSettle = 0;
+            _axisFramesPerSample = Mathf.Max(20, framesPerSample);
+            _axisSweepActive = true;
+            _axisPhase = AxisPhase.Shuffle;
+            Debug.Log($"[OutlinePerf] ===== 体数軸スイープ開始（{_axisConditions.Count}条件 × 2巡） =====");
+        }
+
+        enum AxisPhase { Idle, Shuffle, Apply, Settle, Sample, Summarize }
+
+        bool _axisSweepActive;
+        AxisPhase _axisPhase = AxisPhase.Idle;
+        readonly List<(int count, bool outline, bool rain)> _axisConditions = new List<(int, bool, bool)>(12);
+        int _axisPass;
+        int _axisIndex;
+        int _axisSettle;
+        int _axisFramesPerSample = 60;
+
+        void TickAxisSweep()
+        {
+            if (!_axisSweepActive) return;
+
+            switch (_axisPhase)
+            {
+                case AxisPhase.Shuffle:
+                    for (int i = _axisConditions.Count - 1; i > 0; i--)
+                    {
+                        int j = Random.Range(0, i + 1);
+                        (_axisConditions[i], _axisConditions[j]) = (_axisConditions[j], _axisConditions[i]);
+                    }
+                    Debug.Log($"[OutlinePerf] --- pass {_axisPass + 1}/2 ---");
+                    _axisIndex = -1;
+                    _axisPhase = AxisPhase.Apply;
+                    break;
+
+                case AxisPhase.Apply:
+                    _axisIndex++;
+                    if (_axisIndex >= _axisConditions.Count)
+                    {
+                        _axisPass++;
+                        if (_axisPass >= 2)
+                        {
+                            _axisPhase = AxisPhase.Summarize;
+                            break;
+                        }
+                        _axisPhase = AxisPhase.Shuffle;
+                        break;
+                    }
+
+                    var c = _axisConditions[_axisIndex];
+                    director?.SetTargetCount(c.count);
+                    var feature = OutlineRendererFeature.Instance;
+                    if (feature != null) feature.OutlineEnabled = c.outline;
+                    OutlineWeather.RainAmount = c.rain ? 1f : 0f;
+                    _axisSettle = 3;
+                    _axisPhase = AxisPhase.Settle;
+                    break;
+
+                case AxisPhase.Settle:
+                    _axisSettle--;
+                    if (_axisSettle <= 0)
+                    {
+                        BeginSample(_axisFramesPerSample);
+                        _axisPhase = AxisPhase.Sample;
+                    }
+                    break;
+
+                case AxisPhase.Sample:
+                    if (!_sampling)
+                    {
+                        Debug.Log($"[OutlinePerf][pass{_axisPass + 1}] {FormatLastSample()}");
+                        _axisPhase = AxisPhase.Apply;
+                    }
+                    break;
+
+                case AxisPhase.Summarize:
+                    LogBodyCountAxisSummary();
+                    ExportCsv();
+                    _axisSweepActive = false;
+                    _axisPhase = AxisPhase.Idle;
+                    Debug.Log("[OutlinePerf] ===== 体数軸スイープ完了 =====");
+                    break;
+            }
+        }
+
+        void LogBodyCountAxisSummary()
+        {
+            float SumGpu(int count, bool outline, bool rain, out int n)
+            {
+                double sum = 0;
+                n = 0;
+                for (int i = 0; i < _samples.Count; i++)
+                {
+                    var r = _samples[i];
+                    if (r.Count != count || r.OutlineOn != outline || r.Rain != rain) continue;
+                    sum += r.GpuMs;
+                    n++;
+                }
+                return n > 0 ? (float)(sum / n) : 0f;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("[OutlinePerf] 体数軸サマリ（Outline ON / 晴天 の GPU ms 平均）:");
+            float g8 = SumGpu(8, true, false, out int n8);
+            float g12 = SumGpu(12, true, false, out int n12);
+            float g16 = SumGpu(16, true, false, out int n16);
+            sb.AppendLine($"  8体:  GPU={g8:F3}ms (n={n8})");
+            sb.AppendLine($"  12体: GPU={g12:F3}ms (n={n12})");
+            sb.AppendLine($"  16体: GPU={g16:F3}ms (n={n16})");
+            float delta = g16 - g8;
+            sb.AppendLine($"  Δ(16-8)={delta:F3}ms");
+            bool significant = Mathf.Abs(delta) >= 0.1f && (g8 <= 1e-4f || Mathf.Abs(delta / Mathf.Max(g8, 1e-4f)) >= 0.05f);
+            sb.AppendLine(significant
+                ? "  判定: 8体と16体で GPU ms に差あり（体数依存のコストが見える）"
+                : "  判定: 8体と16体で GPU ms に有意な差なし → 支配的なのはフルスクリーンのダイレート");
+
+            float sunny = SumGpu(16, true, false, out int ns);
+            float rainy = SumGpu(16, true, true, out int nr);
+            sb.AppendLine($"  雨天差(16/ON): 晴天 GPU={sunny:F3}ms (n={ns}) / 雨天 GPU={rainy:F3}ms (n={nr}) / Δ={rainy - sunny:F3}ms");
+            Debug.Log(sb.ToString());
         }
 
         void HandleKeys()
