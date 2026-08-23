@@ -16,11 +16,7 @@ public class GameOver : MonoBehaviour
     //パネルを開く用の関数 static呼び出し可能
     public static void GameOverShowPanel()
     {
-        //ゲーム内の時間を止める
-        Time.timeScale = 0f;
-
-        //ボタンを有効にする
-        //GameOverCanvasのCanvasのチェックをデフォルトで外すと関数が呼ばれた時にtrueになる(衝突した時に表示される)
+        
         gameOverCanvas.enabled = true;
     }
 

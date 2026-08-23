@@ -410,6 +410,7 @@ MonoBehaviour:
   selector: {fileID: 839193286}
   icon: {fileID: 1079846408}
   label: {fileID: 756478399}
+  palette: {fileID: 0}
   typeColors:
   - {r: 0.3, g: 0.75, b: 0.35, a: 1}
   - {r: 0.25, g: 0.5, b: 0.9, a: 1}
@@ -1068,6 +1069,7 @@ GameObject:
   - component: {fileID: 1624669433}
   - component: {fileID: 1624669432}
   - component: {fileID: 1624669431}
+  - component: {fileID: 1624669435}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1129,6 +1131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SessionHud
   fontSize: 26
   resultFontSize: 34
+  showDebugTimer: 0
 --- !u!114 &1624669433
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1181,7 +1184,6 @@ MonoBehaviour:
   startRating: 50
   resolveGain: 5
   angryLoss: 10
-  overSellLoss: 2
   rankSThreshold: 80
   rankAThreshold: 60
   rankBThreshold: 40
@@ -1195,6 +1197,19 @@ MonoBehaviour:
   onRankChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1624669435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c110f38ee95e7b14db19c79420ca53ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoTitleScript
+  sceneName: Start
 --- !u!1 &1680664380
 GameObject:
   m_ObjectHideFlags: 0
@@ -2859,7 +2874,6 @@ MonoBehaviour:
   centerScore: 300
   comboStep: 0.1
   maxMultiplier: 3
-  overSellScore: 30
 --- !u!4 &4748935194137684862
 Transform:
   m_ObjectHideFlags: 0
