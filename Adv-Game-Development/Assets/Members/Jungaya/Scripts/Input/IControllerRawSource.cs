@@ -15,6 +15,9 @@ namespace Toufuku.GameInput
         /// <summary>生のヨー角（度）。キャリブレーション前の値。</summary>
         float Yaw { get; }
 
+        /// <summary>生のピッチ角（度）。照準の奥行き（#60: 地面上 3〜18m）に使う。</summary>
+        float Pitch { get; }
+
         /// <summary>色ボタン（0〜4、OmamoriType の並び＝ボタン箱の左→右）が押されているか。</summary>
         bool IsColorHeld(int index);
 

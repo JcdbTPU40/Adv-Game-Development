@@ -1,25 +1,34 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// スコア（縁）とコンボの一元管理。シーンに1つだけ置く。— Issue #22 / #31
-/// ・命中精度ボーナス … ゾーン別の基礎点で表現（中心ヒットほど高得点）
+/// ・命中精度ボーナス … #60: 判定半径の中心 40% 以内 +50 / 40〜70% +20 / 70〜100% +0
 /// ・連続コンボ倍率   … 連続命中で倍率上昇／1ミスで途切れる
 ///
 /// #31: スコア変化を C# イベントで配信する。HUD/SE/ご加護(#29)/評価(#30)は
 ///      ポーリングせず、これらのイベントを購読して結線する。
 ///
 /// 獲得縁の計算式:
-///   獲得 = 基礎点 × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
+///   獲得 = (基礎点 + 命中精度ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
 /// </summary>
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
 
-    [Header("ゾーン別 基礎スコア（縁）")]
-    [SerializeField] int outerScore  = 100; // 外周
-    [SerializeField] int innerScore  = 200; // 中
-    [SerializeField] int centerScore = 300; // ど真ん中
+    [Header("命中の基礎スコア（縁）")]
+    [Tooltip("命中したときの基礎点。命中精度に関係なく同じ（旧 outerScore の値を引き継ぐ）")]
+    [FormerlySerializedAs("outerScore")]
+    [SerializeField] int hitScore = 100;
+
+    [Header("命中精度ボーナス（#60: 判定半径に対する中心からの距離）")]
+    [Tooltip("中心 40% 以内")]
+    [SerializeField] int centerBonus = 50;
+    [Tooltip("40〜70%")]
+    [SerializeField] int innerBonus  = 20;
+    [Tooltip("70〜100%")]
+    [SerializeField] int outerBonus  = 0;
 
     [Header("コンボ倍率")]
     [Tooltip("コンボ1つごとに倍率へ加算する量（例:0.1 → x1.0, x1.1, x1.2...）")]
@@ -50,6 +59,8 @@ public class ScoreManager : MonoBehaviour
     public HitZone LastZone { get; private set; }
     /// <summary>直近の獲得点（HUD表示・確認用）。</summary>
     public int LastGain { get; private set; }
+    /// <summary>直近の命中精度ボーナス（倍率を掛ける前。HUD表示・確認用）。</summary>
+    public int LastBonus { get; private set; }
 
     /// <summary>現在のコンボ倍率。コンボ1で x1.0、以降 comboStep ずつ上昇。</summary>
     public float Multiplier =>
@@ -72,7 +83,7 @@ public class ScoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 命中を記録する。基礎点 × 合計倍率を加算し、コンボを伸ばす。
+    /// 命中を記録する。(基礎点 + 命中精度ボーナス) × 合計倍率を加算し、コンボを伸ばす。
     /// </summary>
     public void RegisterHit(HitZone zone)
     {
@@ -82,14 +93,15 @@ public class ScoreManager : MonoBehaviour
         Combo++;
         if (Combo > MaxCombo) MaxCombo = Combo;
 
-        int baseScore = BaseScoreOf(zone);
-        int gained = Mathf.RoundToInt(baseScore * TotalMultiplier);
+        int bonus = AccuracyBonusOf(zone);
+        int gained = Mathf.RoundToInt((hitScore + bonus) * TotalMultiplier);
         En += gained;
 
         LastZone = zone;
         LastGain = gained;
+        LastBonus = bonus;
 
-        Debug.Log($"[Score] HIT {zone} : base {baseScore} x{TotalMultiplier:0.00} = +{gained}  (Combo {Combo} / En {En})");
+        Debug.Log($"[Score] HIT {zone} : base {hitScore} + 精度 {bonus} x{TotalMultiplier:0.00} = +{gained}  (Combo {Combo} / En {En})");
 
         // #31: ポーリング廃止。変化をイベントで配信（HUD/SE/ご加護#29/評価#30 が購読）。
         onComboChanged?.Invoke(Combo);
@@ -129,6 +141,7 @@ public class ScoreManager : MonoBehaviour
         MaxCombo = 0;
         LastZone = HitZone.Miss;
         LastGain = 0;
+        LastBonus = 0;
         GokagoMultiplier = 1f;
         Debug.Log("[Score] Reset");
 
@@ -138,13 +151,14 @@ public class ScoreManager : MonoBehaviour
         onReset?.Invoke();
     }
 
-    int BaseScoreOf(HitZone zone)
+    /// <summary>命中ゾーンごとの命中精度ボーナス（#60）。</summary>
+    public int AccuracyBonusOf(HitZone zone)
     {
         switch (zone)
         {
-            case HitZone.Center: return centerScore;
-            case HitZone.Inner:  return innerScore;
-            case HitZone.Outer:  return outerScore;
+            case HitZone.Center: return centerBonus;
+            case HitZone.Inner:  return innerBonus;
+            case HitZone.Outer:  return outerBonus;
             default:             return 0;
         }
     }

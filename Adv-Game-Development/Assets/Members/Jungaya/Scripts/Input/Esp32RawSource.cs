@@ -37,6 +37,9 @@ namespace Toufuku.GameInput
 
         [Header("未接続時はマウス左クリックを振りピークとして扱う")]
         [SerializeField] bool mouseSwingWhenDisconnected = true;
+        [Tooltip("未接続時、このキーを押しながらクリックすると強い振り扱い（#60 飛翔時間の確認用）")]
+        [SerializeField] KeyCode strongSwingKey = KeyCode.LeftShift;
+        [SerializeField] float strongSwingStrength = 720f;
 
         // 同一フレームにまとめて届いた行の受信時刻はほぼ同じになるため、間隔が詰まりすぎたら名目間隔で補う
         const double MinSampleInterval = 0.005;
@@ -50,6 +53,7 @@ namespace Toufuku.GameInput
 
         public bool IsConnected => con != null && con.isConnected;
         public float Yaw => con != null ? con.yaw : 0f;
+        public float Pitch => con != null ? con.pitch : 0f;
 
         /// <summary>ファームウェアがボタンを送ってきているか。</summary>
         public bool HasHardwareButtons => _latest.HasButtons;
@@ -110,7 +114,7 @@ namespace Toufuku.GameInput
                 && _mouseConsumedFrame != Time.frameCount && Input.GetMouseButtonDown(0))
             {
                 _mouseConsumedFrame = Time.frameCount;
-                strength = 1f;
+                strength = Input.GetKey(strongSwingKey) ? strongSwingStrength : 1f;
                 time = Time.realtimeSinceStartupAsDouble;
                 return true;
             }

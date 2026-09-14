@@ -13,7 +13,7 @@ public class OmamoriBullet : MonoBehaviour
     public void SetType(OmamoriType t)
     {
         type = t;
-        
+
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -25,41 +25,15 @@ public class OmamoriBullet : MonoBehaviour
             HitZoneTarget target = collision.gameObject.GetComponent<HitZoneTarget>();
             HitZone zone = target != null ? target.EvaluateZone(hitPoint) : HitZone.Inner;
 
-            // 救済判定(#13)：お守りの種類を客に渡し、相性◯/✗とゲージ増減を処理させる。
-            CustomerRescue rescue = collision.gameObject.GetComponent<CustomerRescue>();
-            if (rescue != null)
-            {
-                // すでに結末確定済み（解消/怒り）の客への追撃に対する防御的ガード。
-                // 過剰押し売り（#33 案B）は企画書 v3 §16【B】で廃案。結末確定時に当たり判定を
-                // 消す仕様（CustomerMood.DisableHitDetection）により通常ここには到達しない。
-                // 到達した場合はコンポーネントの設定漏れなので、スコアもミスも一切計上せず
-                // 弾だけ破棄する。
-                if (rescue.IsResolved)
-                {
-                    Debug.LogWarning("[OmamoriBullet] 結末確定済みの客に命中しました（当たり判定の無効化漏れの疑い）", collision.gameObject);
-                    Destroy(gameObject);
-                    return;
-                }
-
-                Affinity affinity = rescue.ApplyHit(type);
-
-                // 相性が合わなければ Miss 扱いにしてコンボを切る（誤投擲フィードバックは #14）。
-                if (affinity == Affinity.Bad)
-                    zone = HitZone.Miss;
-            }
-
-            if (ScoreManager.Instance != null)
-                ScoreManager.Instance.RegisterHit(zone);
-
+            // 救済判定(#13) → スコア。#60 の着弾点判定（OmamoriProjectile）と共通の処理。
             // 客の退場（救済成功/失敗）は CustomerRescue が管理するので、ここでは破棄しない。
+            OmamoriHitResolver.ApplyHit(collision.gameObject, type, zone);
             Destroy(gameObject); // 通常弾は単体ヒット → 当たったら消す
         }
         else
         {
             // 客以外（地面・壁など）に当たった＝外し → コンボ途切れ
-            if (ScoreManager.Instance != null)
-                ScoreManager.Instance.RegisterMiss();
-
+            OmamoriHitResolver.ApplyMiss();
             Destroy(gameObject);
         }
     }
