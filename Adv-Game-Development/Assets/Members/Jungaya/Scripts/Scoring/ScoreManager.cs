@@ -10,8 +10,11 @@ using UnityEngine.Serialization;
 /// #31: スコア変化を C# イベントで配信する。HUD/SE/ご加護(#29)/評価(#30)は
 ///      ポーリングせず、これらのイベントを購読して結線する。
 ///
+/// #55: 優先救済（二重円）の加点を足す。加点の数値は付録B B-2 の写しである
+///      <see cref="ScoreBonusTable"/>（未割り当てなら下のフォールバック値）から引く。
+///
 /// 獲得縁の計算式:
-///   獲得 = (基礎点 + 命中精度ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
+///   獲得 = (基礎点 + 命中精度ボーナス + 優先救済ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
 /// </summary>
 public class ScoreManager : MonoBehaviour
 {
@@ -23,13 +26,22 @@ public class ScoreManager : MonoBehaviour
     [FormerlySerializedAs("outerScore")]
     [SerializeField] int hitScore = 100;
 
-    [Header("命中精度ボーナス（#60: 判定半径に対する中心からの距離）")]
+    [Header("加点の数値表（付録B B-2）")]
+    [Tooltip("加点の数値表（付録B B-2 の写し）。割り当てるとこの表の値が下のフォールバックより優先される。" +
+             "T2 で優先救済を +50 → +30 へ下げるときは、この表の数字だけを直す。")]
+    [SerializeField] ScoreBonusTable bonusTable;
+
+    [Header("フォールバック：命中精度ボーナス（#60: 判定半径に対する中心からの距離）")]
     [Tooltip("中心 40% 以内")]
     [SerializeField] int centerBonus = 50;
     [Tooltip("40〜70%")]
     [SerializeField] int innerBonus  = 20;
     [Tooltip("70〜100%")]
     [SerializeField] int outerBonus  = 0;
+
+    [Header("フォールバック：優先救済ボーナス（#55 / 付録B B-2）")]
+    [Tooltip("発射時に保存した二重円の客を、その弾で救済完了させたときの加点。数値表が未割り当てのときだけ使う。")]
+    [SerializeField] int priorityRescueBonus = 50;
 
     [Header("コンボ倍率")]
     [Tooltip("コンボ1つごとに倍率へ加算する量（例:0.1 → x1.0, x1.1, x1.2...）")]
@@ -62,6 +74,11 @@ public class ScoreManager : MonoBehaviour
     public int LastGain { get; private set; }
     /// <summary>直近の命中精度ボーナス（倍率を掛ける前。HUD表示・確認用）。</summary>
     public int LastBonus { get; private set; }
+    /// <summary>直近の優先救済ボーナス（倍率を掛ける前。0 なら二重円の客ではなかった。HUD表示・確認用）。</summary>
+    public int LastPriorityBonus { get; private set; }
+
+    /// <summary>優先救済（二重円）の加点（付録B B-2）。数値表が割り当てられていればその値。</summary>
+    public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
 
     /// <summary>現在のコンボ倍率。コンボ1で x1.0、以降 comboStep ずつ上昇。</summary>
     public float Multiplier =>
@@ -93,7 +110,11 @@ public class ScoreManager : MonoBehaviour
     /// <param name="zone">命中精度のゾーン（Miss ならミス扱い）。</param>
     /// <param name="rescued">この命中で救済が完了したか（R=0 になったか）。</param>
     /// <param name="rescueBaseScore">救済完了時の基礎点（客種ごと。付録B B-1）。</param>
-    public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore)
+    /// <param name="priorityRescue">
+    /// 優先救済か（#55）。発射（SwingAccepted）時に弾へ保存した二重円の客を、その弾で救済完了させたときだけ true。
+    /// 飛翔中に二重円が別の客へ移っても、この値は発射時の判断のまま変わらない。
+    /// </param>
+    public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore, bool priorityRescue = false)
     {
         // Miss が渡されたら命中扱いにしない（コンボ途切れへ）
         if (zone == HitZone.Miss) { RegisterMiss(); return; }
@@ -102,15 +123,20 @@ public class ScoreManager : MonoBehaviour
         if (Combo > MaxCombo) MaxCombo = Combo;
 
         int bonus = rescued ? AccuracyBonusOf(zone) : 0;
-        int gained = rescued ? Mathf.RoundToInt((rescueBaseScore + bonus) * TotalMultiplier) : 0;
+        // 優先救済は救済完了した弾にだけ乗る（途中命中は付録B B-2 どおり 0 点）。
+        int priorityBonus = rescued && priorityRescue ? PriorityRescueBonus : 0;
+        int gained = rescued ? Mathf.RoundToInt((rescueBaseScore + bonus + priorityBonus) * TotalMultiplier) : 0;
         En += gained;
 
         LastZone = zone;
         LastGain = gained;
         LastBonus = bonus;
+        LastPriorityBonus = priorityBonus;
 
         if (rescued)
-            Debug.Log($"[Score] 救済完了 {zone} : 基礎 {rescueBaseScore} + 精度 {bonus} x{TotalMultiplier:0.00} = +{gained}  (連なり {Combo} / 縁 {En})");
+            Debug.Log($"[Score] 救済完了 {zone} : 基礎 {rescueBaseScore} + 精度 {bonus}" +
+                      (priorityBonus > 0 ? $" + 優先救済 {priorityBonus}" : "") +
+                      $" x{TotalMultiplier:0.00} = +{gained}  (連なり {Combo} / 縁 {En})");
         else
             Debug.Log($"[Score] 正色命中（救済途中）: 縁は入らない (連なり {Combo} / 縁 {En})");
 
@@ -159,6 +185,7 @@ public class ScoreManager : MonoBehaviour
         LastZone = HitZone.Miss;
         LastGain = 0;
         LastBonus = 0;
+        LastPriorityBonus = 0;
         GokagoMultiplier = 1f;
         Debug.Log("[Score] Reset");
 
@@ -168,9 +195,11 @@ public class ScoreManager : MonoBehaviour
         onReset?.Invoke();
     }
 
-    /// <summary>命中ゾーンごとの命中精度ボーナス（#60）。</summary>
+    /// <summary>命中ゾーンごとの命中精度ボーナス（#60 / 付録B B-2）。数値表があればその値を使う。</summary>
     public int AccuracyBonusOf(HitZone zone)
     {
+        if (bonusTable != null) return bonusTable.AccuracyBonusOf(zone);
+
         switch (zone)
         {
             case HitZone.Center: return centerBonus;

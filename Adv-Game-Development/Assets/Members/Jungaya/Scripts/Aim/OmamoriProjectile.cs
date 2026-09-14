@@ -74,17 +74,26 @@ namespace Toufuku.Aim
         double _impactRealtime;
         OmamoriType _type;
         bool _flying;
+        int _priorityTargetId;
 
         public Vector3 TargetPoint => _target;
         public float FlightSeconds => _seconds;
         public OmamoriType Type => _type;
         public bool IsFlying => _flying;
 
+        /// <summary>
+        /// 発射（SwingAccepted）の瞬間の優先対象（二重円の客）の生成ID — Issue #55。
+        /// 飛翔中に二重円が別の客へ移っても<b>ここは変えない</b>。着弾時にこの ID と救済した客の ID が
+        /// 一致したときだけ +50 が入る（仕様書 v8 4章「通常弾」／7章 得点表）。
+        /// </summary>
+        public int PriorityTargetId => _priorityTargetId;
+
         /// <summary>飛ばし始める。</summary>
         /// <param name="lingerSeconds">着弾後に軌跡を残してから消えるまでの秒数</param>
         /// <param name="visualDelaySeconds">#49 T0-A/B: 見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時</param>
+        /// <param name="priorityTargetId">#55: この瞬間の優先対象（二重円の客）の生成ID。0 なら優先救済の加点なし</param>
         public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type,
-            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f)
+            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget)
         {
             _start = start;
             _target = target;
@@ -93,6 +102,8 @@ namespace Toufuku.Aim
             _type = type;
             _lingerSeconds = Mathf.Max(0f, lingerSeconds);
             _elapsed = 0f;
+            // 色・着弾点と同じく、優先対象もこの瞬間に固定する（v8 4章）。以後は誰が二重円でも変えない。
+            _priorityTargetId = priorityTargetId;
             // #64: 命中音・救済音の遅延はこの「着弾予定時刻」から測る（フレーム単位で着くぶんの遅れも含める）
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
@@ -166,7 +177,7 @@ namespace Toufuku.Aim
             {
                 hit = FindTarget(_target, out normalized);
                 if (hit != null)
-                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime);
+                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime, _priorityTargetId);
                 else
                     OmamoriHitResolver.ApplyMiss();
             }

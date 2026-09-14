@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Toufuku.Playtest;
 using Toufuku.Rescue;
 using Toufuku.Rescue.Mock;
 
@@ -15,6 +16,8 @@ public readonly struct OmamoriHitInfo
     public readonly bool IsBlackCustomer;
     /// <summary>この命中で救済が確定したか（ゲージが 0 になった）。</summary>
     public readonly bool Rescued;
+    /// <summary>優先救済（二重円）の加点が入ったか（#55）。発射時に保存した対象IDの客を救済完了させたときだけ true。</summary>
+    public readonly bool PriorityRescue;
     /// <summary>計上後の福の連なり（ScoreManager.Combo）。</summary>
     public readonly int Combo;
     /// <summary>着弾の起点時刻（Time.realtimeSinceStartupAsDouble）。フィードバック予算の計測に使う。</summary>
@@ -23,7 +26,8 @@ public readonly struct OmamoriHitInfo
     /// <summary>相性◯で命中として計上されたか。</summary>
     public bool IsGoodHit => Zone != HitZone.Miss;
 
-    public OmamoriHitInfo(GameObject customer, OmamoriType type, HitZone zone, bool isBlackCustomer, bool rescued, int combo, double impactTime)
+    public OmamoriHitInfo(GameObject customer, OmamoriType type, HitZone zone, bool isBlackCustomer, bool rescued, int combo, double impactTime,
+        bool priorityRescue = false)
     {
         Customer = customer;
         Type = type;
@@ -32,6 +36,7 @@ public readonly struct OmamoriHitInfo
         Rescued = rescued;
         Combo = combo;
         ImpactTime = impactTime;
+        PriorityRescue = priorityRescue;
     }
 }
 
@@ -53,8 +58,13 @@ public static class OmamoriHitResolver
     /// <param name="type">お守りの種類</param>
     /// <param name="zone">命中精度から決めたゾーン</param>
     /// <param name="impactTime">着弾の起点時刻（realtimeSinceStartupAsDouble）。省略時は呼び出した時刻</param>
+    /// <param name="priorityTargetId">
+    /// 発射（SwingAccepted）時にこの弾へ保存した優先対象ID（#55）。0 なら優先救済の加点は無い。
+    /// 飛翔中に二重円が動いても弾の保存値は変えないので、ここへ渡ってくるのは<b>発射時点</b>の判断。
+    /// </param>
     /// <returns>スコアへ渡したゾーン。相性✗なら Miss。結末確定済みの客なら何も計上せず Miss。</returns>
-    public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null)
+    public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null,
+        int priorityTargetId = PriorityRescue.NoTarget)
     {
         double impact = impactTime ?? Time.realtimeSinceStartupAsDouble;
         bool rescued = false;
@@ -99,15 +109,21 @@ public static class OmamoriHitResolver
             rescued = state != null && state.IsRescued;
         }
 
+        // 優先救済（#55）：発射時に保存した二重円の客を、この弾が救済完了させたときだけ +50（付録B B-2）。
+        // 途中命中や別の客の救済では入らない。ID を照らすだけなので、飛翔中の表示変化には影響されない。
+        bool priorityRescue = rescued
+            && priorityTargetId > PriorityRescue.NoTarget
+            && PriorityRescue.IsBonusHit(priorityTargetId, CustomerSpawnId.Of(customer), true);
+
         if (ScoreManager.Instance != null)
         {
             // 縁は救済完了のときだけ。途中命中（欲張り客の1発目など）は連なりだけ伸びて 0 点（付録B B-2）。
             int baseScore = state != null ? state.RescueBaseScore : 0;
-            ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore);
+            ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore, priorityRescue);
         }
 
         int combo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
-        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact));
+        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact, priorityRescue));
 
         return zone;
     }

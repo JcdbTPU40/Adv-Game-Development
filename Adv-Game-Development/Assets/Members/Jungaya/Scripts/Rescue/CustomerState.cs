@@ -125,6 +125,11 @@ namespace Toufuku.Rescue
         public bool IsFinished => Machine.IsFinished;
         /// <summary>笑顔の伝播・優先救済（二重円）の対象になれるか（active・未救済・非黒客・R&gt;0）。</summary>
         public bool IsRescueTarget => Machine.IsRescueTarget;
+        /// <summary>
+        /// active になった時刻（<see cref="Time.time"/> 秒）。優先救済の同値順「active 化が早い方」で使う（#55）。
+        /// 入場中（まだ定位置に着いていない）は 0。
+        /// </summary>
+        public float ActiveSinceTime { get; private set; }
 
         /// <summary>救済完了（R=0）時の基礎点（付録B B-1）。途中命中では入らない。</summary>
         public int RescueBaseScore => _entry != null ? _entry.rescueBaseScore : fallbackRescueBaseScore;
@@ -176,7 +181,17 @@ namespace Toufuku.Rescue
             _machine = new CustomerStateMachine(initialRemaining, fullSeconds, startActive);
             _machine.DangerChanged += _ => onDangerChanged?.Invoke(DangerNormalized);
             _machine.RemainingChanged += r => onRemainingChanged?.Invoke(r);
-            _machine.PhaseChanged += phase => onPhaseChanged?.Invoke(phase);
+            _machine.PhaseChanged += HandlePhaseChanged;
+
+            // 定位置に置いた客（startActive）はこの時点で active。#55 の同値順のため到達時刻を控える。
+            ActiveSinceTime = _machine.IsActive ? Time.time : 0f;
+        }
+
+        /// <summary>active になった時刻を控えてから、外向きのイベントを配る。</summary>
+        void HandlePhaseChanged(CustomerPhase phase)
+        {
+            if (phase == CustomerPhase.Active) ActiveSinceTime = Time.time;
+            onPhaseChanged?.Invoke(phase);
         }
 
         private void Update()
