@@ -17,6 +17,17 @@ namespace Toufuku.GameInput
     }
 
     /// <summary>
+    /// 有効スイング確定の瞬間に出すフィードバック（投擲SE・発射振動）の受け手 — Issue #64
+    ///
+    /// <see cref="ThrowInputController"/> は、発射などほかの購読者へ SwingAccepted を配る前に
+    /// これを呼ぶ（振りピーク検出と同じフレームで、ほかの処理より先に鳴らすため）。
+    /// </summary>
+    public interface IThrowFeedbackSink
+    {
+        void OnThrowAccepted(SwingAcceptedArgs e);
+    }
+
+    /// <summary>
     /// 入力状態機械のシーン側の窓口 — Issue #51
     ///
     /// 生入力（<see cref="IControllerRawSource"/>）を押した／離したのエッジに直して
@@ -55,6 +66,8 @@ namespace Toufuku.GameInput
         [SerializeField] OmamoriType initialSelection = OmamoriType.Kenkou;
 
         [Header("投擲SE（振りピーク検出と同じフレームで鳴らす）")]
+        [Tooltip("#64: 投擲SE・発射振動の受け手（GameFeedbackDirector をドラッグ）。未設定ならシーン内から探す。見つかればそちらで鳴らし、下の throwSe は使わない")]
+        [SerializeField] MonoBehaviour throwFeedbackSource;
         [SerializeField] AudioSource seSource;
         [SerializeField] AudioClip throwSe;
         [Tooltip("クールダウン中の有効スイングで返す短い低音（#60）。未設定なら synthesizeRejectSe に従う")]
@@ -88,6 +101,7 @@ namespace Toufuku.GameInput
 
         InputStateMachine _machine;
         IControllerRawSource _raw;
+        IThrowFeedbackSink _throwFeedback;
         readonly bool[] _prevColorHeld = new bool[InputStateMachine.ColorCount];
         bool _prevFrontHeld;
         float _yawOffset;
@@ -149,6 +163,12 @@ namespace Toufuku.GameInput
 
             if (aim == null)
                 aim = FindAnyObjectByType<OnusaAimController>();
+
+            _throwFeedback = throwFeedbackSource as IThrowFeedbackSink;
+            if (throwFeedbackSource != null && _throwFeedback == null)
+                Debug.LogWarning("[ThrowInputController] throwFeedbackSource が IThrowFeedbackSink を実装していません", this);
+            if (_throwFeedback == null)
+                _throwFeedback = FindThrowFeedbackSink();
 
             _machine = new InputStateMachine((int)initialSelection);
             _machine.SwingAccepted += HandleSwingAccepted;
@@ -244,14 +264,25 @@ namespace Toufuku.GameInput
                 return;
             }
 
-            // 投擲SE は他の処理より先に鳴らす（振りピーク検出と同時刻にするため）
-            if (seSource != null && throwSe != null)
+            // 投擲SE（と発射振動）は他の処理より先に出す（振りピーク検出と同時刻にするため）
+            if (_throwFeedback != null)
+                _throwFeedback.OnThrowAccepted(e);
+            else if (seSource != null && throwSe != null)
                 seSource.PlayOneShot(throwSe);
 
             _fireFrame = Time.frameCount;
             Log($"SwingAccepted 色={e.ColorIndex} 強さ={e.Strength:0.0} t={e.Time:0.000}");
             SwingAccepted?.Invoke(e);
             onSwingAccepted?.Invoke(e.ColorIndex);
+        }
+
+        static IThrowFeedbackSink FindThrowFeedbackSink()
+        {
+            foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            {
+                if (behaviour is IThrowFeedbackSink sink) return sink;
+            }
+            return null;
         }
 
         void HandleSwingRejected(SwingRejectedArgs e)
