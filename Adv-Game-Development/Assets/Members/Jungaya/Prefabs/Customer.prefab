@@ -134,8 +134,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33909f9273f69ee4393c3940c88a16b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitZoneTarget
-  centerRadius: 0.25
-  innerRadius: 0.5
   outerRadius: 0.9
   center: {fileID: 3734208276294870282}
 --- !u!114 &2845311605628472545
@@ -153,8 +151,6 @@ MonoBehaviour:
   affinityTable: {fileID: 11400000, guid: 7e7139a6e3816c6438b0049708ecd3dc, type: 2}
   customerType: 0
   correctOmamori: 0
-  goodHitReduce: 40
-  badHitReduce: 5
   onGoodHit:
     m_PersistentCalls:
       m_Calls: []
@@ -172,25 +168,36 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5eb21a8a17a80e4bae2a9049876da3e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerMood
-  maxGauge: 200
-  startGauge: 50
-  naturalRiseRate: 5
-  breakthroughDuration: 0.25
-  resolveLingerTime: 0.6
-  onGaugeChanged:
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerState
+  customerKind: 0
+  kindTable: {fileID: 11400000, guid: 123a9d079c3de2f4eafcdadbc530a929, type: 2}
+  fallbackInitialRemaining: 1
+  fallbackDangerFullSeconds: 20
+  dangerFullSecondsOverride: 0
+  fallbackRescueBaseScore: 100
+  startActive: 1
+  rescuedExitSeconds: 3
+  blackExitSeconds: 4
+  hitColliders: []
+  onDangerChanged:
     m_PersistentCalls:
       m_Calls: []
-  onStateChanged:
+  onRemainingChanged:
     m_PersistentCalls:
       m_Calls: []
-  onBreakthrough:
+  onPhaseChanged:
     m_PersistentCalls:
       m_Calls: []
-  onResolved:
+  onCorrectColorHit:
     m_PersistentCalls:
       m_Calls: []
-  onAngry:
+  onWrongColorHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onRescued:
+    m_PersistentCalls:
+      m_Calls: []
+  onBlack:
     m_PersistentCalls:
       m_Calls: []
   onGlow:

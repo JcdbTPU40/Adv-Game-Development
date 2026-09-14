@@ -29,7 +29,7 @@ namespace Toufuku.Feedback
     /// | 発射 | 有効スイング確定（振りピーク） | <see cref="ThrowInputController"/> が他の処理より先に <see cref="OnThrowAccepted"/> を呼ぶ |
     /// | 命中 | 相性◯の命中 | <see cref="OmamoriHitResolver.HitResolved"/>。福の連なりで音階を上げ、3・6・10 で和音 |
     /// | 救済 | 命中で救済が確定 | 同上（<see cref="OmamoriHitInfo.Rescued"/>） |
-    /// | 失敗（黒客化） | 客のゲージが満タン（怒り） | <see cref="CustomerMood.AnyFinished"/> |
+    /// | 失敗（黒客化） | 客の危険度Dが100 | <see cref="CustomerState.AnyFinished"/> |
     /// | 黒客ヒット | 黒客に命中 | <see cref="OmamoriHitResolver.HitResolved"/>（命中音の代わりに鳴らす） |
     /// | カウントダウン | ゲーム終了の残り countdownFrom 秒から毎秒 | <see cref="GameSession.RemainingSeconds"/> |
     /// | 鈴 | ゲーム開始・終了 | <see cref="GameSession.IsPlaying"/> の変化 |
@@ -143,13 +143,13 @@ namespace Toufuku.Feedback
         void OnEnable()
         {
             OmamoriHitResolver.HitResolved += HandleHitResolved;
-            CustomerMood.AnyFinished += HandleCustomerFinished;
+            CustomerState.AnyFinished += HandleCustomerFinished;
         }
 
         void OnDisable()
         {
             OmamoriHitResolver.HitResolved -= HandleHitResolved;
-            CustomerMood.AnyFinished -= HandleCustomerFinished;
+            CustomerState.AnyFinished -= HandleCustomerFinished;
             _haptics.Stop();
             ApplyMotor();
         }
@@ -239,9 +239,9 @@ namespace Toufuku.Feedback
 
         // ---- 失敗（黒客化）----
 
-        void HandleCustomerFinished(CustomerMood mood, CustomerMood.MoodState result)
+        void HandleCustomerFinished(CustomerState state, CustomerPhase result)
         {
-            if (result == CustomerMood.MoodState.Angry)
+            if (result == CustomerPhase.Black)
                 Play(FeedbackSe.Fail, _fail);
         }
 

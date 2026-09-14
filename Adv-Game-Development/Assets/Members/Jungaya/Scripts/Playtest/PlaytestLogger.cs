@@ -19,7 +19,7 @@ namespace Toufuku.Playtest
     ///   - <c>…_summary.csv</c>: T1・T2・T3 の判定に使う数値（<see cref="PlaytestMetrics"/>）
     /// ・ファイル名とヘッダーにテストID・日付・ビルド番号・シード値、ヘッダーにパラメータ（主要コンポーネントの設定値）を入れる。
     /// ・既存の処理は変えず、公開イベントを購読するだけ（発射 = ThrowInputController.SwingAccepted、命中 = OmamoriHitResolver.HitResolved、
-    ///   着弾 = OmamoriProjectile.Landed、結末 = CustomerMood.AnyFinished、評価 = ShrineRating.onRatingChanged）。
+    ///   着弾 = OmamoriProjectile.Landed、結末 = CustomerState.AnyFinished、評価 = ShrineRating.onRatingChanged）。
     /// ・シードはほかのスポーン処理より先に決めるため、実行順を最も早くしている。
     /// </summary>
     [DefaultExecutionOrder(-300)]
@@ -133,7 +133,7 @@ namespace Toufuku.Playtest
             CustomerSpawnId.Spawned += HandleSpawned;
             CustomerSpawnId.Despawned += HandleDespawned;
             OmamoriHitResolver.HitResolved += HandleHitResolved;
-            CustomerMood.AnyFinished += HandleCustomerFinished;
+            CustomerState.AnyFinished += HandleCustomerFinished;
             OmamoriProjectile.AnyLaunched += HandleProjectileLaunched;
         }
 
@@ -151,7 +151,7 @@ namespace Toufuku.Playtest
             CustomerSpawnId.Spawned -= HandleSpawned;
             CustomerSpawnId.Despawned -= HandleDespawned;
             OmamoriHitResolver.HitResolved -= HandleHitResolved;
-            CustomerMood.AnyFinished -= HandleCustomerFinished;
+            CustomerState.AnyFinished -= HandleCustomerFinished;
             OmamoriProjectile.AnyLaunched -= HandleProjectileLaunched;
         }
 
@@ -544,14 +544,14 @@ namespace Toufuku.Playtest
             _pendingHitCustomer = null;
         }
 
-        void HandleCustomerFinished(CustomerMood mood, CustomerMood.MoodState result)
+        void HandleCustomerFinished(CustomerState state, CustomerPhase result)
         {
-            if (!_recording || mood == null) return;
+            if (!_recording || state == null) return;
 
-            PlaytestEvent row = New(result == CustomerMood.MoodState.Angry
+            PlaytestEvent row = New(result == CustomerPhase.Black
                 ? PlaytestEventType.BlackConversion
                 : PlaytestEventType.Rescue);
-            FillCustomer(row, mood.gameObject);
+            FillCustomer(row, state.gameObject);
             if (ShrineRating.Instance != null) row.Rating = ShrineRating.Instance.Rating;
             Add(row);
         }
@@ -614,8 +614,8 @@ namespace Toufuku.Playtest
             row.PosX = pos.x;
             row.PosZ = pos.z;
 
-            CustomerMood mood = customer.GetComponent<CustomerMood>();
-            if (mood != null) row.Danger = mood.GaugeNormalized * 100.0;
+            CustomerState state = customer.GetComponent<CustomerState>();
+            if (state != null) row.Danger = state.Danger;
         }
 
         static string ColorOf(GameObject customer)
@@ -680,8 +680,11 @@ namespace Toufuku.Playtest
                 HitZoneTarget target = active[i];
                 if (target == null || !target.IsHittable) continue;
 
-                CustomerMood mood = target.GetComponent<CustomerMood>();
-                if (mood == null) continue;
+                CustomerState state = target.GetComponent<CustomerState>();
+                if (state == null) continue;
+
+                // 優先救済の候補集合（v8 7章）: active かつ 未救済・非黒客・R>0 だけ。
+                if (!state.IsRescueTarget) continue;
 
                 Vector3 center = target.Center;
                 if (cam != null)
@@ -692,7 +695,7 @@ namespace Toufuku.Playtest
 
                 Vector3 flat = center - origin;
                 flat.y = 0f;
-                _candidates.Add(new PriorityCandidate(CustomerSpawnId.Of(target.gameObject), mood.GaugeNormalized * 100f, flat.magnitude));
+                _candidates.Add(new PriorityCandidate(CustomerSpawnId.Of(target.gameObject), state.Danger, flat.magnitude));
             }
             return PriorityTarget.Select(_candidates);
         }
@@ -733,7 +736,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>分類ごとに最初の 1 体だけ、客のバランス値（ゲージ・削り量・判定半径）を残す。</summary>
+        /// <summary>分類ごとに最初の 1 体だけ、客のバランス値（客種・初期R・D満タン秒数・判定半径）を残す。</summary>
         void CaptureCustomerParameters(CustomerSpawnId id)
         {
             if (id == null || !_capturedCustomerCategories.Add(id.Category)) return;
@@ -741,7 +744,7 @@ namespace Toufuku.Playtest
             string prefix = "customer_params." + id.Category + ".";
             foreach (MonoBehaviour behaviour in new MonoBehaviour[]
                      {
-                         id.GetComponent<CustomerMood>(), id.GetComponent<CustomerRescue>(), id.GetComponent<HitZoneTarget>()
+                         id.GetComponent<CustomerState>(), id.GetComponent<CustomerRescue>(), id.GetComponent<HitZoneTarget>()
                      })
             {
                 if (behaviour != null)

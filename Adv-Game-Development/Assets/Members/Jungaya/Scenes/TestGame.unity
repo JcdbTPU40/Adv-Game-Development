@@ -846,10 +846,9 @@ MonoBehaviour:
   slotPlacementAttempts: 30
   customerY: 1
   randomSeed: 12345
-  startGaugeRange: {x: 0.15, y: 0.85}
-  assumedMaxGauge: 100
+  startDangerRange: {x: 0.15, y: 0.85}
   blackCustomerCount: 3
-  freezeGauges: 0
+  freezeDanger: 0
   outlineMode: 0
   outlineWidthMode: 1
   outlineWidth: 0.09

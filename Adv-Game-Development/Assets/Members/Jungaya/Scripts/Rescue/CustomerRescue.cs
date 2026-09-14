@@ -4,19 +4,20 @@ using UnityEngine.Events;
 namespace Toufuku.Rescue
 {
     /// <summary>
-    /// 救済判定（相性◯/✗ → ゲージ削り）— Issue #13
+    /// 救済判定（相性◯/✗ → D・R の更新）— Issue #13 / #54
     ///
-    /// 仕様（企画書 6章）:
-    ///   ・相性◯のお守りを当てると大きく削れる（突破）。
-    ///   ・相性✗（誤投擲）でも少しだけ削れる ＋ コンボ途切れ（#14）。
+    /// 仕様（企画書 v8 6章）:
+    ///   ・相性◯（正色）命中 … 残り必要発数 R を1減らす。危険度 D は変えない。R=0 で救済完了。
+    ///   ・相性✗（誤色）命中 … D も R も変えない。福の連なり C とご加護進捗 G だけが切れる（v8変更点2）。
+    ///     誤色で D を下げないので、無限弾の誤色連打で黒客化を遅らせる抜け道は成立しない。
     ///
-    /// 役割分担（#11 マージ後）:
-    ///   不満ゲージの「値・ステート（抵抗/突破/解消）・自然上昇・結末確定・退場」は
-    ///   CustomerMood(#11) が一元管理する。ここは “相性判定だけ” に絞り、
-    ///   命中時に CustomerMood.ReduceGauge(...) を呼ぶ。
-    ///   ※ 同じ GameObject に CustomerMood が必要（RequireComponent）。
+    /// 役割分担（#54 以降）:
+    ///   D・R の値、状態遷移、時間経過、黒客化、退場は CustomerState が一元管理する。
+    ///   ここは “相性判定だけ” に絞り、命中時に CustomerState の
+    ///   ApplyCorrectColorHit() / ApplyWrongColorHit() を呼ぶ。
+    ///   ※ 同じ GameObject に CustomerState が必要（RequireComponent）。
     /// </summary>
-    [RequireComponent(typeof(CustomerMood))]
+    [RequireComponent(typeof(CustomerState))]
     public class CustomerRescue : MonoBehaviour
     {
         [Header("相性テーブル（#12）")]
@@ -31,29 +32,24 @@ namespace Toufuku.Rescue
         [Tooltip("相性テーブル未設定のときに使う正解お守り。暫定。正式には #16 の客タイプ→正解お守りデータから設定する。")]
         [SerializeField] private OmamoriType correctOmamori = OmamoriType.Kenkou;
 
-        [Header("お守り命中によるゲージ削り量（正の値）")]
-        [Tooltip("相性◯（突破）のとき削る量。")]
-        [SerializeField] private float goodHitReduce = 40f;
-        [Tooltip("相性✗（誤投擲）のとき削る量。少しだけ。")]
-        [SerializeField] private float badHitReduce = 5f;
-
         [Header("判定時イベント（SE/スコア接続用）")]
-        public UnityEvent onGoodHit; // 相性◯ヒット（突破）
-        public UnityEvent onBadHit;  // 相性✗ヒット（コンボ途切れは #14 でここに接続）
+        public UnityEvent onGoodHit; // 相性◯ヒット（正色。R が1減る）
+        public UnityEvent onBadHit;  // 相性✗ヒット（誤色。C と G が切れる。渋るリアクションは #14）
 
-        private CustomerMood _mood;
+        private CustomerState _state;
 
-        /// <summary>ゲージ・ステートは CustomerMood が正本。参照したい場合はこちらから。</summary>
-        public CustomerMood Mood => _mood;
+        /// <summary>D・R・状態は CustomerState が正本。参照したい場合はこちらから。</summary>
+        public CustomerState State => _state;
         /// <summary>この客のタイプ（相性テーブル判定に使う）。</summary>
         public CustomerType CustomerType => customerType;
         /// <summary>正解お守り（フォールバック判定に使う。Setup(profile) で客タイプと揃う）。#63 計測ログの客の色に使う。</summary>
         public OmamoriType CorrectOmamori => correctOmamori;
-        public bool IsResolved => _mood != null && _mood.IsFinished;
+        /// <summary>終端状態（救済成功 or 黒客）。以後この客に得点も救済も発生しない。</summary>
+        public bool IsFinished => _state != null && _state.IsFinished;
 
         private void Awake()
         {
-            _mood = GetComponent<CustomerMood>();
+            _state = GetComponent<CustomerState>();
         }
 
         /// <summary>
@@ -81,7 +77,7 @@ namespace Toufuku.Rescue
         }
 
         /// <summary>
-        /// お守りが命中したときに OmamoriBullet から呼ぶ。
+        /// お守りが命中したときに OmamoriHitResolver から呼ぶ。
         /// 相性判定の結果を返すので、呼び出し側でコンボ/スコア処理に使える。
         /// </summary>
         /// <param name="hitType">当たったお守りの種類</param>
@@ -95,18 +91,18 @@ namespace Toufuku.Rescue
                 ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
                 : AffinityResolver.Resolve(correctOmamori, hitType);
 
-            // 結末確定後はゲージを動かさない（二重判定防止）。
-            if (_mood == null || _mood.IsFinished) return affinity;
+            // 終端状態（救済成功 / 黒客）では D も R も動かさない（二重判定防止）。
+            if (_state == null || !_state.IsActive) return affinity;
 
             if (affinity == Affinity.Good)
             {
-                _mood.ReduceGauge(goodHitReduce, isBreakthrough: true); // 突破
+                _state.ApplyCorrectColorHit(); // R を1減らす。D は変えない。R=0 で救済完了。
                 onGoodHit?.Invoke();
             }
             else
             {
-                _mood.ReduceGauge(badHitReduce, isBreakthrough: false); // 誤投擲でも少し削れる
-                onBadHit?.Invoke();                                     // ← コンボ途切れ（#14）はここに繋ぐ
+                _state.ApplyWrongColorHit();   // D も R も変えない（v8変更点2）。
+                onBadHit?.Invoke();            // ← 福の連なり C とご加護進捗 G のリセット／渋るリアクション（#14）
             }
 
             return affinity;

@@ -22,6 +22,12 @@ namespace Toufuku.Rescue
         [Tooltip("客タイプ定義のカタログ(#16)。")]
         [SerializeField] private CustomerProfileCatalog catalog;
 
+        [Header("客種（付録B B-1 / #54）")]
+        [Tooltip("生成する客種。初期R・D満タン秒数・基礎点はこの客種で数値表から引く。客種の抽選（比率）は #57 / #62 の担当。")]
+        [SerializeField] private CustomerKind customerKind = CustomerKind.Normal;
+        [Tooltip("客種ごとの数値表（付録B B-1）。未設定なら客プレハブ側の設定のままにする。")]
+        [SerializeField] private CustomerKindTable kindTable;
+
         [Header("生成タイミング")]
         [Tooltip("生成間隔（秒）。")]
         [SerializeField] private float spawnInterval = 3f;
@@ -72,9 +78,15 @@ namespace Toufuku.Rescue
             GameObject go = Instantiate(customerPrefab, pos, Quaternion.identity);
             CustomerSpawnId.Assign(go, CustomerSpawnId.CategoryNormal);
 
-            // 解消/怒り → 神社評価(#30) の結線。プレハブに付け忘れていても動くよう保険で付与。
-            if (go.GetComponent<CustomerMood>() != null && go.GetComponent<ShrineRatingHook>() == null)
+            // 救済成功/黒客化 → 神社評価(#30) の結線。プレハブに付け忘れていても動くよう保険で付与。
+            if (go.GetComponent<CustomerState>() != null && go.GetComponent<ShrineRatingHook>() == null)
                 go.AddComponent<ShrineRatingHook>();
+
+            // 客種の数値（初期R・D満タン秒数・基礎点）を差し込む。通常客のD満タン秒数（15〜25秒）は
+            // 「客ID × 用途」の固定シードで引く（#63 の再現性を保つ）。
+            CustomerState state = go.GetComponent<CustomerState>();
+            if (state != null && kindTable != null)
+                state.Setup(customerKind, kindTable, PlaytestRandom.Value(PlaytestRandom.TryFor(PlaytestStreams.DangerSeconds, id)));
 
             CustomerProfile profile = catalog != null ? catalog.GetRandom(PlaytestRandom.TryFor(PlaytestStreams.Profile, id)) : null;
 

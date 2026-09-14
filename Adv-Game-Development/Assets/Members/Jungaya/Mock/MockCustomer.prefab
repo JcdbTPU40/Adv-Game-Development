@@ -105,25 +105,36 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5eb21a8a17a80e4bae2a9049876da3e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerMood
-  maxGauge: 100
-  startGauge: 50
-  naturalRiseRate: 1.5
-  breakthroughDuration: 0.25
-  resolveLingerTime: 0.4
-  onGaugeChanged:
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerState
+  customerKind: 0
+  kindTable: {fileID: 0}
+  fallbackInitialRemaining: 1
+  fallbackDangerFullSeconds: 20
+  dangerFullSecondsOverride: 66.7
+  fallbackRescueBaseScore: 100
+  startActive: 1
+  rescuedExitSeconds: 0.4
+  blackExitSeconds: 0.4
+  hitColliders: []
+  onDangerChanged:
     m_PersistentCalls:
       m_Calls: []
-  onStateChanged:
+  onRemainingChanged:
     m_PersistentCalls:
       m_Calls: []
-  onBreakthrough:
+  onPhaseChanged:
     m_PersistentCalls:
       m_Calls: []
-  onResolved:
+  onCorrectColorHit:
     m_PersistentCalls:
       m_Calls: []
-  onAngry:
+  onWrongColorHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onRescued:
+    m_PersistentCalls:
+      m_Calls: []
+  onBlack:
     m_PersistentCalls:
       m_Calls: []
   onGlow:

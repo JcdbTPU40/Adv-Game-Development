@@ -25,7 +25,7 @@ public class HitZoneTarget : MonoBehaviour
     [SerializeField] Transform center;
 
     Collider[] _colliders;
-    CustomerMood _mood;
+    CustomerState _state;
 
     public Vector3 Center => center ? center.position : transform.position;
 
@@ -33,15 +33,16 @@ public class HitZoneTarget : MonoBehaviour
     public float Radius => outerRadius;
 
     /// <summary>
-    /// 当たり判定が生きているか。結末確定（救済演出中）で CustomerMood が Collider を切ると false になり、
+    /// 当たり判定が生きているか。救済完了（退場演出中）で CustomerState が Collider を切ると false になり、
     /// 着弾点判定では弾が通過して後方の客で判定される。
+    /// 黒客の当たり判定は仕様どおり残るので（v8 6章）、黒客はここで除外しない。
     /// </summary>
     public bool IsHittable
     {
         get
         {
             if (!isActiveAndEnabled) return false;
-            if (_mood != null && _mood.IsFinished) return false;
+            if (_state != null && _state.IsRescued) return false;
             if (_colliders == null || _colliders.Length == 0) return true;
             for (int i = 0; i < _colliders.Length; i++)
             {
@@ -54,7 +55,7 @@ public class HitZoneTarget : MonoBehaviour
     void Awake()
     {
         _colliders = GetComponentsInChildren<Collider>(true);
-        _mood = GetComponent<CustomerMood>();
+        _state = GetComponent<CustomerState>();
     }
 
     void OnEnable()

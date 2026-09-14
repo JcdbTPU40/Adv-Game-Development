@@ -18,7 +18,8 @@ public class ScoreManager : MonoBehaviour
     public static ScoreManager Instance { get; private set; }
 
     [Header("命中の基礎スコア（縁）")]
-    [Tooltip("命中したときの基礎点。命中精度に関係なく同じ（旧 outerScore の値を引き継ぐ）")]
+    [Tooltip("旧APIのフォールバック基礎点。#54 以降の正規の基礎点は客種ごと（CustomerKindTable / 付録B B-1）で、" +
+             "救済完了時に CustomerState から渡される。")]
     [FormerlySerializedAs("outerScore")]
     [SerializeField] int hitScore = 100;
 
@@ -83,9 +84,16 @@ public class ScoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 命中を記録する。(基礎点 + 命中精度ボーナス) × 合計倍率を加算し、コンボを伸ばす。
+    /// 正色命中を記録する（#54）。福の連なり C は正色命中のたびに伸びるが、
+    /// <b>縁は救済完了（R=0）のときだけ</b> (基礎点 + 命中精度ボーナス) × 合計倍率で入る。
+    ///
+    /// 企画書 v8 変更点5／付録B B-2：欲張り客の途中命中は 0 点、救済完了時に 300 点を1回で確定する。
+    /// 途中点を先払いしないので、複数発客の得点は「最終弾の精度・倍率が1回だけ乗った値」に一意に決まる。
     /// </summary>
-    public void RegisterHit(HitZone zone)
+    /// <param name="zone">命中精度のゾーン（Miss ならミス扱い）。</param>
+    /// <param name="rescued">この命中で救済が完了したか（R=0 になったか）。</param>
+    /// <param name="rescueBaseScore">救済完了時の基礎点（客種ごと。付録B B-1）。</param>
+    public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore)
     {
         // Miss が渡されたら命中扱いにしない（コンボ途切れへ）
         if (zone == HitZone.Miss) { RegisterMiss(); return; }
@@ -93,21 +101,30 @@ public class ScoreManager : MonoBehaviour
         Combo++;
         if (Combo > MaxCombo) MaxCombo = Combo;
 
-        int bonus = AccuracyBonusOf(zone);
-        int gained = Mathf.RoundToInt((hitScore + bonus) * TotalMultiplier);
+        int bonus = rescued ? AccuracyBonusOf(zone) : 0;
+        int gained = rescued ? Mathf.RoundToInt((rescueBaseScore + bonus) * TotalMultiplier) : 0;
         En += gained;
 
         LastZone = zone;
         LastGain = gained;
         LastBonus = bonus;
 
-        Debug.Log($"[Score] HIT {zone} : base {hitScore} + 精度 {bonus} x{TotalMultiplier:0.00} = +{gained}  (Combo {Combo} / En {En})");
+        if (rescued)
+            Debug.Log($"[Score] 救済完了 {zone} : 基礎 {rescueBaseScore} + 精度 {bonus} x{TotalMultiplier:0.00} = +{gained}  (連なり {Combo} / 縁 {En})");
+        else
+            Debug.Log($"[Score] 正色命中（救済途中）: 縁は入らない (連なり {Combo} / 縁 {En})");
 
         // #31: ポーリング廃止。変化をイベントで配信（HUD/SE/ご加護#29/評価#30 が購読）。
         onComboChanged?.Invoke(Combo);
         onMultiplierChanged?.Invoke(TotalMultiplier);
         onEnChanged?.Invoke(En);
     }
+
+    /// <summary>
+    /// 旧API（#22）。1発で救済が完了する客だけ正しい。#54 以降は
+    /// <see cref="RegisterCorrectHit(HitZone,bool,int)"/> を使い、基礎点は客種ごとの値を渡すこと。
+    /// </summary>
+    public void RegisterHit(HitZone zone) => RegisterCorrectHit(zone, rescued: true, rescueBaseScore: hitScore);
 
     /// <summary>
     /// ミス（外し／相性の合わないお守り）を記録する。コンボが途切れる。

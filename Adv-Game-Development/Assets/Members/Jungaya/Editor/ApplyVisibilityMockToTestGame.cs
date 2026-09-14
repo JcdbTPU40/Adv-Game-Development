@@ -104,11 +104,11 @@ namespace Toufuku.Rescue.MockEditor
         private static readonly Vector2 DebugHudOffset = new Vector2(10f, 280f);
 
         // ── 客プレハブ Variant の調整値 ────────────────────────
-        // 自然上昇 5/秒（本番値）だと、初期ゲージをばらけさせた客が数秒で怒って消えてしまい、
-        // 12〜15体を並べた状態を作れない。maxGauge / goodHitReduce（射撃バランス）は
-        // 本番のまま触らず、上昇レートと余韻だけモック側（VisibilityMockSceneBuilder）に合わせる。
-        private const float MoodNaturalRiseRate = 1.5f;
-        private const float MoodResolveLinger = 0.4f;
+        // D満タン 15〜25秒（本番値）だと、初期の危険度をばらけさせた客が数秒で黒客化して消えてしまい、
+        // 12〜15体を並べた状態を作れない。初期R・基礎点（射撃バランス）は
+        // 本番のまま触らず、D の進行と退場秒数だけモック側（VisibilityMockSceneBuilder）に合わせる。
+        private const float MockDangerFullSeconds = 66.7f;
+        private const float MockExitSeconds = 0.4f;
 
         // ══════════════════════════════════════════════════════════
         //  Apply
@@ -361,15 +361,16 @@ namespace Toufuku.Rescue.MockEditor
                     AssetDatabase.GUIDToAssetPath(ProfileCatalogGuid)));
             matcherSo.ApplyModifiedPropertiesWithoutUndo();
 
-            // 自然上昇が速すぎると 12〜15 体を並べる前に退場してしまう。
-            // maxGauge / startGauge（＝射撃バランス）は本番値のまま触らない。
-            var mood = root.GetComponent<CustomerMood>();
-            if (mood != null)
+            // D の進行が速すぎると 12〜15 体を並べる前に退場してしまう。
+            // 初期R・基礎点（＝射撃バランス）は本番値のまま触らない。
+            var state = root.GetComponent<CustomerState>();
+            if (state != null)
             {
-                var moodSo = new SerializedObject(mood);
-                SetFloat(moodSo, "naturalRiseRate", MoodNaturalRiseRate);
-                SetFloat(moodSo, "resolveLingerTime", MoodResolveLinger);
-                moodSo.ApplyModifiedPropertiesWithoutUndo();
+                var stateSo = new SerializedObject(state);
+                SetFloat(stateSo, "dangerFullSecondsOverride", MockDangerFullSeconds);
+                SetFloat(stateSo, "rescuedExitSeconds", MockExitSeconds);
+                SetFloat(stateSo, "blackExitSeconds", MockExitSeconds);
+                stateSo.ApplyModifiedPropertiesWithoutUndo();
             }
         }
 

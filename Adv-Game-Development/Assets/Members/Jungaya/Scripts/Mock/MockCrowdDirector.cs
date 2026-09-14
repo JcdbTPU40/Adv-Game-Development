@@ -19,18 +19,17 @@ namespace Toufuku.Rescue.Mock
     ///   既定 {7,8,9,10} + 祭事 +5 ＝ 祭事時 12〜15人。
     ///
     /// 補充ループ（毎フレーム）:
-    ///   1) 退場（CustomerMood が自分で Destroy した客）を回収してスロットを空ける
+    ///   1) 退場（CustomerState が自分で Destroy した客）を回収してスロットを空ける
     ///   2) 目標との差ぶんだけ「補充チケット」を積む／余っていれば減らす
     ///   3) チケットは respawnDelay 経過で発火。ただし直前のスポーンから
     ///      minSpawnInterval 未満なら待つ（同時退場時の一斉湧きを抑える）
     ///   4) 発火 → 鳥居位置に生成 → 空きスロットを予約 → walkDuration 秒かけて歩く
     ///
-    ///   ※ 退場の検知に CustomerMood.onAngry/onResolved を購読しないのは、
-    ///     CustomerMood 側が resolveLingerTime の余韻を挟んでから Destroy するため。
+    ///   ※ 退場の検知に CustomerState.onBlack/onRescued を購読しないのは、
+    ///     CustomerState 側が退場秒数（成功3秒／黒客4秒）を挟んでから Destroy するため。
     ///     購読するとディレイが二重に乗る。「参照が null になったか」で見るのが正しい。
     ///
-    /// 既存コードは一切変更していない。初期ゲージのばらつきも
-    /// CustomerMood の公開API(AddGauge/ReduceGauge)だけで実現している。
+    /// 初期の危険度Dのばらつき・凍結は CustomerState の公開API(SetDangerForDebug)だけで実現している。
     ///
     /// ※ 検証用の使い捨て。Mock/ ごと削除できる。
     /// </summary>
@@ -66,14 +65,14 @@ namespace Toufuku.Rescue.Mock
         {
             public GameObject Go;
             public Transform Tr;
-            public CustomerMood Mood;
+            public CustomerState State;
             public MockCustomerTag Tag;
             public MockCustomerOutline Outline;
             public MockCustomerWalker Walker;
             public int SlotIndex = -1;
 
-            /// <summary>ゲージ凍結中に維持する値。負なら未取得。</summary>
-            public float FrozenGauge = -1f;
+            /// <summary>危険度の凍結中に維持する値。負なら未取得。</summary>
+            public float FrozenDanger = -1f;
         }
 
         private class Slot
@@ -191,18 +190,15 @@ namespace Toufuku.Rescue.Mock
 
         // ── 客ごとのばらつき ────────────────────────────────────
         [Header("客ごとのばらつき")]
-        [Tooltip("初期ゲージの範囲（0〜1の正規化）。残量差が視認できるようにばらけさせる。")]
-        [SerializeField] private Vector2 startGaugeRange = new Vector2(0.15f, 0.85f);
-
-        [Tooltip("maxGauge を逆算できなかったときのフォールバック値。")]
-        [SerializeField] private float assumedMaxGauge = 100f;
+        [Tooltip("初期の危険度Dの範囲（0〜1の正規化）。残量差が視認できるようにばらけさせる。")]
+        [SerializeField] private Vector2 startDangerRange = new Vector2(0.15f, 0.85f);
 
         [Tooltip("常時混ぜておく黒客の数。")]
         [SerializeField] private int blackCustomerCount = 3;
 
-        [Tooltip("ON にするとゲージの自然上昇を打ち消し、誰も退場しなくなる。" +
+        [Tooltip("ON にすると危険度Dの進行を打ち消し、誰も退場しなくなる。" +
                  "12〜15体をきっちり並べて識別テストしたいときに使う（既定OFF＝補充テンポの検証用）。")]
-        [SerializeField] private bool freezeGauges;
+        [SerializeField] private bool freezeDanger;
 
         // ── 輪郭の初期設定（デバッグ操作で実行中に切り替わる）──────
         [Header("輪郭の表現（実行中に切替可）")]
@@ -337,51 +333,49 @@ namespace Toufuku.Rescue.Mock
 
         private void LateUpdate()
         {
-            ApplyGaugeFreeze();
+            ApplyDangerFreeze();
         }
 
         /// <summary>
-        /// ゲージ凍結。CustomerMood.Update が加算した自然上昇分を、その場で同じだけ削って打ち消す。
+        /// 危険度の凍結。CustomerState.Update が進めた分を、その場で元の値へ戻して打ち消す。
         ///
         /// なぜ必要か:
-        ///   凍結なしだと naturalRiseRate によって常に誰かが怒って退場するため、
+        ///   凍結なしだと危険度の進行によって常に誰かが黒客化して退場するため、
         ///   目標15体でも「定位置に立っている数」は 13 前後にしかならない（実測値）。
         ///   12〜15体をきっちり並べて識別可否を測る、という #44 の完了条件を満たせない。
         ///
         /// 実装:
-        ///   LateUpdate は全 Update の後に走るので、この時点のゲージは「前フレーム値 + 上昇分」。
-        ///   差分を ReduceGauge で戻せば値が固定される。CustomerMood の公開APIだけで完結し、
-        ///   naturalRiseRate（private）に触る必要がない＝既存コードは無改変のまま。
+        ///   LateUpdate は全 Update の後に走るので、この時点の D は「前フレーム値 + 進行分」。
+        ///   SetDangerForDebug で元の値へ戻せば固定される。CustomerState の公開APIだけで完結する。
         /// </summary>
-        private void ApplyGaugeFreeze()
+        private void ApplyDangerFreeze()
         {
             for (int i = 0; i < _members.Count; i++)
             {
                 Member m = _members[i];
-                if (m == null || m.Go == null || m.Mood == null) continue;
+                if (m == null || m.Go == null || m.State == null) continue;
 
-                if (!freezeGauges)
+                if (!freezeDanger)
                 {
-                    m.FrozenGauge = -1f;         // 解除。次に凍結したとき現在値から拾い直す
+                    m.FrozenDanger = -1f;         // 解除。次に凍結したとき現在値から拾い直す
                     continue;
                 }
 
-                if (m.FrozenGauge < 0f)
+                if (m.FrozenDanger < 0f)
                 {
-                    m.FrozenGauge = m.Mood.Gauge;
+                    m.FrozenDanger = m.State.Danger;
                     continue;
                 }
 
-                float risen = m.Mood.Gauge - m.FrozenGauge;
-                if (risen > 0.0001f)
-                    m.Mood.ReduceGauge(risen, isBreakthrough: false);
+                if (m.State.Danger - m.FrozenDanger > 0.0001f)
+                    m.State.SetDangerForDebug(m.FrozenDanger);
             }
         }
 
         // ── 補充ループ ──────────────────────────────────────────
 
         /// <summary>
-        /// 退場（CustomerMood が自分で Destroy した客）を回収し、スロットを空ける。
+        /// 退場（CustomerState が自分で Destroy した客）を回収し、スロットを空ける。
         /// </summary>
         private void SweepDeparted()
         {
@@ -494,7 +488,7 @@ namespace Toufuku.Rescue.Mock
             {
                 Go = go,
                 Tr = go.transform,
-                Mood = go.GetComponent<CustomerMood>(),
+                State = go.GetComponent<CustomerState>(),
                 Tag = go.GetComponent<MockCustomerTag>(),
                 Outline = go.GetComponent<MockCustomerOutline>(),
                 Walker = go.GetComponent<MockCustomerWalker>(),
@@ -506,7 +500,7 @@ namespace Toufuku.Rescue.Mock
             AssignIdentity(member, PlaytestRandom.TryFor(PlaytestStreams.Identity, spawnId.Id));
             spawnId.SetCategory(member.Tag != null && member.Tag.IsBlack ? CustomerSpawnId.CategoryBlack : CustomerSpawnId.CategoryNormal);
             spawnId.SetDestination(destination);
-            RandomizeGauge(member.Mood, PlaytestRandom.TryFor(PlaytestStreams.Gauge, spawnId.Id));
+            RandomizeDanger(member.State, PlaytestRandom.TryFor(PlaytestStreams.Gauge, spawnId.Id));
 
             if (member.Walker != null)
             {
@@ -618,28 +612,17 @@ namespace Toufuku.Rescue.Mock
         }
 
         /// <summary>
-        /// 初期ゲージを客ごとにばらけさせる（残量差が視認できる状態にするため）。
-        ///
-        /// CustomerMood の maxGauge は private だが、Gauge / GaugeNormalized から逆算できる。
-        /// 値の変更も公開API(AddGauge/ReduceGauge)だけで足りるので、CustomerMood は無改変で済む。
+        /// 初期の危険度Dを客ごとにばらけさせる（残量差が視認できる状態にするため）。
         /// </summary>
-        private void RandomizeGauge(CustomerMood mood, DeterministicRandom rng)
+        private void RandomizeDanger(CustomerState state, DeterministicRandom rng)
         {
-            if (mood == null) return;
+            if (state == null) return;
 
-            float norm = mood.GaugeNormalized;
-            float max = norm > 0.0001f ? mood.Gauge / norm : assumedMaxGauge;
-            if (max <= 0.0001f) return;
+            // 満タンに触れると即 黒客化 が確定してしまうので、上端は必ず避ける。
+            float lo = Mathf.Clamp(Mathf.Min(startDangerRange.x, startDangerRange.y), 0f, 0.98f);
+            float hi = Mathf.Clamp(Mathf.Max(startDangerRange.x, startDangerRange.y), 0f, 0.98f);
 
-            // 0 や満タンに触れると即 解消/怒り が確定してしまうので、両端は必ず避ける。
-            float lo = Mathf.Clamp(Mathf.Min(startGaugeRange.x, startGaugeRange.y), 0.02f, 0.98f);
-            float hi = Mathf.Clamp(Mathf.Max(startGaugeRange.x, startGaugeRange.y), 0.02f, 0.98f);
-
-            float target = PlaytestRandom.Range(rng, lo, hi) * max;
-            float diff = target - mood.Gauge;
-
-            if (diff > 0.01f) mood.AddGauge(diff);
-            else if (diff < -0.01f) mood.ReduceGauge(-diff, isBreakthrough: false);
+            state.SetDangerForDebug(PlaytestRandom.Range(rng, lo, hi) * CustomerStateMachine.MaxDanger);
         }
 
         // ── スロット管理 ────────────────────────────────────────
@@ -805,10 +788,10 @@ namespace Toufuku.Rescue.Mock
         public void ToggleFestival() => festivalMode = !festivalMode;
 
         /// <summary>ゲージ凍結中か（デバッグ表示用）。</summary>
-        public bool FreezeGauges => freezeGauges;
+        public bool FreezeGauges => freezeDanger;
 
         /// <summary>ゲージ凍結を切り替える。ON の間は誰も退場しないので体数が目標どおりに揃う。</summary>
-        public void ToggleFreezeGauges() => freezeGauges = !freezeGauges;
+        public void ToggleFreezeGauges() => freezeDanger = !freezeDanger;
 
         /// <summary>ランクを C→B→A→S→C と巡回させる。</summary>
         public void CycleRank()
