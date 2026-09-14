@@ -132,7 +132,7 @@ public class ScoreHud : MonoBehaviour
         GUI.Label(new Rect(x, y + h * 0, 400, h), $"縁(En) : {_en}", style);
         GUI.Label(new Rect(x, y + h * 1, 400, h), $"コンボ : {_combo}  (Max {sm.MaxCombo})", style);
         GUI.Label(new Rect(x, y + h * 2, 400, h), $"倍率   : x{_multiplier:0.00}", style);
-        GUI.Label(new Rect(x, y + h * 3, 400, h), $"直近   : {sm.LastZone}  +{sm.LastGain}", style);
+        GUI.Label(new Rect(x, y + h * 3, 400, h), $"直近   : {sm.LastZone}  +{sm.LastGain}（精度 +{sm.LastBonus}）", style);
 
         // 神社評価（#30）
         if (_ratingNormalized >= 0f)

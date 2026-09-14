@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 using Toufuku.Rescue;
+using Toufuku.Aim;
 
 namespace Toufuku.GameInput
 {
@@ -56,11 +57,16 @@ namespace Toufuku.GameInput
         [Header("投擲SE（振りピーク検出と同じフレームで鳴らす）")]
         [SerializeField] AudioSource seSource;
         [SerializeField] AudioClip throwSe;
-        [Tooltip("クールダウン中の有効スイングで返す短い低音（#60）。未設定なら鳴らさない")]
+        [Tooltip("クールダウン中の有効スイングで返す短い低音（#60）。未設定なら synthesizeRejectSe に従う")]
         [SerializeField] AudioClip cooldownRejectSe;
+        [Tooltip("cooldownRejectSe が未設定のとき、仮の低音（110Hz・0.12 秒）を合成して鳴らす（正式素材は #64）")]
+        [SerializeField] bool synthesizeRejectSe = true;
 
         [Header("セッション連動（#32）: ON なら GameSession がプレイ中のときだけ投擲を受け付ける")]
         [SerializeField] bool requireSessionPlaying = true;
+
+        [Header("照準（#60）。未設定ならシーン内の OnusaAimController を探す。無ければマウス位置")]
+        [SerializeField] OnusaAimController aim;
 
         [Header("デバッグ")]
         [SerializeField] bool showDebugHud = true;
@@ -87,6 +93,7 @@ namespace Toufuku.GameInput
         float _yawOffset;
         int _fireFrame = -1;
         int _selectFrame = -1;
+        AudioClip _synthesizedRejectSe;
 
         readonly int[] _rejectCounts = new int[Enum.GetValues(typeof(SwingRejectReason)).Length];
         int _acceptedCount;
@@ -124,8 +131,8 @@ namespace Toufuku.GameInput
 
         // ---- IInputProvider（#20）----
         public bool FireTriggered => _fireFrame == Time.frameCount;
-        // 照準の実機化は #60。それまではマウス位置を返す
-        public Vector3 AimScreenPosition => Input.mousePosition;
+        // #60: 照準（ヨー／ピッチ or マウス → 地面の着弾予測点）の画面位置。照準が無いシーンではマウス位置
+        public Vector3 AimScreenPosition => aim != null && aim.isActiveAndEnabled && aim.HasAim ? aim.ScreenPosition : Input.mousePosition;
         public int OmamoriSelectTriggered => _selectFrame == Time.frameCount ? _machine.SelectedColor : -1;
 
         void Awake()
@@ -140,6 +147,9 @@ namespace Toufuku.GameInput
 
             _yawOffset = initialYawOffset;
 
+            if (aim == null)
+                aim = FindAnyObjectByType<OnusaAimController>();
+
             _machine = new InputStateMachine((int)initialSelection);
             _machine.SwingAccepted += HandleSwingAccepted;
             _machine.SwingRejected += HandleSwingRejected;
@@ -148,6 +158,11 @@ namespace Toufuku.GameInput
             _machine.ChargeStarted += c => Log($"大祓チャージ開始 色={c}（未実装）");
             _machine.ChargeCancelled += c => Log($"大祓チャージ取り消し 色={c}");
             ApplySettings();
+        }
+
+        void OnDestroy()
+        {
+            if (_synthesizedRejectSe != null) Destroy(_synthesizedRejectSe);
         }
 
         void OnDisable()
@@ -243,8 +258,18 @@ namespace Toufuku.GameInput
         {
             _rejectCounts[(int)e.Reason]++;
 
-            if (e.Reason == SwingRejectReason.Cooldown && seSource != null && cooldownRejectSe != null)
-                seSource.PlayOneShot(cooldownRejectSe);
+            // #60: クールダウン中の有効スイングは弾を作らず、短い低音だけ返す（灰色表示は OnusaThrower → AimReticleView）
+            if (e.Reason == SwingRejectReason.Cooldown && seSource != null)
+            {
+                AudioClip clip = cooldownRejectSe;
+                if (clip == null && synthesizeRejectSe)
+                {
+                    if (_synthesizedRejectSe == null)
+                        _synthesizedRejectSe = ProceduralTone.Create("CooldownRejectTone", 110f, 0.12f, 0.6f);
+                    clip = _synthesizedRejectSe;
+                }
+                if (clip != null) seSource.PlayOneShot(clip);
+            }
 
             Log($"SwingRejected 理由={e.Reason} t={e.Time:0.000}");
             SwingRejected?.Invoke(e);

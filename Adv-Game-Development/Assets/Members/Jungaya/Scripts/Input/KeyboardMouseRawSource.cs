@@ -7,8 +7,9 @@ namespace Toufuku.GameInput
     ///
     /// ・色ボタン: 数字キー 1〜5（押している間＝押下）
     /// ・正面ボタン: A キー（1 秒長押しでキャリブレーション。従来の A キー即時リセットをこの方式に統一）
-    /// ・振りピーク: マウス左ボタンを押した瞬間
+    /// ・振りピーク: マウス左ボタンを押した瞬間（Shift を押しながらで強い振り — #60 飛翔時間の確認用）
     /// ・ヨー角: Q / E で左右に回す（キャリブレーションで 0 に戻ることの確認用）
+    /// ・ピッチ角: マウスホイール（#60 のヨー／ピッチ照準を机上で確かめる用）
     ///
     /// ThrowInputController の rawSourceSource へドラッグして使う。
     /// </summary>
@@ -27,6 +28,10 @@ namespace Toufuku.GameInput
         [Tooltip("0=左 1=右 2=中")]
         [SerializeField] int swingMouseButton = 0;
         [SerializeField] float swingStrength = 1f;
+        [Tooltip("このキーを押しながら振ると strongSwingStrength で振ったことにする（#60 飛翔時間の確認用）")]
+        [SerializeField] KeyCode strongSwingKey = KeyCode.LeftShift;
+        [Tooltip("度/秒。OnusaThrower.fastStrength 以上なら最速（0.25 秒）で飛ぶ")]
+        [SerializeField] float strongSwingStrength = 720f;
 
         [Header("ヨー角の代用（ドリフト確認用）")]
         [SerializeField] KeyCode yawLeftKey = KeyCode.Q;
@@ -35,16 +40,26 @@ namespace Toufuku.GameInput
         [SerializeField] float yawSpeed = 90f;
         [SerializeField] float initialYaw = 180f;
 
+        [Header("ピッチ角の代用（#60: マウスホイールで照準の奥行き）")]
+        [Tooltip("ホイール 1 目盛りあたりの度")]
+        [SerializeField] float pitchPerScroll = 2.5f;
+        [SerializeField] float initialPitch = 0f;
+        [SerializeField] float minPitch = -60f;
+        [SerializeField] float maxPitch = 60f;
+
         float _yaw;
+        float _pitch;
         int _consumedFrame = -1;
 
         public bool IsConnected => true;
         public float Yaw => _yaw;
+        public float Pitch => _pitch;
         public bool IsFrontHeld => Input.GetKey(frontKey);
 
         void Awake()
         {
             _yaw = initialYaw;
+            _pitch = initialPitch;
         }
 
         void Update()
@@ -54,6 +69,10 @@ namespace Toufuku.GameInput
             if (Input.GetKey(yawRightKey)) dir += 1f;
             if (dir != 0f)
                 _yaw = Mathf.Repeat(_yaw + dir * yawSpeed * Time.unscaledDeltaTime, 360f);
+
+            float scroll = Input.mouseScrollDelta.y;
+            if (scroll != 0f)
+                _pitch = Mathf.Clamp(_pitch + scroll * pitchPerScroll, minPitch, maxPitch);
         }
 
         public bool IsColorHeld(int index)
@@ -69,7 +88,7 @@ namespace Toufuku.GameInput
                 return false;
 
             _consumedFrame = Time.frameCount;
-            strength = swingStrength;
+            strength = Input.GetKey(strongSwingKey) ? strongSwingStrength : swingStrength;
             time = Time.realtimeSinceStartupAsDouble;
             return true;
         }
