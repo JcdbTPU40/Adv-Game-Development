@@ -201,29 +201,43 @@ namespace Toufuku.Rescue.Outline
         void EnsureMaterials()
         {
             if (_stencilMaterial == null)
-            {
-                var shader = settings.stencilShader != null
-                    ? settings.stencilShader
-                    : Shader.Find("Toufuku/Outline/Stencil");
-                if (shader != null) _stencilMaterial = CoreUtils.CreateEngineMaterial(shader);
-            }
+                _stencilMaterial = CreateMaterial(settings.stencilShader, "Toufuku/Outline/Stencil");
 
             if (_maskMaterial == null)
-            {
-                var shader = settings.maskShader != null
-                    ? settings.maskShader
-                    : Shader.Find("Toufuku/Outline/Mask");
-                if (shader != null) _maskMaterial = CoreUtils.CreateEngineMaterial(shader);
-            }
+                _maskMaterial = CreateMaterial(settings.maskShader, "Toufuku/Outline/Mask");
 
             if (_composeMaterial == null)
-            {
-                var shader = settings.composeShader != null
-                    ? settings.composeShader
-                    : Shader.Find("Toufuku/Outline/Compose");
-                if (shader != null) _composeMaterial = CoreUtils.CreateEngineMaterial(shader);
-            }
+                _composeMaterial = CreateMaterial(settings.composeShader, "Toufuku/Outline/Compose");
         }
+
+        /// <summary>
+        /// シェーダー参照からマテリアルを作る。
+        ///
+        /// Settings のシェーダー参照が空だと Shader.Find 頼みになるが、ビルドでは
+        /// このシェーダーを参照する資産が他に無いためストリップされ、Find が null を返して
+        /// アウトラインが「エラーも出ずに描かれない」状態になる（#45 で実際に踏んだ）。
+        /// Renderer Feature のインスペクタで3つとも割り当てておくこと。
+        /// </summary>
+        Material CreateMaterial(Shader assigned, string fallbackName)
+        {
+            var shader = assigned != null ? assigned : Shader.Find(fallbackName);
+            if (shader == null)
+            {
+                if (!_shaderWarningLogged)
+                {
+                    _shaderWarningLogged = true;
+                    Debug.LogWarning(
+                        $"[Outline] シェーダー '{fallbackName}' を解決できずアウトラインを描画しません。" +
+                        "ビルドでのストリップが原因の可能性があります。" +
+                        "PC_Renderer の OutlineRendererFeature にシェーダーを割り当ててください。");
+                }
+                return null;
+            }
+
+            return CoreUtils.CreateEngineMaterial(shader);
+        }
+
+        bool _shaderWarningLogged;
 
         /// <summary>有効な OutlineTarget を収集する共通処理。</summary>
         static void CollectTargets(Settings settings, List<OutlineTarget> dst)
