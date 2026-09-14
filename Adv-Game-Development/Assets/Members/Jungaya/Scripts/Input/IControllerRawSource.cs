@@ -30,4 +30,15 @@ namespace Toufuku.GameInput
         /// </summary>
         bool TryConsumeSwingPeak(out float strength, out double time);
     }
+
+    /// <summary>
+    /// 直前に取り出した振りピークの「入力時刻」を返せる生入力 — Issue #63（T6-USB #52 と共用）
+    ///
+    /// <see cref="IControllerRawSource.TryConsumeSwingPeak"/> の直後（同じ呼び出しの中）に読む。
+    /// コントローラ側の時計なので Unity の時刻とは原点が違う。分からなければ NaN。
+    /// </summary>
+    public interface ISwingPeakInputTime
+    {
+        double LastSwingPeakInputTime { get; }
+    }
 }

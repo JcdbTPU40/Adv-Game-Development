@@ -53,6 +53,8 @@ namespace Toufuku.Aim
     {
         /// <summary>どの弾でも着弾したら発火する（確認用 HUD・ログ用）。</summary>
         public static event Action<LandingResult> AnyLanded;
+        /// <summary>どの弾でも飛ばし始めたら発火する（#63 計測ログが発射と着弾を結び付ける）。</summary>
+        public static event Action<OmamoriProjectile> AnyLaunched;
         /// <summary>この弾が着弾した。</summary>
         public event Action<LandingResult> Landed;
 
@@ -89,6 +91,7 @@ namespace Toufuku.Aim
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
             transform.position = start;
+            AnyLaunched?.Invoke(this);
         }
 
         void Update()

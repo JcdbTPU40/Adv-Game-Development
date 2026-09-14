@@ -59,8 +59,9 @@ namespace Toufuku.Rescue
         private void Start()
         {
             // 外部から Apply 済みでなければ、ランダムに自分で化ける。
+            // #63: 計測プレイ中は客ID ごとの固定シードの列で抽選する
             if (Current == null && pickRandomOnStart && catalog != null)
-                Apply(catalog.GetRandom());
+                Apply(catalog.GetRandom(Toufuku.Playtest.PlaytestRandom.TryForCustomer(gameObject, Toufuku.Playtest.PlaytestStreams.Profile)));
         }
 
         /// <summary>

@@ -39,6 +39,8 @@ public class GameSession : MonoBehaviour
     public int CurrentMonth { get; private set; } = 1;
     /// <summary>ゲーム終了までの残り時間（秒）。</summary>
     public float RemainingSeconds => Mathf.Max(0f, TotalSeconds - _elapsed);
+    /// <summary>セッション開始からの経過時間（秒）。#63 計測ログの時刻（T3 の区間分け）に使う。</summary>
+    public float ElapsedSeconds => _elapsed;
     /// <summary>1ゲームの総時間（秒）。</summary>
     public float TotalSeconds => secondsPerMonth * totalMonths;
     /// <summary>総月数（HUD表示用）。</summary>

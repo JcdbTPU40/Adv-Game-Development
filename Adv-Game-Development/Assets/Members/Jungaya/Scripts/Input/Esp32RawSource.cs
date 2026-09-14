@@ -13,7 +13,7 @@ namespace Toufuku.GameInput
     /// ・現行ファームウェアはボタンを送らないので、その間は数字キー 1〜5／A キーで代用できる。
     /// ・未接続時はマウス左クリックを振りピークとして扱える（机上での確認用）。
     /// </summary>
-    public class Esp32RawSource : MonoBehaviour, IControllerRawSource
+    public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime
     {
         [SerializeField] ConecteController con;
 
@@ -45,11 +45,14 @@ namespace Toufuku.GameInput
         const double MinSampleInterval = 0.005;
 
         readonly SwingPeakDetector _detector = new SwingPeakDetector();
-        readonly Queue<(float strength, double time)> _peaks = new Queue<(float, double)>();
+        readonly Queue<(float strength, double time, double deviceTime)> _peaks = new Queue<(float, double, double)>();
 
         ControllerSample _latest;
         double _detectorTime = double.NegativeInfinity;
         int _mouseConsumedFrame = -1;
+
+        /// <summary>#63: 直前に取り出した振りピークのコントローラ側時刻（秒）。ファームウェアが送らない・マウス代用なら NaN。</summary>
+        public double LastSwingPeakInputTime { get; private set; } = double.NaN;
 
         public bool IsConnected => con != null && con.isConnected;
         public float Yaw => con != null ? con.yaw : 0f;
@@ -90,7 +93,7 @@ namespace Toufuku.GameInput
 
             // ピーク時刻は受信時刻で返す（遅延計測 #52 と揃える）
             if (_detector.AddSample(sample.Pitch, t, out float peakVelocity))
-                _peaks.Enqueue((peakVelocity, sample.Time));
+                _peaks.Enqueue((peakVelocity, sample.Time, sample.DeviceTime));
         }
 
         public bool IsColorHeld(int index)
@@ -104,7 +107,10 @@ namespace Toufuku.GameInput
         {
             if (_peaks.Count > 0)
             {
-                (strength, time) = _peaks.Dequeue();
+                var peak = _peaks.Dequeue();
+                strength = peak.strength;
+                time = peak.time;
+                LastSwingPeakInputTime = peak.deviceTime;
                 return true;
             }
 
@@ -114,6 +120,7 @@ namespace Toufuku.GameInput
                 && _mouseConsumedFrame != Time.frameCount && Input.GetMouseButtonDown(0))
             {
                 _mouseConsumedFrame = Time.frameCount;
+                LastSwingPeakInputTime = double.NaN;
                 strength = Input.GetKey(strongSwingKey) ? strongSwingStrength : 1f;
                 time = Time.realtimeSinceStartupAsDouble;
                 return true;

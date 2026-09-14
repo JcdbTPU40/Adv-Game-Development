@@ -1,4 +1,5 @@
 using UnityEngine;
+using Toufuku.Playtest;
 
 namespace Toufuku.Rescue
 {
@@ -64,15 +65,18 @@ namespace Toufuku.Rescue
         {
             if (customerPrefab == null) return null;
 
-            float x = Random.Range(spawnXRange.x, spawnXRange.y);
+            // #63: 計測プレイ中は「客ID × 用途」の固定シードの列で抽選する（未制御なら UnityEngine.Random）
+            int id = CustomerSpawnId.NextId;
+            float x = PlaytestRandom.Range(PlaytestRandom.TryFor(PlaytestStreams.Placement, id), spawnXRange.x, spawnXRange.y);
             Vector3 pos = new Vector3(x, spawnY, spawnZ);
             GameObject go = Instantiate(customerPrefab, pos, Quaternion.identity);
+            CustomerSpawnId.Assign(go, CustomerSpawnId.CategoryNormal);
 
             // 解消/怒り → 神社評価(#30) の結線。プレハブに付け忘れていても動くよう保険で付与。
             if (go.GetComponent<CustomerMood>() != null && go.GetComponent<ShrineRatingHook>() == null)
                 go.AddComponent<ShrineRatingHook>();
 
-            CustomerProfile profile = catalog != null ? catalog.GetRandom() : null;
+            CustomerProfile profile = catalog != null ? catalog.GetRandom(PlaytestRandom.TryFor(PlaytestStreams.Profile, id)) : null;
 
             CustomerProfileApplier applier = go.GetComponent<CustomerProfileApplier>();
             if (applier != null)

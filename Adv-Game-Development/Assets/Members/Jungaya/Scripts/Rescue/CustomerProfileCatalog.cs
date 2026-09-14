@@ -69,6 +69,14 @@ namespace Toufuku.Rescue
         /// </summary>
         public CustomerProfile GetRandom()
         {
+            return GetRandom(null);
+        }
+
+        /// <summary>
+        /// #63: 固定シードの列（<see cref="Toufuku.Playtest.PlaytestRandom.TryFor"/>）で抽選する版。null なら UnityEngine.Random。
+        /// </summary>
+        public CustomerProfile GetRandom(Toufuku.Playtest.DeterministicRandom rng)
+        {
             if (profiles == null || profiles.Count == 0) return null;
 
             // null 要素を避けて抽選する。
@@ -77,7 +85,7 @@ namespace Toufuku.Rescue
                 if (profiles[i] != null) valid++;
             if (valid == 0) return null;
 
-            int pick = Random.Range(0, valid);
+            int pick = Toufuku.Playtest.PlaytestRandom.Range(rng, 0, valid);
             for (int i = 0; i < profiles.Count; i++)
             {
                 if (profiles[i] == null) continue;
