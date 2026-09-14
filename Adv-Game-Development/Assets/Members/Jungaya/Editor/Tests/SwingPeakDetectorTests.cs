@@ -141,12 +141,28 @@ namespace Toufuku.GameInput.Tests
             Assert.IsTrue(s.IsFrontHeld);
         }
 
+        [Test]
+        public void 五項目目をコントローラ側のミリ秒として解釈する()
+        {
+            // #63: 入力時刻（millis()）。Unity 側の受信時刻とは別に持つ
+            Assert.IsTrue(ControllerSample.TryParse("0,0,0,1,123456", 2.5, out var s));
+            Assert.IsTrue(s.HasButtons);
+            Assert.IsTrue(s.IsColorHeld(0));
+            Assert.IsTrue(s.HasDeviceTime);
+            Assert.AreEqual(123.456, s.DeviceTime, 1e-9);
+            Assert.AreEqual(2.5, s.Time, 1e-9);
+
+            Assert.IsTrue(ControllerSample.TryParse("0,0,0,1", 2.5, out var noTime));
+            Assert.IsFalse(noTime.HasDeviceTime);
+        }
+
         [TestCase("OONUSA_READY")]
         [TestCase("BNO055 ERROR")]
         [TestCase("1,2")]
-        [TestCase("1,2,3,4,5")]
+        [TestCase("1,2,3,4,5,6")]
         [TestCase("1,2,x")]
         [TestCase("1,2,3,x")]
+        [TestCase("1,2,3,4,x")]
         [TestCase("")]
         public void 数値行以外は受け付けない(string line)
         {

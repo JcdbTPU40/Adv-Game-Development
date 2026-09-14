@@ -51,7 +51,9 @@ namespace Toufuku.Rescue.Mock
             {
                 // 黒客。輪郭からは悩みが読めないのが仕様なので、正解はランダムにしておく。
                 if (!randomizeBlackCustomer) return;
-                index = Random.Range(0, 5);
+                // #63: 計測プレイ中は客ID ごとの固定シードの列で抽選する
+                index = Toufuku.Playtest.PlaytestRandom.Range(
+                    Toufuku.Playtest.PlaytestRandom.TryForCustomer(gameObject, Toufuku.Playtest.PlaytestStreams.Profile), 0, 5);
             }
 
             var type = (CustomerType)index;

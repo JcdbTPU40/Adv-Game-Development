@@ -45,6 +45,10 @@ namespace Toufuku.Rescue
 
         /// <summary>ゲージ・ステートは CustomerMood が正本。参照したい場合はこちらから。</summary>
         public CustomerMood Mood => _mood;
+        /// <summary>この客のタイプ（相性テーブル判定に使う）。</summary>
+        public CustomerType CustomerType => customerType;
+        /// <summary>正解お守り（フォールバック判定に使う。Setup(profile) で客タイプと揃う）。#63 計測ログの客の色に使う。</summary>
+        public OmamoriType CorrectOmamori => correctOmamori;
         public bool IsResolved => _mood != null && _mood.IsFinished;
 
         private void Awake()

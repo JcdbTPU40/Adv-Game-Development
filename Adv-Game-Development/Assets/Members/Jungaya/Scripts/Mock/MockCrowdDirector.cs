@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Toufuku.Playtest;
 
 namespace Toufuku.Rescue.Mock
 {
@@ -229,7 +230,7 @@ namespace Toufuku.Rescue.Mock
 
         private float _lastSpawnTime = -999f;
         private int _nextColorIndex;
-        private int _spawnSerial;
+        private bool _layoutReshuffled;
         private bool _warnedSlotShortage;
         private bool _warnedMissingPrefab;
 
@@ -464,14 +465,19 @@ namespace Toufuku.Rescue.Mock
                 return null;
             }
 
-            int slotIndex = FindFreeSlot();
+            // #63: 計測プレイ中は「客ID × 用途」の固定シードの列で抽選する（未制御なら null → UnityEngine.Random）。
+            //       ID は生成に成功したときだけ消費するので、失敗しても次の客が同じ ID・同じ抽選結果を使う。
+            int id = CustomerSpawnId.NextId;
+            DeterministicRandom placement = PlaytestRandom.TryFor(PlaytestStreams.Placement, id);
+
+            int slotIndex = FindFreeSlot(placement);
             if (slotIndex < 0) return null;
 
             Slot slot = _slots[slotIndex];
 
             // 毎回抽選し直すモードでは、ここで空き位置を引き直す。
             if (slotPolicy == SlotPolicy.RandomEachTime)
-                slot.Position = RandomPointInBand(slot.BandIndex, onlyOccupied: true);
+                slot.Position = RandomPointInBand(slot.BandIndex, onlyOccupied: true, placement);
 
             Vector3 destination = slot.Position;
             Vector3 origin = ToriiPosition;
@@ -481,7 +487,8 @@ namespace Toufuku.Rescue.Mock
                 instant ? destination : origin,
                 Quaternion.identity,
                 customerParent);
-            go.name = $"MockCustomer_{_spawnSerial++:00}";
+            go.name = $"MockCustomer_{id:00}";
+            CustomerSpawnId spawnId = CustomerSpawnId.Assign(go);
 
             var member = new Member
             {
@@ -496,8 +503,10 @@ namespace Toufuku.Rescue.Mock
 
             slot.Occupant = member;
 
-            AssignIdentity(member);
-            RandomizeGauge(member.Mood);
+            AssignIdentity(member, PlaytestRandom.TryFor(PlaytestStreams.Identity, spawnId.Id));
+            spawnId.SetCategory(member.Tag != null && member.Tag.IsBlack ? CustomerSpawnId.CategoryBlack : CustomerSpawnId.CategoryNormal);
+            spawnId.SetDestination(destination);
+            RandomizeGauge(member.Mood, PlaytestRandom.TryFor(PlaytestStreams.Gauge, spawnId.Id));
 
             if (member.Walker != null)
             {
@@ -544,7 +553,7 @@ namespace Toufuku.Rescue.Mock
         /// 輪郭色（お守り5色を巡回）と黒客フラグを割り当てる。
         /// 黒客は「不足数 ÷ 残り枠」の確率で選ぶので、まとめて先頭に固まらず自然に散る。
         /// </summary>
-        private void AssignIdentity(Member m)
+        private void AssignIdentity(Member m, DeterministicRandom rng)
         {
             if (m == null || m.Tag == null) return;
 
@@ -552,7 +561,7 @@ namespace Toufuku.Rescue.Mock
             int slotsLeft = Mathf.Max(1, TargetCount - _members.Count);   // 自分を含む残り枠
 
             bool black = deficit > 0 &&
-                         (deficit >= slotsLeft || Random.value < (float)deficit / slotsLeft);
+                         (deficit >= slotsLeft || PlaytestRandom.Value(rng) < (float)deficit / slotsLeft);
 
             int index = -1;
             Color color;
@@ -614,7 +623,7 @@ namespace Toufuku.Rescue.Mock
         /// CustomerMood の maxGauge は private だが、Gauge / GaugeNormalized から逆算できる。
         /// 値の変更も公開API(AddGauge/ReduceGauge)だけで足りるので、CustomerMood は無改変で済む。
         /// </summary>
-        private void RandomizeGauge(CustomerMood mood)
+        private void RandomizeGauge(CustomerMood mood, DeterministicRandom rng)
         {
             if (mood == null) return;
 
@@ -626,7 +635,7 @@ namespace Toufuku.Rescue.Mock
             float lo = Mathf.Clamp(Mathf.Min(startGaugeRange.x, startGaugeRange.y), 0.02f, 0.98f);
             float hi = Mathf.Clamp(Mathf.Max(startGaugeRange.x, startGaugeRange.y), 0.02f, 0.98f);
 
-            float target = Random.Range(lo, hi) * max;
+            float target = PlaytestRandom.Range(rng, lo, hi) * max;
             float diff = target - mood.Gauge;
 
             if (diff > 0.01f) mood.AddGauge(diff);
@@ -651,6 +660,12 @@ namespace Toufuku.Rescue.Mock
                 return;
             }
 
+            // #63: 計測プレイ中は計測シードから敷き詰める（同じシード → 同じ配置）。
+            //       計測ロガーの無いシーン・手動で抽選し直した後は従来どおり randomSeed で UnityEngine.Random を使う。
+            DeterministicRandom layout = PlaytestRandom.IsControlled && !_layoutReshuffled
+                ? new DeterministicRandom((uint)PlaytestRandom.DeriveSeed(PlaytestStreams.SlotLayout))
+                : null;
+
             Random.State previous = Random.state;
             Random.InitState(randomSeed);
 
@@ -662,7 +677,7 @@ namespace Toufuku.Rescue.Mock
                     _slots.Add(new Slot
                     {
                         BandIndex = bi,
-                        Position = RandomPointInBand(bi, onlyOccupied: false),
+                        Position = RandomPointInBand(bi, onlyOccupied: false, layout),
                         Occupant = null,
                     });
                 }
@@ -676,6 +691,7 @@ namespace Toufuku.Rescue.Mock
         public void ReshuffleSlots()
         {
             randomSeed = Random.Range(int.MinValue, int.MaxValue);
+            _layoutReshuffled = true;
 
             // 生存中の客を一旦すべて片付けてから敷き直す（占有と位置の対応がずれないように）。
             for (int i = _members.Count - 1; i >= 0; i--)
@@ -696,7 +712,7 @@ namespace Toufuku.Rescue.Mock
             }
         }
 
-        private int FindFreeSlot()
+        private int FindFreeSlot(DeterministicRandom rng)
         {
             // 空きの中からランダムに選ぶ（前詰めにすると手前ばかり埋まるため）。
             int free = 0;
@@ -705,7 +721,7 @@ namespace Toufuku.Rescue.Mock
 
             if (free == 0) return -1;
 
-            int pick = Random.Range(0, free);
+            int pick = PlaytestRandom.Range(rng, 0, free);
             for (int i = 0; i < _slots.Count; i++)
             {
                 if (_slots[i].Occupant != null) continue;
@@ -727,7 +743,7 @@ namespace Toufuku.Rescue.Mock
         /// バンド内にランダムな1点を取る。他の定位置と minSlotDistance 以上離れるまで
         /// slotPlacementAttempts 回リトライし、満たせなければ一番マシな候補を返す。
         /// </summary>
-        private Vector3 RandomPointInBand(int bandIndex, bool onlyOccupied)
+        private Vector3 RandomPointInBand(int bandIndex, bool onlyOccupied, DeterministicRandom rng)
         {
             if (bands == null || bandIndex < 0 || bandIndex >= bands.Length)
                 return new Vector3(0f, customerY, 0f);
@@ -740,9 +756,9 @@ namespace Toufuku.Rescue.Mock
             for (int i = 0; i < attempts; i++)
             {
                 var candidate = new Vector3(
-                    Random.Range(Mathf.Min(b.xRange.x, b.xRange.y), Mathf.Max(b.xRange.x, b.xRange.y)),
+                    PlaytestRandom.Range(rng, Mathf.Min(b.xRange.x, b.xRange.y), Mathf.Max(b.xRange.x, b.xRange.y)),
                     customerY,
-                    Random.Range(Mathf.Min(b.zRange.x, b.zRange.y), Mathf.Max(b.zRange.x, b.zRange.y)));
+                    PlaytestRandom.Range(rng, Mathf.Min(b.zRange.x, b.zRange.y), Mathf.Max(b.zRange.x, b.zRange.y)));
 
                 float nearest = NearestSlotDistance(candidate, onlyOccupied);
                 if (nearest >= minSlotDistance) return candidate;

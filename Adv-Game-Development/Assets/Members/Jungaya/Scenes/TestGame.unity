@@ -1065,6 +1065,72 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &992816224
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 992816226}
+  - component: {fileID: 992816225}
+  m_Layer: 0
+  m_Name: PlaytestLogger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &992816225
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 992816224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 540d3ae719be25d4abacbcbdc04e2c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Playtest.PlaytestLogger
+  meta:
+    testId: DEV
+    buildNumber: 
+    seedMode: 0
+    seed: 42
+    participantId: 
+    operatorName: Jungaya
+    hypothesis: "\u8A08\u6E2C\u30ED\u30B0\u57FA\u76E4\u306E\u52D5\u4F5C\u78BA\u8A8D\uFF08#63\uFF09"
+    note: 
+    outputFolder: 
+  readCommandLine: 1
+  metrics:
+    segmentSeconds: 60
+    segmentCount: 3
+    idleThresholdSeconds: 3
+    t1WindowSeconds: 30
+  saveOnSessionEnd: 1
+  saveIncompletePlays: 1
+  parameterSources: []
+  estimatePriorityTarget: 1
+  showHud: 1
+  logSaves: 1
+--- !u!4 &992816226
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 992816224}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1079846405
 GameObject:
   m_ObjectHideFlags: 0
@@ -4443,3 +4509,4 @@ SceneRoots:
   - {fileID: 969830206}
   - {fileID: 2098549821}
   - {fileID: 1354776831}
+  - {fileID: 992816226}
