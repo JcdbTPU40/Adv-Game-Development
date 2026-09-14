@@ -130,8 +130,8 @@ namespace Toufuku.Rescue.Mock
             for (int i = 0; i < members.Count; i++)
             {
                 MockCrowdDirector.Member m = members[i];
-                if (m == null || m.Go == null || m.Mood == null) continue;
-                if (m.Mood.IsAngry) continue;   // 怒り（失敗）はバーを描かない
+                if (m == null || m.Go == null || m.State == null) continue;
+                if (m.State.IsBlack) continue;  // 黒客はバーを描かない（頭上ゲージは消す。v8 6章）
 
                 Vector3 worldPos = m.Tr.position + Vector3.up * worldHeightOffset;
                 Vector3 sp = cam.WorldToScreenPoint(worldPos);
@@ -158,8 +158,8 @@ namespace Toufuku.Rescue.Mock
                 {
                     Depth = sp.z,
                     Rect = new Rect(x, y, w, h),
-                    Fill = Mathf.Clamp01(m.Mood.GaugeNormalized),
-                    Resolved = m.Mood.IsResolved,
+                    Fill = Mathf.Clamp01(m.State.DangerNormalized),
+                    Resolved = m.State.IsRescued,
                     Black = black,
                     Tint = m.Tag != null ? m.Tag.AssignedColor : Color.white,
                 });

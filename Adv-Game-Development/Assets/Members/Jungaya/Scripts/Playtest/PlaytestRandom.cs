@@ -11,10 +11,12 @@ namespace Toufuku.Playtest
         public const int Placement = 2;
         /// <summary>黒客かどうか。</summary>
         public const int Identity = 3;
-        /// <summary>初期ゲージ。</summary>
+        /// <summary>初期ゲージ（視認性モックの初期危険度）。</summary>
         public const int Gauge = 4;
         /// <summary>客タイプ（正解お守り）。</summary>
         public const int Profile = 5;
+        /// <summary>危険度Dが100になるまでの秒数（客種ごとの幅。通常客 15〜25秒。付録B B-1）。</summary>
+        public const int DangerSeconds = 6;
     }
 
     /// <summary>

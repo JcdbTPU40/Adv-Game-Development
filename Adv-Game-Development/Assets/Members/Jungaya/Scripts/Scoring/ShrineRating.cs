@@ -17,8 +17,8 @@ public enum ShrineRank
 /// 縁＝瞬間スコア、評価＝プレイ全体の通信簿。評価が縁に倍率としてかかる。
 ///
 /// ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を保持）。
-/// ・客の解消/怒りは <see cref="ShrineRatingHook"/> が CustomerMood の
-///   onResolved / onAngry を購読して Register○○() を呼んでくる。
+/// ・客の救済成功/黒客化は <see cref="ShrineRatingHook"/> が CustomerState(#54) の
+///   onRescued / onBlack を購読して Register○○() を呼んでくる。増減量は客種ごと（付録B B-1）。
 /// ・評価→縁倍率(EnMultiplier)は ScoreManager の獲得計算に自動で乗る。
 ///
 /// ※ 展示ビルドでは毎プレイ必ずランクCスタート（v3 §7）。
@@ -34,9 +34,9 @@ public class ShrineRating : MonoBehaviour
     [SerializeField] float startRating = 30f;
 
     [Header("増減量")]
-    [Tooltip("救済成功（解消）1人あたりの加点。")]
+    [Tooltip("救済成功1人あたりの加点（客種ごとの値が渡されなかったときの既定値）。")]
     [SerializeField] float resolveGain = 5f;
-    [Tooltip("救済失敗（怒り）1人あたりの減点。")]
+    [Tooltip("黒客化1人あたりの減点（客種ごとの値が渡されなかったときの既定値）。")]
     [SerializeField] float angryLoss = 10f;
 
     [Header("ランク閾値（この値以上でそのランク）")]
@@ -114,11 +114,13 @@ public class ShrineRating : MonoBehaviour
         onRankChanged?.Invoke(_rank);
     }
 
-    /// <summary>救済成功（解消）→ 加点。ShrineRatingHook から呼ばれる。</summary>
-    public void RegisterResolved() => Modify(+resolveGain, "解消");
+    /// <summary>救済成功 → 加点。ShrineRatingHook から呼ばれる。</summary>
+    /// <param name="gain">客種ごとの加点（付録B B-1）。0以下ならこのコンポーネントの既定値を使う。</param>
+    public void RegisterResolved(float gain = 0f) => Modify(+(gain > 0f ? gain : resolveGain), "救済成功");
 
-    /// <summary>救済失敗（怒り）→ 減点。ShrineRatingHook から呼ばれる。</summary>
-    public void RegisterAngry() => Modify(-angryLoss, "怒り");
+    /// <summary>黒客化（救済失敗）→ 減点。ShrineRatingHook から呼ばれる。</summary>
+    /// <param name="loss">客種ごとの減点（正の値。付録B B-1）。0以下ならこのコンポーネントの既定値を使う。</param>
+    public void RegisterAngry(float loss = 0f) => Modify(-(loss > 0f ? loss : angryLoss), "黒客化");
 
     /// <summary>評価を初期値へ戻す（リトライ用。GameSession #32 が呼ぶ）。</summary>
     public void ResetAll()

@@ -36,7 +36,7 @@ public readonly struct OmamoriHitInfo
 }
 
 /// <summary>
-/// お守りが参拝客に当たったときの共通処理（救済判定 → スコア）— #13 / #22 / #60
+/// お守りが参拝客に当たったときの共通処理（救済判定 → スコア）— #13 / #22 / #60 / #54
 ///
 /// 物理衝突で当てる OmamoriBullet と、着弾点で判定する OmamoriProjectile（#60）の両方から呼ぶ。
 /// #64: 判定し終えた同じ呼び出しの中で <see cref="HitResolved"/> を発火する（命中音・救済音を判定と同時刻に鳴らすため）。
@@ -58,36 +58,56 @@ public static class OmamoriHitResolver
     {
         double impact = impactTime ?? Time.realtimeSinceStartupAsDouble;
         bool rescued = false;
+        bool isBlack = IsBlackCustomer(customer);
 
-        // 救済判定(#13)：お守りの種類を客に渡し、相性◯/✗とゲージ増減を処理させる。
+        CustomerState state = customer != null ? customer.GetComponent<CustomerState>() : null;
+
+        // 黒客への通常弾（企画書 v8 6章）：D も R も動かない終端状態。縁は入らず、
+        // 福の連なりが途切れる罰だけが起きる（当たり判定は残してあるので、ここへ到達するのは仕様どおり）。
+        if (isBlack)
+        {
+            if (ScoreManager.Instance != null)
+                ScoreManager.Instance.RegisterMiss();
+
+            int blackCombo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
+            HitResolved?.Invoke(new OmamoriHitInfo(customer, type, HitZone.Miss, true, false, blackCombo, impact));
+            return HitZone.Miss;
+        }
+
+        // 救済判定(#13)：お守りの種類を客に渡し、相性◯/✗と D・R の更新を処理させる。
         CustomerRescue rescue = customer != null ? customer.GetComponent<CustomerRescue>() : null;
         if (rescue != null)
         {
-            // すでに結末確定済み（解消/怒り）の客への追撃に対する防御的ガード。
-            // 過剰押し売り（#33 案B）は企画書 v3 §16【B】で廃案。結末確定時に当たり判定を
-            // 消す仕様（CustomerMood.DisableHitDetection）により通常ここには到達しない。
+            // すでに救済済みの客への追撃に対する防御的ガード。
+            // 過剰押し売り（#33 案B）は企画書 v3 §16【B】で廃案。救済完了時に当たり判定を
+            // 消す仕様（CustomerState.DisableHitDetection）により通常ここには到達しない。
             // 到達した場合はコンポーネントの設定漏れなので、スコアもミスも一切計上しない。
-            if (rescue.IsResolved)
+            if (rescue.IsFinished)
             {
-                Debug.LogWarning("[OmamoriHitResolver] 結末確定済みの客に命中しました（当たり判定の無効化漏れの疑い）", customer);
+                Debug.LogWarning("[OmamoriHitResolver] 救済済みの客に命中しました（当たり判定の無効化漏れの疑い）", customer);
                 return HitZone.Miss;
             }
 
             Affinity affinity = rescue.ApplyHit(type);
 
-            // 相性が合わなければ Miss 扱いにしてコンボを切る（誤投擲フィードバックは #14）。
+            // 誤色（相性✗）は Miss 扱いにして福の連なり C とご加護進捗 G を切る（v8変更点2）。
+            // D も R も変わらないので、誤色連打では黒客化を1秒も遅らせられない。
             if (affinity == Affinity.Bad)
                 zone = HitZone.Miss;
 
-            // 直前まで未確定だったので、ここで解消していればこの命中で救済が確定した
-            rescued = rescue.Mood != null && rescue.Mood.IsResolved;
+            // 直前まで active だったので、ここで救済済みなら「この命中で R が 0 になった」。
+            rescued = state != null && state.IsRescued;
         }
 
         if (ScoreManager.Instance != null)
-            ScoreManager.Instance.RegisterHit(zone);
+        {
+            // 縁は救済完了のときだけ。途中命中（欲張り客の1発目など）は連なりだけ伸びて 0 点（付録B B-2）。
+            int baseScore = state != null ? state.RescueBaseScore : 0;
+            ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore);
+        }
 
         int combo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
-        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, IsBlackCustomer(customer), rescued, combo, impact));
+        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact));
 
         return zone;
     }
@@ -100,12 +120,16 @@ public static class OmamoriHitResolver
     }
 
     /// <summary>
-    /// 黒客か。本番の黒客データはまだ無いので、視認性モック(#44)の札（MockCustomerTag）で判定する。
-    /// 本番の客データに黒客フラグが入ったら、ここだけ差し替える。
+    /// 黒客か。本番の客は CustomerState（#54）の状態で判定し、
+    /// CustomerState を持たない視認性モック(#44)の客だけ札（MockCustomerTag）で判定する。
     /// </summary>
     public static bool IsBlackCustomer(GameObject customer)
     {
         if (customer == null) return false;
+
+        CustomerState state = customer.GetComponent<CustomerState>();
+        if (state != null) return state.IsBlack;
+
         MockCustomerTag tag = customer.GetComponent<MockCustomerTag>();
         return tag != null && tag.IsBlack;
     }

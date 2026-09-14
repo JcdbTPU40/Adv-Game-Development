@@ -45,14 +45,12 @@ namespace Toufuku.Rescue.MockEditor
 
         private const string OutlineShaderName = "Toufuku/Mock/OutlineHull";
 
-        // ── 客プレハブの CustomerMood 初期値 ────────────────────────
-        // 既定(naturalRiseRate=5, startGauge=50)のままだと全員 10 秒で怒って消えてしまい、
-        // 「15 体を並べて識別できるか」を測れない。モック用に上昇を緩めた値を焼く。
-        // ※ CustomerMood 本体は無改変。private [SerializeField] を SerializedObject 経由で設定する。
-        private const float MoodMaxGauge = 100f;
-        private const float MoodStartGauge = 50f;
-        private const float MoodNaturalRiseRate = 1.5f;
-        private const float MoodResolveLinger = 0.4f;
+        // ── 客プレハブの CustomerState 初期値 ───────────────────────
+        // 本番値（D満タン 15〜25 秒）のままだと全員がすぐ黒客化して消えてしまい、
+        // 「15 体を並べて識別できるか」を測れない。モック用に D の進行を緩めた値を焼く。
+        // ※ CustomerState 本体は無改変。private [SerializeField] を SerializedObject 経由で設定する。
+        private const float MockDangerFullSeconds = 66.7f;   // 旧モック値 naturalRiseRate=1.5/秒 と同じ進み方
+        private const float MockExitSeconds = 0.4f;
 
         // ── カメラ（本番のプレイヤー視点相当。TestGame.unity の Main Camera に合わせてある）──
         private static readonly Vector3 CameraPosition = new Vector3(0f, 5.3f, 39f);
@@ -246,14 +244,13 @@ namespace Toufuku.Rescue.MockEditor
             var renderer = temp.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = bodyMat;
 
-            // 既存の不満ゲージ(#11)をそのまま使う。値だけモック向けに緩める。
-            var mood = temp.AddComponent<CustomerMood>();
-            var moodSo = new SerializedObject(mood);
-            SetFloat(moodSo, "maxGauge", MoodMaxGauge);
-            SetFloat(moodSo, "startGauge", MoodStartGauge);
-            SetFloat(moodSo, "naturalRiseRate", MoodNaturalRiseRate);
-            SetFloat(moodSo, "resolveLingerTime", MoodResolveLinger);
-            moodSo.ApplyModifiedPropertiesWithoutUndo();
+            // 既存の状態管理(#54)をそのまま使う。値だけモック向けに緩める。
+            var state = temp.AddComponent<CustomerState>();
+            var stateSo = new SerializedObject(state);
+            SetFloat(stateSo, "dangerFullSecondsOverride", MockDangerFullSeconds);
+            SetFloat(stateSo, "rescuedExitSeconds", MockExitSeconds);
+            SetFloat(stateSo, "blackExitSeconds", MockExitSeconds);
+            stateSo.ApplyModifiedPropertiesWithoutUndo();
 
             temp.AddComponent<MockCustomerTag>();
             temp.AddComponent<MockCustomerWalker>();
