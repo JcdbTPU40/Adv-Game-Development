@@ -59,12 +59,16 @@ namespace Toufuku.Aim
         static readonly List<LandingCandidate> s_candidates = new List<LandingCandidate>();
         static readonly List<HitZoneTarget> s_targets = new List<HitZoneTarget>();
 
+        // #49: 軌跡出現を遅らせている間、こちらで消した見た目（元から消えていたものは触らない）
+        readonly List<Renderer> _hiddenRenderers = new List<Renderer>();
+
         Vector3 _start;
         Vector3 _target;
         float _seconds;
         float _arcHeight;
         float _elapsed;
         float _lingerSeconds;
+        float _visualDelaySeconds;
         double _impactRealtime;
         OmamoriType _type;
         bool _flying;
@@ -76,7 +80,9 @@ namespace Toufuku.Aim
 
         /// <summary>飛ばし始める。</summary>
         /// <param name="lingerSeconds">着弾後に軌跡を残してから消えるまでの秒数</param>
-        public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type, float lingerSeconds = 0.2f)
+        /// <param name="visualDelaySeconds">#49 T0-A/B: 見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時</param>
+        public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type,
+            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f)
         {
             _start = start;
             _target = target;
@@ -89,6 +95,37 @@ namespace Toufuku.Aim
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
             transform.position = start;
+
+            _visualDelaySeconds = Mathf.Clamp(visualDelaySeconds, 0f, _seconds);
+            if (_visualDelaySeconds > 0f) HideVisuals();
+        }
+
+        /// <summary>軌跡出現を遅らせる間だけ見た目を消す。</summary>
+        void HideVisuals()
+        {
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled) continue;
+                if (r is TrailRenderer trail) trail.emitting = false;
+                r.enabled = false;
+                _hiddenRenderers.Add(r);
+            }
+        }
+
+        /// <summary>今いる位置から見た目を出す（軌跡も発射点からではなくここから引き始める）。</summary>
+        void ShowVisuals()
+        {
+            foreach (Renderer r in _hiddenRenderers)
+            {
+                if (r == null) continue;
+                if (r is TrailRenderer trail)
+                {
+                    trail.Clear();
+                    trail.emitting = true;
+                }
+                r.enabled = true;
+            }
+            _hiddenRenderers.Clear();
         }
 
         void Update()
@@ -105,6 +142,8 @@ namespace Toufuku.Aim
             Vector3 velocity = pos - prev;
             if (velocity.sqrMagnitude > 1e-8f)
                 transform.rotation = Quaternion.LookRotation(velocity);
+
+            if (_hiddenRenderers.Count > 0 && _elapsed >= _visualDelaySeconds) ShowVisuals();
 
             if (t >= 1f) Land();
         }

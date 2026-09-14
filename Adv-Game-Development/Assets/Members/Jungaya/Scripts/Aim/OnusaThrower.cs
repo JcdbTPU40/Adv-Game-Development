@@ -43,6 +43,9 @@ namespace Toufuku.Aim
         [SerializeField, Min(0f)] float thickTrailWidth = 0.22f;
         [SerializeField, Min(0.01f)] float trailSeconds = 0.18f;
         [SerializeField] Color trailColor = new Color(1f, 0.95f, 0.8f, 0.9f);
+        [Tooltip("#49 T0-A/B: 発射から弾（と軌跡）が見え始めるまでの秒数。0 なら発射と同時。" +
+                 "飛翔時間（最短 0.25 秒）より十分短くすること。FeedbackTimingShifter が案ごとに書き換える")]
+        [SerializeField, Min(0f)] float visualDelaySeconds = 0f;
 
         [Header("弧の見た目（着弾点には影響しない）")]
         [SerializeField, Min(0f)] float arcHeightPerMeter = 0.12f;
@@ -58,6 +61,13 @@ namespace Toufuku.Aim
         public int ThrowCount { get; private set; }
         /// <summary>最後に発射した弾（着弾後は破棄されて null になる）。</summary>
         public OmamoriProjectile LastProjectile { get; private set; }
+
+        /// <summary>#49: 次に発射する弾が見え始めるまでの秒数。</summary>
+        public float VisualDelaySeconds
+        {
+            get => visualDelaySeconds;
+            set => visualDelaySeconds = Mathf.Max(0f, value);
+        }
 
         void Awake()
         {
@@ -136,7 +146,7 @@ namespace Toufuku.Aim
             AttachTrail(go, width);
 
             var projectile = go.AddComponent<OmamoriProjectile>();
-            projectile.Launch(start, target, seconds, arc, type, trailSeconds);
+            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds);
 
             ThrowCount++;
             LastProjectile = projectile;

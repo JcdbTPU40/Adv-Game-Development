@@ -174,9 +174,24 @@ namespace Toufuku.Feedback
         /// <summary>有効スイング確定の瞬間。ThrowInputController が発射より先に呼ぶ。</summary>
         public void OnThrowAccepted(SwingAcceptedArgs e)
         {
+            PlayThrowSe(e);
+            PlayThrowHaptic();
+        }
+
+        /// <summary>
+        /// 投擲SE だけを鳴らす。予算（振りピーク → 発音）もここで測る。
+        /// #49 の T0-A/B は投擲SE と発射振動に別々の時刻差を付けるので、2 つに分けてある。
+        /// </summary>
+        public void PlayThrowSe(SwingAcceptedArgs e)
+        {
             Play(FeedbackSe.Throw, _throw);
-            RequestHaptic(HapticKind.Throw, throwHapticMs, weakAmplitude);
             Record(FeedbackCategory.Swing, Now - e.Time);
+        }
+
+        /// <summary>発射の振動だけを出す。</summary>
+        public void PlayThrowHaptic()
+        {
+            RequestHaptic(HapticKind.Throw, throwHapticMs, weakAmplitude);
         }
 
         // ---- 命中・救済・黒客ヒット ----
