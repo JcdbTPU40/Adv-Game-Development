@@ -262,6 +262,69 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &132966778
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 132966780}
+  - component: {fileID: 132966779}
+  m_Layer: 0
+  m_Name: GroundRingDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &132966779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 132966778}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b8edbf8d710ead41bcd626769eae058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.GroundRingDirector
+  style:
+    dangerRadiusScale: 1
+    priorityInnerRadiusScale: 1.1
+    priorityOuterRadiusScale: 1.45
+    fallbackRadius: 0.9
+    dangerWidth: 0.07
+    priorityWidth: 0.06
+    widthReferenceDistance: 12
+    maxWidthScale: 3
+    dangerNearColor: {r: 1, g: 0.55, b: 0.25, a: 0.55}
+    dangerFarColor: {r: 1, g: 0.12, b: 0.12, a: 0.95}
+    priorityColor: {r: 1, g: 0.92, b: 0.45, a: 1}
+    dangerPulsePerSecond: 2
+    priorityBreathPerSecond: 0.6
+    priorityBreathAmount: 0.08
+    groundOffset: 0.02
+    segments: 48
+  scanIntervalSeconds: 0.25
+  applyStyleToExisting: 1
+--- !u!4 &132966780
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 132966778}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &185653945
 GameObject:
   m_ObjectHideFlags: 0
@@ -3442,6 +3505,9 @@ MonoBehaviour:
   worldHeightOffset: 2
   barWidth: 80
   barHeight: 10
+  remainingPipOffset: 14
+  remainingPipWidth: 16
+  remainingColor: {r: 1, g: 1, b: 1, a: 0.9}
   emptyColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   fullColor: {r: 0.95, g: 0.2, b: 0.2, a: 1}
   backColor: {r: 0, g: 0, b: 0, a: 0.6}
@@ -3637,9 +3703,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   hitScore: 100
+  bonusTable: {fileID: 11400000, guid: 67fa3dc8cb50059489c6ac28ec007fde, type: 2}
   centerBonus: 50
   innerBonus: 20
   outerBonus: 0
+  priorityRescueBonus: 50
   comboStep: 0.1
   maxMultiplier: 3
 --- !u!4 &4748935194137684862
@@ -4509,3 +4577,4 @@ SceneRoots:
   - {fileID: 2098549821}
   - {fileID: 1354776831}
   - {fileID: 992816226}
+  - {fileID: 132966780}

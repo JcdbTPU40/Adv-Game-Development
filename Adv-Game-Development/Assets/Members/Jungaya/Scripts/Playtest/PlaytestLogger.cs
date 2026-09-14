@@ -42,7 +42,7 @@ namespace Toufuku.Playtest
         [Tooltip("パラメータとしてヘッダーへ書き出すコンポーネント。空ならゲーム側の主要コンポーネントを自動で探す")]
         [SerializeField] MonoBehaviour[] parameterSources;
 
-        [Header("優先対象ID（#55 が PlaytestLog.PriorityTargetProvider を入れるまでの暫定: D = 不満ゲージ × 100）")]
+        [Header("優先対象ID（#55 の二重円の規則で決める。OFF にすると列を空にする）")]
         [SerializeField] bool estimatePriorityTarget = true;
 
         [Header("デバッグ")]
@@ -64,7 +64,6 @@ namespace Toufuku.Playtest
         readonly List<KeyValuePair<string, string>> _parameters = new List<KeyValuePair<string, string>>();
         readonly HashSet<string> _capturedCustomerCategories = new HashSet<string>();
         readonly List<(OmamoriProjectile Projectile, int Frame)> _unlinkedProjectiles = new List<(OmamoriProjectile, int)>();
-        readonly List<PriorityCandidate> _candidates = new List<PriorityCandidate>();
 
         PlaytestMeta _meta;
         List<string> _commandLineKeys = new List<string>();
@@ -664,40 +663,16 @@ namespace Toufuku.Playtest
 
         // ---- 優先対象ID ----
 
-        /// <summary>発射確定の瞬間の優先対象（二重円の客）の ID。</summary>
+        /// <summary>
+        /// 発射確定の瞬間の優先対象（二重円の客）の ID。
+        /// 判定は画面に出ている二重円と同じ <see cref="PriorityRescue"/>（#55）に任せる。
+        /// ログと画面と加点が同じ 1 か所を見るので、三者が食い違わない。
+        /// </summary>
         int? CurrentPriorityTarget()
         {
             if (PlaytestLog.PriorityTargetProvider != null) return PlaytestLog.PriorityTargetProvider();
             if (!estimatePriorityTarget) return null;
-
-            Camera cam = _aim != null && _aim.ViewCamera != null ? _aim.ViewCamera : Camera.main;
-            Vector3 origin = _aim != null ? _aim.Origin : (cam != null ? cam.transform.position : Vector3.zero);
-
-            _candidates.Clear();
-            IReadOnlyList<HitZoneTarget> active = HitZoneTarget.Active;
-            for (int i = 0; i < active.Count; i++)
-            {
-                HitZoneTarget target = active[i];
-                if (target == null || !target.IsHittable) continue;
-
-                CustomerState state = target.GetComponent<CustomerState>();
-                if (state == null) continue;
-
-                // 優先救済の候補集合（v8 7章）: active かつ 未救済・非黒客・R>0 だけ。
-                if (!state.IsRescueTarget) continue;
-
-                Vector3 center = target.Center;
-                if (cam != null)
-                {
-                    Vector3 viewport = cam.WorldToViewportPoint(center);
-                    if (viewport.z <= 0f || viewport.x < 0f || viewport.x > 1f || viewport.y < 0f || viewport.y > 1f) continue;
-                }
-
-                Vector3 flat = center - origin;
-                flat.y = 0f;
-                _candidates.Add(new PriorityCandidate(CustomerSpawnId.Of(target.gameObject), state.Danger, flat.magnitude));
-            }
-            return PriorityTarget.Select(_candidates);
+            return PriorityRescue.CurrentTargetId;
         }
 
         // ---- パラメータ（1 ビルド 1 仮説の記録）----
@@ -819,7 +794,7 @@ namespace Toufuku.Playtest
             Put("metrics.segment_count", metrics.segmentCount.ToString(CultureInfo.InvariantCulture));
             Put("metrics.idle_threshold_sec", F(metrics.idleThresholdSeconds));
             Put("metrics.t1_window_sec", F(metrics.t1WindowSeconds));
-            Put("priority_target_source", PlaytestLog.PriorityTargetProvider != null ? "provider" : (estimatePriorityTarget ? "estimate_gauge" : "none"));
+            Put("priority_target_source", PlaytestLog.PriorityTargetProvider != null ? "provider" : (estimatePriorityTarget ? "priority_rescue_55" : "none"));
             h.AddRange(_parameters);
             return h;
         }

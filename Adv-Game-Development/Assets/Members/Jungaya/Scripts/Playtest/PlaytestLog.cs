@@ -14,13 +14,14 @@ namespace Toufuku.Playtest
     /// | #58 段階学習 | <see cref="T1StageStart"/> / <see cref="T1StageEnd"/> / <see cref="T1CounterReset"/> / <see cref="T1Ghost"/>（任意で <see cref="T1FreePractice"/>） |
     /// | 観察者（介入の記録） | <see cref="T1Intervention"/> |
     /// | T2 の試行開始（任意） | <see cref="T2TrialStart"/> |
-    /// | #55 優先救済 | <see cref="PriorityTargetProvider"/> に「今の二重円の客 ID」を返す関数を入れる |
+    /// | #55 優先救済 | 既定で <c>PriorityRescue</c>（二重円と同じ規則）を使う。差し替えたいときだけ <see cref="PriorityTargetProvider"/> を入れる |
     /// </summary>
     public static class PlaytestLog
     {
         /// <summary>
-        /// 優先対象（二重円の客）の ID を返す関数。null の間は PlaytestLogger の暫定規則
-        /// （画面内の生存客のうち D = 不満ゲージ×100 が最大、同値は近い順 → ID 昇順）を使う。
+        /// 優先対象（二重円の客）の ID を返す関数。null の間は #55 の規則
+        /// （<c>PriorityRescue</c>：画面内の候補のうち D 最大 → 遠い → active 化が早い → 生成ID 昇順）を使う。
+        /// 検証シーンで対象を人為的に固定したいときだけ差し替える。
         /// </summary>
         public static Func<int?> PriorityTargetProvider;
 

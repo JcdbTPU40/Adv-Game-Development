@@ -9,6 +9,8 @@ namespace Toufuku.Aim
     /// 有効スイング確定（SwingAccepted）でお守りを 1 発飛ばす — Issue #60（仕様書 v8 4章）
     ///
     /// ・着弾目標点 = SwingAccepted 時点の照準（<see cref="OnusaAimController.GetLockedTarget"/>）。発射後は動かさない。
+    /// ・優先救済の対象ID（二重円の客）も同じ瞬間に弾へ保存する（#55）。飛翔 0.65 秒の間に二重円が
+    ///   別の客へ移っても、その弾の +50 の判定は発射時の対象のまま変わらない（v8 4章「通常弾」）。
     /// ・振りの強さ → 飛翔時間（0.25〜0.65 秒、強いほど短い）と軌跡の太さ。着弾点には使わない。
     /// ・弾は無限。クールダウン中の有効スイング（SwingRejected: Cooldown）は弾を作らず、照準を 80ms 灰色にする
     ///   （短い低音は ThrowInputController が鳴らす）。得点イベントも作られない。
@@ -133,6 +135,9 @@ namespace Toufuku.Aim
             Vector3 target = aim.GetLockedTarget(e.Time);
             Vector3 start = spawnPoint != null ? spawnPoint.position : aim.Origin;
 
+            // 優先救済の対象（二重円の客）も、色・着弾点と同じ「発射受理の瞬間」に固定する（#55 / v8 4章）
+            int priorityTargetId = PriorityRescue.CurrentTargetIdOrNone;
+
             float strength01 = ThrowFlight.Strength01(e.Strength, slowStrength, fastStrength);
             float seconds = ThrowFlight.FlightSeconds(strength01, slowestSeconds, fastestSeconds);
             float width = ThrowFlight.TrailWidth(strength01, thinTrailWidth, thickTrailWidth);
@@ -146,13 +151,14 @@ namespace Toufuku.Aim
             AttachTrail(go, width);
 
             var projectile = go.AddComponent<OmamoriProjectile>();
-            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds);
+            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId);
 
             ThrowCount++;
             LastProjectile = projectile;
 
             if (logThrows)
-                Debug.Log($"[Throw] 発射 {type} 目標=({target.x:0.00}, {target.z:0.00}) 距離={flat.magnitude:0.0}m 強さ={e.Strength:0} → 飛翔 {seconds:0.00}s 太さ {width:0.00}", this);
+                Debug.Log($"[Throw] 発射 {type} 目標=({target.x:0.00}, {target.z:0.00}) 距離={flat.magnitude:0.0}m 強さ={e.Strength:0} → 飛翔 {seconds:0.00}s 太さ {width:0.00}" +
+                          $" 優先対象ID={(priorityTargetId > 0 ? priorityTargetId.ToString() : "なし")}", this);
         }
 
         void HandleSwingRejected(SwingRejectedArgs e)
