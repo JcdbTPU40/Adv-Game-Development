@@ -16,7 +16,12 @@ namespace Toufuku.Rescue.Outline
     ///   O … アウトライン ON/OFF（Feature の純コスト差分）
     ///   F … 雨天 ON/OFF
     ///   P … 計測開始/停止（一定フレーム平均）
+    ///   S … 体数軸スイープ（12条件×4巡）を開始
     ///   C … CSV 書き出し
+    ///
+    /// ビルド版のコマンドライン:
+    ///   -outlineSweep[=frames,passes] … 起動後に自動でスイープを開始する
+    ///   -outlineQuit                  … スイープ完了後に自動終了する
     /// </summary>
     public class OutlinePerfHud : MonoBehaviour
     {
@@ -25,6 +30,15 @@ namespace Toufuku.Rescue.Outline
 
         [SerializeField] OutlinePerfDirector director;
         [SerializeField] int sampleFrames = SampleFramesDefault;
+
+        [Header("計測条件（#45 実機計測）")]
+        [Tooltip("ON なら vSync を切って fps 上限を外す。60fps 目標に対する余裕を見るため計測時は必須。"
+               + "Editor では終了時に元の値へ戻す。")]
+        [SerializeField] bool uncapFrameRate = true;
+
+        int _savedVSyncCount = -1;
+        int _savedTargetFrameRate;
+        bool _quitAfterSweep;
 
         readonly float[] _frameTimes = new float[FrameBufferSize];
         int _frameWrite;
@@ -63,6 +77,65 @@ namespace Toufuku.Rescue.Outline
             public float DrawCalls;
             public float SetPassCalls;
             public float Batches;
+        }
+
+        void Awake()
+        {
+            if (!uncapFrameRate) return;
+            // vSync が効いていると fps がディスプレイ refresh に張り付き、60fps に対する余裕が読めない。
+            _savedVSyncCount = QualitySettings.vSyncCount;
+            _savedTargetFrameRate = Application.targetFrameRate;
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = -1;
+        }
+
+        void OnDestroy()
+        {
+            // Editor 実行では QualitySettings がプロジェクト資産なので必ず戻す。
+            if (_savedVSyncCount < 0) return;
+            QualitySettings.vSyncCount = _savedVSyncCount;
+            Application.targetFrameRate = _savedTargetFrameRate;
+        }
+
+        void Start()
+        {
+            Debug.Log($"[OutlinePerf] persistentDataPath = {Application.persistentDataPath}");
+            ParseCommandLine();
+        }
+
+        /// <summary>
+        /// ビルド版でキー入力なしにスイープを回すためのコマンドライン解釈。
+        /// 例: OutlinePerf.exe -outlineSweep=60,4 -outlineQuit
+        /// </summary>
+        void ParseCommandLine()
+        {
+            string[] args;
+            try { args = System.Environment.GetCommandLineArgs(); }
+            catch { return; }
+            if (args == null) return;
+
+            int frames = 60;
+            int passes = 4;
+            bool sweep = false;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string a = args[i];
+                if (a == "-outlineQuit") { _quitAfterSweep = true; continue; }
+                if (!a.StartsWith("-outlineSweep")) continue;
+
+                sweep = true;
+                int eq = a.IndexOf('=');
+                if (eq < 0 || eq + 1 >= a.Length) continue;
+
+                string[] parts = a.Substring(eq + 1).Split(',');
+                if (parts.Length > 0) int.TryParse(parts[0], out frames);
+                if (parts.Length > 1) int.TryParse(parts[1], out passes);
+            }
+
+            if (!sweep) return;
+            Debug.Log($"[OutlinePerf] コマンドラインからスイープ開始（{frames}f × {passes}巡, quit={_quitAfterSweep}）");
+            RunAxisSweep(frames, passes);
         }
 
         void OnEnable()
@@ -235,6 +308,7 @@ namespace Toufuku.Rescue.Outline
                     _axisPhase = AxisPhase.Idle;
                     _samplePassTag = -1;
                     Debug.Log("[OutlinePerf] ===== 体数軸スイープ完了 =====");
+                    if (_quitAfterSweep) Application.Quit();
                     break;
             }
         }
@@ -418,6 +492,9 @@ namespace Toufuku.Rescue.Outline
                 }
             }
 
+            if (Input.GetKeyDown(KeyCode.S))
+                RunAxisSweep();
+
             if (Input.GetKeyDown(KeyCode.C))
                 ExportCsv();
         }
@@ -583,9 +660,9 @@ namespace Toufuku.Rescue.Outline
             float radiusMask = OutlineRendererFeature.EffectiveRadiusMaskTexels(thickness, scale);
             float thicknessScreen = OutlineRendererFeature.EffectiveThicknessScreenPx(thickness, scale);
 
-            var rect = new Rect(12, 12, 480, 250);
+            var rect = new Rect(12, 12, 480, 285);
             GUI.Box(rect, "Outline Perf (#45)");
-            GUILayout.BeginArea(new Rect(20, 36, 460, 220));
+            GUILayout.BeginArea(new Rect(20, 36, 460, 255));
             GUILayout.Label($"Count: {director?.AliveCount ?? 0} / target {director?.TargetCount ?? 0}");
             GUILayout.Label($"Outline: {(IsOutlineOn() ? "ON" : "OFF")}   Rain: {(OutlineWeather.IsRaining ? "ON" : "OFF")} ({OutlineWeather.RainAmount:F2})");
             GUILayout.Label($"Mask scale: {scale:F2}   radius(mask px): {radiusMask:F0}   実効太さ(screen px): {thicknessScreen:F1}");
@@ -595,7 +672,8 @@ namespace Toufuku.Rescue.Outline
             GUILayout.Label(_sampling
                 ? $"Sampling... {_sampleRemaining} frames left"
                 : $"Samples stored: {_samples.Count}" + (_axisSweepActive ? " (sweeping)" : ""));
-            GUILayout.Label("1/2/3=count  O=outline  F=rain  P=sample  C=csv");
+            GUILayout.Label("1/2/3=count  O=outline  F=rain  P=sample  S=sweep  C=csv");
+            GUILayout.Label($"vSync={QualitySettings.vSyncCount}  targetFps={Application.targetFrameRate}");
             GUILayout.EndArea();
         }
     }
