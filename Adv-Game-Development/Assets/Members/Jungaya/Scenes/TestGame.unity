@@ -2157,6 +2157,7 @@ MonoBehaviour:
   thickTrailWidth: 0.22
   trailSeconds: 0.18
   trailColor: {r: 1, g: 0.95, b: 0.8, a: 0.9}
+  visualDelaySeconds: 0
   arcHeightPerMeter: 0.12
   maxArcHeight: 2
   logThrows: 1
