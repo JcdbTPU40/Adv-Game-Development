@@ -1,11 +1,17 @@
 using System;
 using System.IO.Ports;
 using System.Threading;
+using Toufuku.GameInput;
 using UnityEngine;
 
+// #51: 受信した行を同じフレームの入力処理（ThrowInputController）より先に配るため、実行順を早める
+[DefaultExecutionOrder(-200)]
 public class ConecteController : MonoBehaviour
 {
     public string deviceID = "OONUSA_READY";
+
+    // 1 フレームで読む最大行数（受信が詰まっても Update が止まらないようにする上限）
+    const int MaxLinesPerFrame = 32;
 
     SerialPort serial;
 
@@ -14,6 +20,14 @@ public class ConecteController : MonoBehaviour
     public float yaw { get; private set; }
     public float pitch { get; private set; }
     public float roll { get; private set; }
+
+    /// <summary>#51: 4 項目目のボタンのビットマスク（bit0〜4 = 色、bit5 = 正面）。未送信なら 0。</summary>
+    public int buttons { get; private set; }
+    /// <summary>#51: ファームウェアがボタンを送ってきているか。</summary>
+    public bool hasButtons { get; private set; }
+
+    /// <summary>#51: 1 行受信するたびに発火する（振りピーク検出用に全行を配る）。</summary>
+    public event Action<ControllerSample> SampleReceived;
 
     void Start()
     {
@@ -28,7 +42,7 @@ public class ConecteController : MonoBehaviour
         {
             try
             {
-                Debug.Log($"������ : {portName}");
+                Debug.Log($"検索中 : {portName}");
 
                 SerialPort testPort = new SerialPort(portName, 115200);
                 testPort.ReadTimeout = 1000;
@@ -42,10 +56,10 @@ public class ConecteController : MonoBehaviour
                     try
                     {
                         string line = testPort.ReadLine().Trim();
-                        string[] data = line.Split(',');
                         Debug.Log(line);
 
-                        if (line == deviceID || data.Length == 3 &&float.TryParse(data[0], out _) && float.TryParse(data[1], out _) && float.TryParse(data[2], out _))
+                        // #51: ボタン付きの 4 項目の行も ESP32 とみなす
+                        if (line == deviceID || ControllerSample.TryParse(line, 0.0, out _))
                         {
                             found = true;
                             break;
@@ -56,7 +70,7 @@ public class ConecteController : MonoBehaviour
 
                 if (found)
                 {
-                    Debug.Log($"�����I {portName}");
+                    Debug.Log($"発見！ {portName}");
 
                     serial = testPort;
                     isConnected = true;
@@ -65,7 +79,7 @@ public class ConecteController : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("ESP32��������܂���ł����B");
+                    Debug.Log("ESP32が見つかりませんでした。");
                 }
 
                 testPort.Close();
@@ -84,21 +98,21 @@ public class ConecteController : MonoBehaviour
 
         try
         {
-            if (serial.BytesToRead > 0)
+            // #51: 1 フレーム 1 行だと送信周期（20ms）に追いつかず遅延が溜まるため、届いている行をすべて読む
+            for (int i = 0; i < MaxLinesPerFrame && serial.BytesToRead > 0; i++)
             {
                 string line = serial.ReadLine();
 
-                string[] data = line.Split(',');
+                if (!ControllerSample.TryParse(line, Time.realtimeSinceStartupAsDouble, out ControllerSample sample))
+                    continue;
 
-                if (data.Length == 3 &&
-                    float.TryParse(data[0], out float cyaw) &&
-                    float.TryParse(data[1], out float cpitch) &&
-                    float.TryParse(data[2], out float croll))
-                {
-                    yaw = cyaw;
-                    pitch = cpitch;
-                    roll = croll;
-                }
+                yaw = sample.Yaw;
+                pitch = sample.Pitch;
+                roll = sample.Roll;
+                buttons = sample.Buttons;
+                hasButtons = sample.HasButtons;
+
+                SampleReceived?.Invoke(sample);
             }
         }
         catch
