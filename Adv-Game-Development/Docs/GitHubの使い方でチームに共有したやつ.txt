@@ -1,0 +1,81 @@
+GitHubの使い方でチームに共有したやつ
+
+GitHubリポジトリとUnityプロジェクトの準備ができたので、作業の進め方を共有します。
+
+━━━━━━━━━━━━━━━━━━
+📁 フォルダ構成について
+━━━━━━━━━━━━━━━━━━
+Assets/Members/ の中に各自のフォルダがあります。
+・Awaji/
+・Jungaya/
+・Kobayashi/
+
+基本的に自分のフォルダ内（Scripts, Prefabs, Materials, Animations）で作業してください。
+完成して共有する段階になったら _Prefabs/ や _Scripts/ に移動します。
+
+━━━━━━━━━━━━━━━━━━
+🌿 ブランチの使い方
+━━━━━━━━━━━━━━━━━━
+・main → 提出・本番用（直接触らない）
+・develop → 開発の統合ブランチ
+・feature/○○ → 各自の作業ブランチ
+
+【作業の流れ】
+1. developブランチから自分の作業ブランチを作る
+   例）git checkout develop → git checkout -b feature/player-movement
+2. 自分のブランチで作業・コミット
+3. 完成したらGitHubでdevelopへプルリクエスト(PR)を出す
+4. 確認してもらってマージ
+
+━━━━━━━━━━━━━━━━━━
+⚠️ 注意点
+━━━━━━━━━━━━━━━━━━
+・シーンファイル（.unity）は同時編集するとコンフリクトするので、話し合いましょう
+・.metaファイルは必ず一緒にコミットしてください（消さない！）
+・作業が長引くときは、こまめにdevelopの変更を取り込んでおいてください
+
+━━━━━━━━━━━━━━━━━━
+🚀 最初にやること
+━━━━━━━━━━━━━━━━━━
+1. リポジトリをクローン
+   git clone https://github.com/JcdbTPU40/Adv-Game-Developmet
+2. developブランチに切り替え
+   git checkout develop
+3. Unityでプロジェクトを開く
+4. 自分のfeatureブランチを作って作業開始！
+
+わからないことがあったら気軽に
+
+例：
+
+main（本番・提出用）
+ └── develop（開発の統合ブランチ）
+       ├── feature/Jungaya/player-movement
+       ├── feature/Kobayashi/title-screen
+       ├── feature/Awaji/enemy-ai
+       └── feature/Jungaya/sound-effects
+
+━━━━━━━━━━━━━━━━━━
+それぞれの役割はこうです：
+━━━━━━━━━━━━━━━━━━
+main は常に「動く状態」を保つブランチです。マイルストーンや提出のタイミングで develop からマージします。普段ここに直接コミットはしません。
+develop はチームの作業を統合するブランチです。各メンバーの feature ブランチをここにマージして、動作確認をします。
+feature/○○ は各メンバーが実際に作業するブランチです。機能ごとに1つ作り、完成したら develop にプルリクエスト(PR)を出します。
+
+━━━━━━━━━━━━━━━━━━
+ブランチ名の付け方
+━━━━━━━━━━━━━━━━━━
+feature/名前/ のあとに何の機能かわかる名前を英語で短くつけるのが一般的です。
+feature/Jungaya/player-movement    ← プレイヤーの移動
+feature/Kobayashi/title-screen       ← タイトル画面
+feature/Awaji/stage-1            ← ステージ1
+fix/Jungaya/jump-bug               ← バグ修正のときは fix/
+
+━━━━━━━━━━━━━━━━━━
+日常の作業フロー
+━━━━━━━━━━━━━━━━━━
+1. develop から新しい feature ブランチを切る
+2. そのブランチで作業・コミット
+3. 完成したら develop へ PR を出す
+4. チームメンバーに軽く確認してもらってマージ
+5. マイルストーンごとに develop → main にマージ

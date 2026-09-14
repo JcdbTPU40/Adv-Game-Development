@@ -1,0 +1,2303 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投福神社 企画・仕様書 v8 完成版</title>
+<style>
+:root{
+  --ink:#1f1c1a;
+  --ink-2:#4a443f;
+  --ink-3:#625b54;
+  --paper:#faf8f4;
+  --paper-2:#f2eee6;
+  --line:#ddd6ca;
+  --accent:#a8322c;
+  --accent-2:#c9a227;
+  --green:#2f7046;
+  --blue:#2f6fa8;
+  --purple:#7a5aa8;
+  --pink:#c4527d;
+  --gold:#755613;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+.skip-link{position:absolute;left:-9999px;top:8px;background:#fff;color:var(--accent);padding:8px 12px;z-index:10;border:2px solid var(--accent)}
+.skip-link:focus{left:8px}
+:focus-visible{
+  outline:3px solid var(--blue);
+  outline-offset:3px;
+}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  font-size:15px;
+  line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{display:flex;max-width:1400px;margin:0 auto;gap:0}
+
+/* ---- sidebar ---- */
+nav{
+  width:280px;flex:0 0 280px;
+  border-right:1px solid var(--line);
+  padding:28px 20px 60px;
+  position:sticky;top:0;align-self:flex-start;
+  max-height:100vh;overflow-y:auto;
+  background:var(--paper-2);
+}
+nav .navtitle{
+  font-size:12px;letter-spacing:.18em;color:var(--ink-3);
+  margin:0 0 14px;font-weight:700;
+}
+nav ol{list-style:none;margin:0;padding:0;counter-reset:ch}
+nav ol li{margin:0}
+nav a{
+  display:block;padding:5px 8px;color:var(--ink-2);
+  text-decoration:none;font-size:13.5px;line-height:1.5;
+  border-radius:4px;border-left:2px solid transparent;
+}
+nav a:hover{background:#fff;color:var(--accent);border-left-color:var(--accent)}
+nav .sub a{padding-left:22px;font-size:12.5px;color:var(--ink-3)}
+nav hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+
+/* ---- main ---- */
+main{flex:1 1 auto;padding:40px 52px 120px;min-width:0}
+
+/* ---- cover ---- */
+header.cover{
+  border-bottom:3px double var(--line);
+  padding-bottom:26px;margin-bottom:34px;
+}
+header.cover .kicker{
+  font-size:12px;letter-spacing:.3em;color:var(--accent);
+  font-weight:700;margin:0 0 10px;
+}
+header.cover h1{
+  font-size:40px;margin:0 0 4px;letter-spacing:.06em;
+  font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+  font-weight:600;
+}
+header.cover .sub{font-size:17px;color:var(--ink-2);margin:0 0 18px}
+header.cover dl{
+  display:grid;grid-template-columns:auto 1fr;gap:2px 16px;
+  margin:0;font-size:13.5px;color:var(--ink-2);
+}
+header.cover dt{color:var(--ink-3)}
+header.cover dd{margin:0}
+
+/* ---- headings ---- */
+h2{
+  font-size:22px;margin:56px 0 6px;padding:0 0 8px;
+  border-bottom:2px solid var(--ink);
+  font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-weight:600;
+  letter-spacing:.03em;scroll-margin-top:20px;
+}
+h2 .num{
+  display:inline-block;min-width:1.9em;color:var(--accent);
+  font-family:inherit;
+}
+h3{
+  font-size:16.5px;margin:30px 0 4px;color:var(--ink);
+  border-left:4px solid var(--accent);padding-left:10px;
+  scroll-margin-top:20px;
+}
+h4{font-size:14.5px;margin:20px 0 2px;color:var(--ink-2)}
+p{margin:8px 0}
+ul,ol{margin:8px 0;padding-left:1.5em}
+li{margin:3px 0}
+strong{font-weight:700}
+code{
+  background:var(--paper-2);padding:1px 5px;border-radius:3px;
+  font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;font-size:.9em;
+}
+
+/* ---- badges ---- */
+.b{
+  display:inline-block;font-size:10.5px;font-weight:700;
+  padding:1px 7px;border-radius:3px;vertical-align:2px;
+  margin-left:6px;letter-spacing:.06em;white-space:nowrap;
+}
+.b.fix{background:#e7ece7;color:#3f6b47;border:1px solid #c5d5c8}
+.b.new{background:#fdeeec;color:#a8322c;border:1px solid #f0cfc9}
+.b.chg{background:#fdf6e0;color:#8a6a12;border:1px solid #ecd9a0}
+.b.mvp{background:#e8f3ea;color:#285f37;border:1px solid #bcd7c4}
+.b.add{background:#e8f0f8;color:#245f91;border:1px solid #bed2e5}
+.b.later{background:#f2edf8;color:#65458f;border:1px solid #d8c9e8}
+.b.gate{background:#fff1dc;color:#8a5612;border:1px solid #ecd0a2}
+
+/* ---- boxes ---- */
+.box{
+  background:#fff;border:1px solid var(--line);
+  border-radius:6px;padding:16px 20px;margin:16px 0;
+}
+.box.why{
+  background:var(--paper-2);border-left:4px solid var(--accent-2);
+  border-radius:0 6px 6px 0;
+}
+.box.why .lbl{
+  display:block;font-size:11.5px;font-weight:700;color:var(--gold);
+  letter-spacing:.12em;margin-bottom:4px;
+}
+.box.warn{background:#fdf4f3;border-left:4px solid var(--accent);border-radius:0 6px 6px 0}
+.box.warn .lbl{
+  display:block;font-size:11.5px;font-weight:700;color:var(--accent);
+  letter-spacing:.12em;margin-bottom:4px;
+}
+.box h4:first-child{margin-top:0}
+.box p:first-child{margin-top:0}
+.box p:last-child,.box ul:last-child{margin-bottom:0}
+
+/* ---- tables ---- */
+table{
+  border-collapse:collapse;width:100%;margin:14px 0;
+  font-size:13.5px;background:#fff;
+}
+table:focus-visible{outline-offset:2px}
+caption{
+  caption-side:top;text-align:left;font-size:13px;font-weight:700;
+  color:var(--ink-2);padding-bottom:6px;
+}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--paper-2);font-weight:700;color:var(--ink-2);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:nth-child(even){background:#fcfbf8}
+
+/* color swatches */
+.sw{display:inline-block;width:13px;height:13px;border-radius:2px;vertical-align:-2px;margin-right:6px;border:1px solid rgba(0,0,0,.15)}
+
+/* ---- interest curve ---- */
+.curve{background:#fff;border:1px solid var(--line);border-radius:6px;padding:18px;margin:16px 0}
+.curve svg{display:block;width:100%;height:auto}
+
+/* ---- checklist ---- */
+ul.check{list-style:none;padding-left:0}
+ul.check li{
+  padding-left:0;position:relative;margin:6px 0;
+}
+
+/* ---- misc ---- */
+.lens{
+  font-size:12px;color:var(--ink-3);letter-spacing:.02em;
+  margin:2px 0 8px;
+}
+.lens b{color:var(--gold);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.note{font-size:12.5px;color:var(--ink-3)}
+hr.sec{border:0;border-top:1px solid var(--line);margin:40px 0}
+footer{
+  margin-top:70px;padding-top:20px;border-top:3px double var(--line);
+  font-size:12.5px;color:var(--ink-3);
+}
+.legend{
+  display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;
+  background:#fff;border:1px solid var(--line);border-radius:6px;
+  padding:12px 16px;margin:18px 0;align-items:center;
+}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.summary-card{background:#fff;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:6px;padding:14px 16px}
+.summary-card h4{margin:0 0 4px;color:var(--ink)}
+.summary-card p{margin:0;font-size:13px;color:var(--ink-2)}
+.gate-table td:first-child,.gate-table th:first-child{white-space:nowrap}
+.pass{color:var(--green);font-weight:700}
+.hold{color:#79500e;font-weight:700}
+.cut{color:var(--accent);font-weight:700}
+.metric{font-variant-numeric:tabular-nums;font-weight:700}
+.decision-rule{border:2px solid var(--ink);background:#fff;padding:16px 20px;margin:18px 0;border-radius:6px}
+.decision-rule p{margin:4px 0}
+.sr-only{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.print-toc{display:none}
+.approval-dashboard{
+  display:grid;grid-template-columns:auto 1fr;gap:4px 14px;
+  align-items:center;background:#fff;border:2px solid var(--ink);
+  border-radius:6px;padding:14px 16px;margin:16px 0 22px;
+}
+.approval-dashboard dt{font-weight:700;color:var(--ink-2)}
+.approval-dashboard dd{margin:0}
+.approval-state{
+  display:inline-block;margin:0 8px 2px 0;padding:2px 8px;
+  border:1px solid #b77a19;border-radius:999px;background:#fff4dc;
+  color:#70480b;font-size:11px;font-weight:700;letter-spacing:.04em;
+  white-space:nowrap;vertical-align:1px;
+}
+.approval-state[data-state="approved"]{border-color:#4b815c;background:#e9f4ec;color:#285d39}
+.approval-state[data-state="hold"]{border-color:#76706a;background:#f0eeeb;color:#4d4843}
+
+@media (max-width:1000px){
+  .wrap{flex-direction:column}
+  nav{width:auto;flex:none;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  main{padding:28px 22px 80px}
+  .two{grid-template-columns:1fr}
+  .summary-grid{grid-template-columns:1fr}
+  header.cover h1{font-size:30px}
+  table{
+    display:block;max-width:100%;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain;
+  }
+  table caption{min-width:max-content}
+  .approval-dashboard{grid-template-columns:1fr;gap:2px}
+  .approval-dashboard dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
+@media print{
+  @page{size:A4 portrait;margin:14mm 12mm 16mm}
+  nav{display:none}
+  body{background:#fff;font-size:10.5pt;line-height:1.7}
+  main{padding:0}
+  header.cover{break-after:page;page-break-after:always}
+  .print-toc{
+    display:block;break-after:page;page-break-after:always;
+    margin:0;padding:0;
+  }
+  .print-toc ol{columns:2;column-gap:12mm;padding-left:1.5em}
+  .print-toc li{break-inside:avoid;page-break-inside:avoid;margin:0 0 2mm}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid}
+  h2{margin-top:26px}
+  table{display:table!important;overflow:visible!important;font-size:8.5pt;break-inside:auto;page-break-inside:auto}
+  thead{display:table-header-group}
+  tfoot{display:table-footer-group}
+  tr{break-inside:avoid;page-break-inside:avoid}
+  caption{break-after:avoid;page-break-after:avoid}
+  .box,.curve,.summary-card,.decision-rule,.approval-dashboard{break-inside:avoid;page-break-inside:avoid}
+  #approve,#numbers,#principles{break-before:page;page-break-before:always}
+  a{color:inherit;text-decoration:none}
+  .skip-link{display:none}
+  .approval-state{border-color:#555;background:#fff;color:#222}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">本文へ移動</a>
+<div class="wrap">
+
+<nav aria-label="章目次">
+  <p class="navtitle">目次</p>
+  <ol>
+    <li><a href="#about">この版について／変更履歴</a></li>
+    <li><a href="#ch1">1. 本質的経験・テーマ・コンセプト</a></li>
+    <li><a href="#ch2">2. ターゲットと企画意図</a></li>
+    <li><a href="#ch3">3. デバイス</a></li>
+    <li><a href="#ch4">4. 操作とシステム</a></li>
+    <li><a href="#ch5">5. 弾の種類</a></li>
+    <li><a href="#ch6">6. コアメカニクス（救済）</a></li>
+    <li><a href="#ch7">7. スコアと神社の評価</a></li>
+    <li><a href="#ch8">8. 時間・興味曲線・祭事・スポーン</a></li>
+    <li><a href="#ch9">9. 天候</a></li>
+    <li><a href="#ch10">10. 参拝客</a></li>
+    <li><a href="#ch11">11. スコープと難易度</a></li>
+    <li><a href="#ch12">12. 二人協力モード</a></li>
+    <li><a href="#ch13">13. 観戦と展示運用</a></li>
+    <li><a href="#ch14">14. 開発スケジュール</a></li>
+    <li><a href="#ch15">15. チーム構成と役割分担</a></li>
+    <li><a href="#ch16">16. 展示機材と予算</a></li>
+    <li><a href="#ch17">17. 課題・リスク・検証の合格ライン</a></li>
+    <li><a href="#ch18">18. 遊び方の伝え方</a></li>
+    <li><a href="#ch19">19. テストプレイの記録</a></li>
+    <li><a href="#ch20">20. 用語と表記</a></li>
+    <li><a href="#ch21">21. 残る未確定事項</a></li>
+  </ol>
+  <hr>
+  <ol>
+    <li><a href="#approve">付録A. 要承認リスト</a></li>
+    <li><a href="#numbers">付録B. 数値表マスター</a></li>
+    <li><a href="#principles">付録C. 参照した設計原則</a></li>
+  </ol>
+</nav>
+
+<main id="main">
+
+<header class="cover">
+  <p class="kicker">CYBER SEPTET / 工芸ゲームショウ 2027</p>
+  <h1>投福神社</h1>
+  <p class="sub">企画・仕様書 v8 完成版</p>
+  <dl>
+    <dt>作成日</dt><dd>2026年8月4日</dd>
+    <dt>チーム</dt><dd>Cyber Septet（7人体制）</dd>
+    <dt>制作期間</dt><dd>2026年6月 → 2027年1月（残り約5ヶ月）</dd>
+    <dt>エンジン</dt><dd>Unity Universal 3D 6000.3.13f1</dd>
+    <dt>想定展示</dt><dd>工芸ゲームショウ（2027年1月）</dd>
+    <dt>前版</dt><dd>v7（2026-08-04）</dd>
+    <dt>この版の目的</dt><dd>v7の評価で見つかった仕様上の曖昧さと文書上の不整合を閉じ、実装・検証・承認に使える正本にする</dd>
+  </dl>
+</header>
+
+<section class="print-toc" aria-label="印刷用目次">
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#about">この版について／変更履歴</a></li>
+    <li><a href="#ch1">本質的経験・テーマ・コンセプト</a></li>
+    <li><a href="#ch2">ターゲットと企画意図</a></li>
+    <li><a href="#ch3">デバイス</a></li>
+    <li><a href="#ch4">操作とシステム</a></li>
+    <li><a href="#ch5">弾の種類</a></li>
+    <li><a href="#ch6">コアメカニクス（救済）</a></li>
+    <li><a href="#ch7">スコアと神社の評価</a></li>
+    <li><a href="#ch8">時間・興味曲線・祭事・スポーン</a></li>
+    <li><a href="#ch9">天候</a></li>
+    <li><a href="#ch10">参拝客</a></li>
+    <li><a href="#ch11">スコープと難易度</a></li>
+    <li><a href="#ch12">二人協力モード</a></li>
+    <li><a href="#ch13">観戦と展示運用</a></li>
+    <li><a href="#ch14">開発スケジュール</a></li>
+    <li><a href="#ch15">チーム構成と役割分担</a></li>
+    <li><a href="#ch16">展示機材と予算</a></li>
+    <li><a href="#ch17">課題・リスク・検証の合格ライン</a></li>
+    <li><a href="#ch18">遊び方の伝え方</a></li>
+    <li><a href="#ch19">テストプレイの記録</a></li>
+    <li><a href="#ch20">用語と表記</a></li>
+    <li><a href="#ch21">残る未確定事項</a></li>
+    <li><a href="#approve">付録A. 要承認リスト</a></li>
+    <li><a href="#numbers">付録B. 数値表マスター</a></li>
+    <li><a href="#principles">付録C. 参照した設計原則</a></li>
+  </ol>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<h2 id="about"><span class="num">0</span>この版について／変更履歴</h2>
+
+<p>v7の評価で見つかった「実装者ごとに挙動が分かれる箇所」と「追加要素を作らないとMVPを通せない循環」を閉じた版です。修正は4種類あります。</p>
+<ul>
+  <li><strong>状態の一意化</strong>：危険度Dと残り必要発数R、入力モード、得点確定時点、180秒境界を状態遷移として定義（→ <a href="#ch4">4章</a>〜<a href="#ch7">7章</a>）</li>
+  <li><strong>スコープ循環の解消</strong>：無演出の負荷ウェーブと評価・ランク表示をMVP、祭事演出と動的難易度を追加へ分離（→ <a href="#ch8">8章</a>・<a href="#ch11">11章</a>）</li>
+  <li><strong>検証の分離</strong>：玩具A/B、クールダウン技術探索、3分耐久、USB必須、BLE任意を別ゲートに分割（→ <a href="#ch17">17章</a>）</li>
+  <li><strong>文書品質</strong>：モバイル表、印刷目次、コントラスト、節アンカー、表の読み上げ関係、承認状態を改善</li>
+</ul>
+<p>v6が確立した「<strong>仮説・測定方法・合格値・不合格時の処置</strong>を1組にする」という書き方は
+そのまま踏襲しています。仕様を完成品として断定せず、チームが迷わず削れる開発正本にします。</p>
+<div class="box warn">
+<span class="lbl">この版の限界</span>
+<p>この文書は<strong>同じ入力から同じ結果を実装できる状態</strong>を目指したもので、面白いことの証明ではありません。
+点数を決めるのは T0-A/B〜T7 の実測で、文書ではありません。
+8月にT0-A/B（大幣を振るだけで気持ちいいか）が落ちれば、この文書の大半は書き直しになります。
+そうなったときに何を捨てて何を守るかを決めておくのが、この文書の役割です。</p>
+</div>
+
+<div class="legend">
+  <span><span class="b fix">確定</span> 承認済み、または上位ゲートで固定済み</span>
+  <span><span class="b chg">変更</span> 過去の決定を変える提案。要承認</span>
+  <span><span class="b new">新規</span> この版までに新設した項目。要承認</span>
+  <span><span class="b mvp">MVP</span> コア完成に必須</span>
+  <span><span class="b add">追加</span> 採用ゲート通過後に実装</span>
+  <span><span class="b later">余裕時</span> 納期と品質に余白がある場合のみ</span>
+</div>
+
+<h3 id="about-01-v7から直したこと">v7から直したこと</h3>
+<table tabindex="0">
+  <caption>v7からv8への変更点</caption>
+  <thead><tr><th scope="col">#</th><th scope="col">変更</th><th scope="col">解消した問題</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td><strong>危険度D（0→100）</strong>と<strong>残り必要発数R（1〜3）</strong>を分離し、状態遷移表を正本化</td><td>初期値や命中時処理によって複数発客が早く救済される実装分岐</td></tr>
+    <tr><td class="n">2</td><td>誤色はDもRも変えず、連なりとご加護進捗だけを切る</td><td>無限弾の誤色連打で黒客化を遅らせる抜け道</td></tr>
+    <tr><td class="n">3</td><td>通常弾・大祓・キャンセル・多重押し・正面キャリブレーションを入力状態機械へ統合</td><td>押した瞬間／押している間／長押しの競合と、正面ボタンの通信漏れ</td></tr>
+    <tr><td class="n">4</td><td>優先救済の候補集合と同値順を定義し、<strong>有効スイング確定時（SwingAccepted）の対象ID</strong>で加点判定</td><td>飛翔0.65秒の間に二重円が移り、表示どおり狙っても+50が消える問題</td></tr>
+    <tr><td class="n">5</td><td>欲張り客の途中点を廃止し、救済完了時に300点を確定</td><td>救えなかった参拝客からも縁が生まれるテーマ上の漏れ</td></tr>
+    <tr><td class="n">6</td><td>笑顔伝播の対象、有向ペア1回、最大4人、救済時倍率スナップショット、終了境界を定義</td><td>3秒後に起きる得点へどの倍率を使うかという実装差</td></tr>
+    <tr><td class="n">7</td><td>大祓の支配性を通常投擲率ではなく、救済比・縁比・即時消費率・配置別効率で判定</td><td>6通常救済で1回という解禁だけで70%条件を自動達成する無効なゲート</td></tr>
+    <tr><td class="n">8</td><td>負荷ウェーブをMVP、祭事の名称・太鼓・季節演出を追加へ分離</td><td>追加着手条件のT3を通すために追加の祭事が必要になる循環</td></tr>
+    <tr><td class="n">9</td><td>終盤負荷ウェーブの見積りを技術上限2発/秒から、実操作周期1.0〜1.4秒と種類別必要発数へ変更</td><td>クールダウンだけで成立を判断していた算術</td></tr>
+    <tr><td class="n">10</td><td>T0を玩具A/B・CD探索・3分耐久へ、T6をUSB必須・BLE任意へ分割</td><td>1テストで複数仮説を変える問題と、任意BLEがMVPを停止する問題</td></tr>
+    <tr><td class="n">11</td><td>学習30秒を競技得点外とし、早期達成・未達補助・C停滞計時を定義</td><td>開始条件とランク救済が参加者ごとに変わる問題</td></tr>
+    <tr><td class="n">12</td><td>安全領域、USB配線、完全予備機、未成年テストの同意・匿名化・撤回手順を追加</td><td>展示復旧60秒と安全・研究運用の不足</td></tr>
+  </tbody>
+</table>
+
+<h3 id="about-02-v6からv7で直したこと">v6からv7で直したこと</h3>
+<p class="note">以下は版の変遷を残す履歴であり、現在の実装値ではない。v8の現行仕様は直前の表と本文・付録Bを参照する。</p>
+<table tabindex="0">
+  <caption>v6からv7への変更点</caption>
+  <thead><tr><th scope="col">#</th><th scope="col">変更</th><th scope="col">解消した問題</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td><strong>優先救済の閾値（不満60%以上）を撤廃</strong>。「その時点で画面内で最も不満が高い1人」を救えば、不満量に関わらず+50</td><td>60%まで待つのが得という誘導。v5の「80%まで待つ」が60%へ移動しただけだった</td></tr>
+    <tr><td class="n">2</td><td>最危険の1人だけ<strong>足元の円を二重</strong>にして一意に示す。円の表示開始を不満50%へ</td><td>+50の条件（最高値との差5ポイント以内）が表示の粒度より細かく、読み取れなかった</td></tr>
+    <tr><td class="n">3</td><td><strong>リザルトの称号を「最終ランク」から「プレイ中の最高ランク」へ</strong></td><td>終盤の大祭事で評価が崩れ、全員の称号が低ランクで揃う問題</td></tr>
+    <tr><td class="n">4</td><td>1月の大祭事の加算を <strong>+7 → +4</strong> に下げ、上げ幅はT3で探索。T3の観測に黒客化率と区間別の評価推移を追加</td><td>17人×クールダウン0.60秒では算術的に追いつかず、クライマックスが「間に合わない時間」になる</td></tr>
+    <tr><td class="n">5</td><td>クールダウンを固定値0.60秒から<strong>「誤検出率2%以下を満たす最小値」</strong>という定義に変更。基準0.50秒、T0で0.40〜0.65を比較</td><td>0.60秒という値の根拠が「再検出禁止時間と揃えた」だけだった</td></tr>
+    <tr><td class="n">6</td><td><strong>遠方客をMVPへ繰り上げ</strong>（モデルは通常客の流用、配置を12〜18mに固定するだけ）</td><td>T2はMVPゲートなのに、4つの選択肢の1つ（奥を救う）が追加要素で、MVP時点では成立しなかった</td></tr>
+    <tr><td class="n">7</td><td>参拝客の<strong>解禁スケジュール</strong>を明記（通常→欲張り→遠方→移動→ボス）。6月の出現比率から移動客を外す</td><td>解禁が20秒間隔だと欲張り客は約1:10からで、6月（〜1:00）に比率25%は成立しなかった</td></tr>
+    <tr><td class="n">8</td><td>キャリブレーションを<strong>「正面ボタン1秒長押し」に3箇所すべて統一</strong>し、正面ボタンを部品構成と予算に追加（ボタン6個）</td><td>同じ章の中で「正面ボタン長押し」と「色ボタン2個同時押し」が併記されていた</td></tr>
+    <tr><td class="n">9</td><td>ご加護タイムに<strong>専用カウンタ</strong>を定義（発動時に0へ戻す。福の連なりの倍率カウンタは維持）</td><td>再発動の起点が未定義で、即時再発動するのか実装者に判断が委ねられていた</td></tr>
+    <tr><td class="n">10</td><td>笑顔の伝播は<strong>黒客を対象外</strong>にすることを明記</td><td>黒客が多いほど得点が増える抜け道</td></tr>
+    <tr><td class="n">11</td><td><span class="b add">追加</span><span class="b later">余裕時</span>のラベルを、大祓とご加護タイムの全記述（照準・振動・SE・入力）に伝播</td><td>MVPだけを作る担当者が、章を読んでどこまで作るか判断できなかった</td></tr>
+    <tr><td class="n">12</td><td>段階学習の危険円はスクリプト固定値であることを明記</td><td>「不満は増えない」区間に危険円を出す方法が書かれていなかった</td></tr>
+    <tr><td class="n">13</td><td>T3の比較対象を「150秒案」から<strong>「祭事の長さと同時人数」</strong>に変更</td><td>150秒にすると1ヶ月50秒になり、時間割・祭事・篝火3つが全部崩れる</td></tr>
+    <tr><td class="n">14</td><td>用語表に「福の連なり」を追加。12章の上限表記を「ソロ比+2人」へ。表紙から出典のない点数表記を削除</td><td>表記のぶれ</td></tr>
+  </tbody>
+</table>
+
+<h3 id="about-03-v5から直したこと">v5から直したこと</h3>
+<table tabindex="0">
+  <caption class="sr-only">v5から直したことの仕様表</caption>
+  <thead><tr><th scope="col">#</th><th scope="col">変更</th><th scope="col">狙い</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>テーマを「救った喜びが次のひとりへ福として伝わる」に変更し、縁・笑顔の伝播・提灯・リザルトを同じ価値へ統一</td><td>テーマとスコアアタックの矛盾を解消</td></tr>
+    <tr><td class="n">2</td><td>参拝客も得点もないT0「玩具テスト」を最優先ゲートに昇格し、再投擲意向・疲労・反応・遅延を数値化</td><td>大幣を振る1秒そのものを先に完成</td></tr>
+    <tr><td class="n">3</td><td>開始30秒を「1色1人→2色2人→危険度」の段階開示に再設計</td><td>説明なしで分かる初見導線</td></tr>
+    <tr><td class="n">4</td><td>早期救済＝笑顔の伝播、間一髪＝固定ボーナス、遠方＝連鎖範囲という異なる利益を明文化</td><td>毎回同じ対象が正解になることを防ぐ</td></tr>
+    <tr><td class="n">5</td><td>天候はMVPでは演出のみへ変更（v8ではさらに晴のみへ縮小）</td><td>「なぜ外れたか」を常に説明可能にする</td></tr>
+    <tr><td class="n">6</td><td>大祓を追加要素へ移し、同色・最大3人・通常投擲比率70%以上を一度採用（v8でこの無効な比率条件を廃止）</td><td>コアの色選択と狙撃を食わないようにする</td></tr>
+    <tr><td class="n">7</td><td>MVP／追加／余裕時の3段階と、各要素の開始・継続・削除条件を新設</td><td>5ヶ月で品質を守る</td></tr>
+    <tr><td class="n">8</td><td>T0〜T7のテスト計画、母数、測定値、合格ライン、失敗時対応、決定期限を統合</td><td>感想ではなく観察で決める</td></tr>
+    <tr><td class="n">9</td><td>採用／調整／保留／削除の意思決定ルールと証拠の残し方を新設</td><td>会議を判断可能にする</td></tr>
+  </tbody>
+</table>
+
+<h3 id="about-04-v4-仮-から直したこと">v4（仮）から直したこと</h3>
+<table tabindex="0">
+  <caption class="sr-only">v4（仮）から直したことの仕様表</caption>
+  <thead><tr><th scope="col">#</th><th scope="col">内容</th><th scope="col">理由（Lens）</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>二人協力モードを復活（v5）。v6ではMVP保護のため余裕時へ移動</td><td>#37 協力／#13 八つのフィルター</td></tr>
+    <tr><td class="n">2</td><td>3ヶ月の祭事を「小→中→大」にし、最終月の祭事を最後まで続けてカウントダウンと重ねた</td><td>#61 興味曲線</td></tr>
+    <tr><td class="n">3</td><td>不満80%以上の参拝客は得点1.5倍（v5で採用、v6で優先救済+50へ置換）</td><td>#32 意味ある選択／#33 三角性</td></tr>
+    <tr><td class="n">4</td><td>救済されて帰る参拝客が、すれ違った参拝客の不満を減らす（救う順番に意味を持たせた）</td><td>#23 創発</td></tr>
+    <tr><td class="n">5</td><td>「縁」に内生的価値を持たせた（v5）。v6では提灯の演出価値だけを残し、競技上の優遇を削除</td><td>#5 内生的価値／#32 公平な選択</td></tr>
+    <tr><td class="n">6</td><td>不満量を輪郭の点滅から足元の円へ移動（輪郭への情報過積載を解消）</td><td>#59 チャネルと次元</td></tr>
+    <tr><td class="n">7</td><td>難易度Easy/Normalを廃止して1本に統一。動的難易度で上下に対応</td><td>#43 優雅さ／#18 フロー</td></tr>
+    <tr><td class="n">8</td><td>せっかち客を廃止し、通常客の秒数の幅に吸収（参拝客6種→5種）</td><td>#43 優雅さ</td></tr>
+    <tr><td class="n">9</td><td>観戦体験の章を新設（展示では観る人の方が多い）</td><td>#21 社会</td></tr>
+    <tr><td class="n">10</td><td>本質的経験とテーマを一文で定義し直した</td><td>#1 本質的経験／#9 統一／#10 共鳴</td></tr>
+    <tr><td class="n">11</td><td>Phase 1の各検証に合格ラインを数値で設定</td><td>#14 リスク軽減／#91 プレイテスト</td></tr>
+    <tr><td class="n">12</td><td>進行を篝火3つ、モード表示、黒客ヒットのフィードバックなど表示の抜けを補完</td><td>#49 見える進歩／#57 フィードバック／#60 モード</td></tr>
+  </tbody>
+</table>
+
+<h3 id="about-05-v3から変えたこと-主要のみ">v3から変えたこと（主要のみ）</h3>
+<ul>
+  <li>実装月を代表4ヶ月 → <strong>3ヶ月（6月・11月・1月）</strong>に削減。12月は延期候補</li>
+  <li>投擲は「向き＝狙い」「強さ＝飛翔時間と軌跡の太さ」に整理。v3の「距離は振りの強さで制御」は廃止</li>
+  <li>照準を新設（大幣の向きに追従するレティクル＋着弾予測点）</li>
+  <li>弾は無限。発射クールダウンは再検出禁止時間と同値。v8では「重複誤発射と意図的2連投欠落がともに2%以下となる最小値」をT0-CDで選ぶ（基準0.50秒）</li>
+  <li>特大弾を「大祓（おおはらえ）」として定義。v6以降は追加要素で、T5通過時のみ採用</li>
+  <li>頭上ゲージは複数発必要な参拝客のみ。通常客は非表示</li>
+  <li>競う指標は「縁」1本。MVPのランクは現在状態と最高称号だけに使い、倍率・人数変化は持たせない</li>
+  <li>お守り5色を確定（厄除け安全を白 → 紫へ）。輪郭パターンを最初から実装</li>
+  <li>大幣に振動モーターを追加</li>
+</ul>
+
+<div class="box warn">
+<span class="lbl">読み方</span>
+<p>承認が必要なのは<a href="#approve">付録A. 要承認リスト</a>に集約しています。
+そこだけ判断してもらえれば残りは進められます。
+ゲーム内で読み込むバランス値・入力閾値は<a href="#numbers">付録B</a>に一覧があり、<strong>Phase 1ではそちらが唯一のマスター</strong>です。
+テスト合格値は17章、安全寸法は13章（3章へ同値再掲）、予算は16章を正本とし、役割の違う数値を二重管理しません。</p>
+</div>
+
+<!-- ============ 1 ============ -->
+<h2 id="ch1"><span class="num">1</span>本質的経験・テーマ・コンセプト</h2>
+
+<h3 id="ch1-01-本質的経験">本質的経験<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#1 本質的経験</b>／<b>#2 驚き</b>：プレイヤーに何を感じ、何を考え、何をしたと記憶してほしいかを一文で言えるか。</p>
+
+<div class="box">
+<p style="font-size:17px;margin:0"><strong>次々に訪れる願いの優先度と、救った後に広がる福を見比べ、いま救うひとりを選び、大幣で狙って願いを届ける気持ちよさ。</strong></p>
+</div>
+
+<p>この一文には<strong>行為</strong>（色を選び、狙い、振る）、<strong>判断</strong>（誰を今救うか）、
+<strong>感情</strong>（間一髪の爽快感と、笑顔が広がる安堵）、<strong>結果</strong>（ひとりの救済が次の救済を助ける）の4層があります。
+以降の仕様は「この体験の頻度・強度・理解のどれを上げるか」を説明できる場合だけ採用します。</p>
+
+<div class="box why">
+<span class="lbl">なぜ書き直したか</span>
+<p>v4のコンセプトは「光った色を見分けて素早く選び、狙って投げ当てる爽快感」でしたが、
+これには<strong>判断が入っていません</strong>。一方で2章には「腕前の軸は投擲精度＋優先順位判断」と
+書いてあり、文書内で食い違っていました。
+判断を実際に発生させる仕組み（最危険の1人を救う優先救済+50と、笑顔の伝播 → <a href="#ch7">7章</a>）を入れたうえで、
+本質的経験の一文に判断を組み込みました。</p>
+</div>
+
+<h3 id="ch1-02-テーマ-中心的な問い">テーマ（中心的な問い）<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#9 統一</b>／<b>#10 共鳴</b>：テーマは題材ではなく、作品が一貫して探究する問いや感情。</p>
+
+<div class="box">
+<p style="font-size:17px;margin:0"><strong>ひとりを救った喜びは、次のひとりへ福として伝わっていく。</strong></p>
+</div>
+
+<p>中心的な問いは「目の前のひとりへの判断が、どこまで場全体の福を広げられるか」。
+競争や得点を否定するテーマではない。縁の基礎点は<strong>救済完了時だけ</strong>生まれ、正確さ・優先判断・笑顔の伝播で上乗せされる。
+途中命中や誤色からは縁を出さず、<strong>高得点ほど「多くの願いを、正確に、間に合う順で届け、次へ福をつないだ」記録</strong>になるようルールを揃える。</p>
+<ul>
+  <li>救済すると参拝客が笑顔で帰り、その笑顔が<strong>他の参拝客にも伝わる</strong>（→ <a href="#ch6">6章</a>）</li>
+  <li>救えなかった参拝客は怒って黒くなり、境内に居残って邪魔になる＝叶えられなかったことの痛み</li>
+  <li>スコア「縁」は、救済・正確な一投・笑顔の伝播で増え、<strong>境内を明るくする</strong></li>
+  <li>プレイヤーは巫女の姿を借りた神。ご加護タイムは<strong>神としての力を一瞬取り戻す</strong>演出</li>
+</ul>
+
+<div class="summary-grid">
+  <div class="summary-card"><h4>見比べる</h4><p>二重円・距離・必要発数・伝播経路を読み、「今のひとり」を選ぶ。</p></div>
+  <div class="summary-card"><h4>届ける</h4><p>構え、狙い、振る。入力から100ms以内に音・軌跡・振動が返る。</p></div>
+  <div class="summary-card"><h4>広がる</h4><p>笑顔が別の参拝客の時間を生み、縁と灯りが境内へ残る。</p></div>
+</div>
+
+<h3 id="ch1-03-コア体験を守る禁止事項">コア体験を守る禁止事項<span class="b mvp">MVP</span></h3>
+<ul>
+  <li>狙わない連打、最寄りだけを撃つ、大祓だけを待つ行動が最高効率になってはならない。</li>
+  <li>外れた理由をプレイヤーが「入力・狙い・色」のいずれかへ帰属できない妨害を入れない。</li>
+  <li>最初の30秒に、ボス・大祓・天候効果・ランク変動・複数発ゲージを同時提示しない。</li>
+  <li>投げる1回の反応を待たせる演出、操作を止める演出、読み終える必要がある長文UIを入れない。</li>
+</ul>
+
+<h3 id="ch1-04-題材">題材</h3>
+<p>神社／お守り／投げる</p>
+
+<h3 id="ch1-05-3つの柱">3つの柱<span class="b fix">確定</span></h3>
+<ul>
+  <li><strong>シンプル操作</strong> ── 構えて振るだけ。小中学生でも直感で遊べる</li>
+  <li><strong>3分スコアアタック</strong> ── 1ヶ月＝1分／3ヶ月で1ゲーム。試遊回転率を最優先</li>
+  <li><strong>和 × 独自性</strong> ── 神社 × お守り投擲という、海外でも刺さる和文化のフック</li>
+</ul>
+
+<h3 id="ch1-06-制作方針-プレゼン-審査向け">制作方針（プレゼン・審査向け）<span class="b fix">確定</span></h3>
+<p>チャレンジ性 ── デバイスからゲームまで全てをチーム内で自作する挑戦。</p>
+
+<h3 id="ch1-07-このゲームの-気持ちいい-とテンポ">このゲームの「気持ちいい」とテンポ<span class="b new">新規</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">このゲームの「気持ちいい」とテンポの仕様表</caption>
+  <tbody>
+    <tr><th scope="row">行為</th><td>投げて当てる／悩みが晴れる</td></tr>
+    <tr><th scope="row">操作</th><td>構える → 振り下ろす</td></tr>
+    <tr><th scope="row">感情</th><td>スカッとする（当たった瞬間）＋ ほっこり（笑顔で帰る）</td></tr>
+    <tr><th scope="row">テンポ</th><td><strong>「すっ（見比べて構える）、ヒュッ（振る）、ぽん（当たる）、パァッ（笑顔が広がる）」</strong><br>1サイクル目標1.0〜1.4秒。この4拍の反復が遊びの正体</td></tr>
+  </tbody>
+</table>
+<table tabindex="0">
+  <caption>1投のフィードバック予算（T0-A/B・T6-USBで調整）</caption>
+  <thead><tr><th scope="col">起点</th><th scope="col">返す反応</th><th scope="col" class="n">目標</th><th scope="col" class="n">上限</th></tr></thead>
+  <tbody>
+    <tr><td>スイング検出</td><td>風切り音・軌跡・発射振動</td><td class="n">80ms以内</td><td class="n">100ms</td></tr>
+    <tr><td>命中判定</td><td>命中音・中振動・輪郭の弾け</td><td class="n">50ms以内</td><td class="n">80ms</td></tr>
+    <tr><td>救済確定</td><td>表情変化・強振動・鈴・光の伝播</td><td class="n">250ms以内</td><td class="n">400ms</td></tr>
+    <tr><td>次の操作可能</td><td>照準と色選択を即時復帰</td><td class="n">演出中も可</td><td class="n">停止0秒</td></tr>
+  </tbody>
+</table>
+<p class="note">「物理的に正しい」より「意図と反応が同期して気持ちいい」を優先する。T0-A/BまたはT0-3Mに落ちた場合は参拝客や祭事を作らず、軌跡・音・判定・振動を直す。</p>
+
+<!-- ============ 2 ============ -->
+<h2 id="ch2"><span class="num">2</span>ターゲットと企画意図</h2>
+<p><span class="b fix">確定</span></p>
+<ul>
+  <li><strong>ターゲット層</strong>：小中学生。構えて振るだけのシンプル操作で入口を広く取り、
+    展示会での試遊回転率と親子来場者の取り込みを狙う。</li>
+  <li><strong>腕前の軸</strong>：投擲精度（狙いの正確さ）＋ どの参拝客から救うかの優先順位判断。</li>
+  <li><strong>企画意図</strong>：神社という親しみある舞台に、自作デバイスによる身体的な投擲操作を掛け合わせ、
+    展示映えと一行で伝わる訴求力を両立させる。</li>
+</ul>
+
+<!-- ============ 3 ============ -->
+<h2 id="ch3"><span class="num">3</span>デバイス（自作ハードウェア）</h2>
+<p>すべてチーム内で製作する。これ自体が制作方針「チャレンジ性」の体現。</p>
+
+<h3 id="ch3-01-大幣型コントローラ-狙い-投擲入力">大幣型コントローラ（狙い＋投擲入力）</h3>
+<ul>
+  <li>構成：ESP32DevkitC ×1 ＋ BNO055（9軸IMU）＋ 振動モーター ×1 <span class="b new">新規</span></li>
+  <li>大幣を模した棒状デバイス。<strong>向けた方向が画面の照準に反映される</strong></li>
+  <li>振り下ろすと投擲。振りの速さが飛翔時間と軌跡の太さに反映される（→ <a href="#ch4">4章</a>）</li>
+</ul>
+
+<h3 id="ch3-02-お守り選択ボックス-種類選択">お守り選択ボックス（種類選択）<span class="b fix">確定</span></h3>
+<ul>
+  <li><strong>ボタン6個</strong>（お守り5色＋白の「正面」ボタン）と、色ボタン5個のLEDリングを備えた箱型デバイス。構成：ESP32DevkitC ×1 <span class="b chg">変更</span></li>
+  <li>5ボタンの色はお守り5種の色と完全統一（→ <a href="#ch6">6章</a>）</li>
+  <li>各ボタン天面に輪郭と同じ5パターンを白で印刷し、色だけに依存しない。LED点灯中も模様を隠さない</li>
+  <li>展示時は台へ固定。高さ70〜95cmで調整可能、左右どちら側にも置ける。ボタン径35mm以上、中心間隔60mm以上、押下力1.5N以下を目標</li>
+  <li>キャリブレーションは白の「正面」ボタンを1秒長押し。色ボタン2個同時押しは廃止し、初見の誤解を防ぐ。この方式を本書の全章で唯一の手順とする（3章のドリフト対策・13章の試遊サイクルも同一）</li>
+</ul>
+
+<h3 id="ch3-03-ESP32-2-の役割分担">ESP32 ×2 の役割分担<span class="b new">新規</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">ESP32 &#215;2 の役割分担の仕様表</caption>
+  <thead><tr><th scope="col">機体</th><th scope="col">担当</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">大幣側</th><td>BNO055の読み取り（100Hz）、スイング検出、振動モーター制御、USBまたはBLEで姿勢とスイングイベントを同一形式で送信</td></tr>
+    <tr><th scope="row">ボタン箱側</th><td><strong>6ボタン（5色＋正面）の押下／解放状態</strong>をタイムスタンプ付きで送信し、Unityからの指示で色ボタンのLEDリングを点灯。初見ガイド、選択中の色、入力エラーを手元へ返す</td></tr>
+  </tbody>
+</table>
+<p class="note">PC側（Unity）で両方を受け取り、統合して1つの入力として扱う。
+大幣は姿勢を高頻度で送る必要があり、処理を分けた方が遅延が安定する。
+ボタン箱は<code>連番＋6bit押下マスク</code>を状態変化時と30Hzのハートビートで送り、Unityは100ms受信がなければ全ボタン解放として入力・チャージをキャンセルする。
+正面ボタンの長押し時間はボタン箱側ではなく<strong>Unityの単調増加時計</strong>で判定し、1.00秒成立時に受信から50ms以内の最新大幣姿勢を正面オフセットとして保存する。これにより2台のESP32の時計ずれや通信停止でキャリブレーションが変わらない。</p>
+
+<h3 id="ch3-04-接続">接続</h3>
+<ul>
+  <li>開発とMVPの基準接続：<strong>有線（USBシリアル）</strong>。入力の気持ちよさを通信リスクから切り分ける</li>
+  <li>展示候補：Bluetooth LE <span class="b add">追加</span>。T6-BLEで遅延・欠落・30分安定性を通過した場合のみ既定にする</li>
+  <li>BLEが1項目でも不合格、または会場で切断が1回起きた場合は、その日の既定をUSBへ戻す。ゲーム内容は変えない</li>
+</ul>
+
+<h3 id="ch3-05-性能目標">性能目標<span class="b new">新規</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">性能目標の仕様表</caption>
+  <thead><tr><th scope="col">項目</th><th scope="col">目標値</th><th scope="col">備考</th></tr></thead>
+  <tbody>
+    <tr><td>入力遅延（SwingAccepted→画面で弾が出るまで）</td><td class="n">p95 80ms以内</td><td>最大100ms。T6-USBの意図的100投で計測。入力欠落2%未満、誤発射2%以下</td></tr>
+    <tr><td>IMUサンプリング</td><td class="n">100Hz</td><td>&nbsp;</td></tr>
+    <tr><td>有効スイング（SwingAccepted）</td><td class="n">200deg/s超<br>＋下向き25°以上</td><td>角速度が200deg/sを超えた時を候補開始とし、300ms以内に下向き姿勢変化が25°以上になった時点を全ログ・音・弾生成の共通時刻とする。T0-CDでは25°へ固定してクールダウンだけを比較し、T6-USBで誤発射／欠落が未達の場合だけ角度閾値を独立実験する</td></tr>
+    <tr><td>再検出の禁止時間<br>＝発射クールダウン</td><td class="n">基準0.50秒<br>（0.40〜0.65）</td><td><strong>「重複誤発射率2%以下、かつ意図的な高速2連投の2発目欠落率2%以下を両方満たす最小値」</strong>と定義する <span class="b chg">v8変更</span>。T0-CDで0.40／0.50／0.60／0.65を同じ投数で比較する。負荷成立の計算にはこの技術上限ではなく、T0-3Mで測った実操作周期を使う</td></tr>
+    <tr><td>静止判定</td><td class="n">30deg/s 未満が0.5秒</td><td>待機状態に戻す</td></tr>
+  </tbody>
+</table>
+
+<h3 id="ch3-06-ヨー角ドリフト対策">ヨー角ドリフト対策<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#92 技術</b>：技術が失敗しても成立する代替案があるか。</p>
+<p>BNO055の地磁気キャリブレーションはずれやすいため、三重に保険を掛ける。</p>
+<ol>
+  <li><strong>プレイ開始時の正面キャリブレーション</strong>：画面中央の的を向け、色ボタンをすべて離した状態で白の「正面」ボタンを1秒長押し。Unityが最新の大幣姿勢を受け取れており、角速度30deg/s未満が0.5秒続いた場合だけ受理する。成立時は鈴1回＋5色LEDの白点滅、失敗時は低い音＋赤点滅で返す。1プレイごとに実施 <span class="b chg">変更</span></li>
+  <li><strong>待機中だけの自動再基準化</strong>：プレイ中（0:00〜3:00）は無効。タイトル／交代画面で、色・正面ボタンがすべて離され、スイングなし、角速度30deg/s未満が10秒続き、かつ現在の向きが直前の正面からヨー・ピッチ各10°以内の場合だけ、その時点の向きを新しい正面として1回保存する。条件外では正面を変更しない <span class="b chg">v8明確化</span></li>
+  <li><strong>画面外への逸脱補正</strong>：照準が画面外へ出そうになったら内側へ押し戻す</li>
+  <li><strong>最終手段</strong>：照準を絶対方位ではなく「振り始めの姿勢からの相対値」に切り替えられる作りにしておく</li>
+</ol>
+
+<h3 id="ch3-07-振動フィードバック">振動フィードバック<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#57 フィードバック</b>／<b>#58 ジューシーさ</b>：視覚・音・動き・触覚が一貫した情報を返すか。</p>
+<table tabindex="0">
+  <caption class="sr-only">振動フィードバックの仕様表</caption>
+  <thead><tr><th scope="col">タイミング</th><th scope="col">長さ</th><th scope="col">強さ</th></tr></thead>
+  <tbody>
+    <tr><td>発射時</td><td class="n">40ms</td><td>弱</td></tr>
+    <tr><td>命中時</td><td class="n">80ms</td><td>中（福の連なりが伸びるほど100→120msへ）</td></tr>
+    <tr><td>救済成功時</td><td class="n">120ms</td><td>強</td></tr>
+    <tr><td>大祓チャージ完了時 <span class="b add">追加</span></td><td class="n">120ms</td><td>強（2回に分けて刻む）。大祓がT5に落ちた場合は不要</td></tr>
+  </tbody>
+</table>
+
+<p class="note"><strong>振動の優先順位：</strong>救済成功 ＞ 命中 ＞ 発射。100ms以内に重なった場合は波形を足さず、上位1つへ置き換える。長時間振動による痺れと情報の混同を防ぐ。</p>
+
+<h3 id="ch3-08-安全設計">安全設計<span class="b new">新規</span></h3>
+<ul>
+  <li>大幣の全長 <strong>60cm以下</strong>、重量 <strong>300g以下</strong>、先端は柔らかい素材（紙垂は布か紙）</li>
+  <li>手首ストラップを必ず付ける（すっぽ抜け防止）</li>
+  <li>立ち位置から前後左右へ各1.5mを振り抜き安全領域として確保。待機列はプレイヤーの後方2m以上、かつ安全領域の外</li>
+  <li>振り抜きの軌道内に机や隣の展示物を置かない配置にする</li>
+</ul>
+
+<h3 id="ch3-09-衛生">衛生<span class="b new">新規</span></h3>
+<p>来場者全員が同じ大幣とボタン箱を握るため、アルコールシートを常備し、
+<strong>毎プレイ後にグリップとボタン面を拭き、5人ごとにストラップ・側面まで清掃</strong>する。アテンド手順書（→ <a href="#ch13">13章</a>）に組み込む。</p>
+
+<!-- ============ 4 ============ -->
+<h2 id="ch4"><span class="num">4</span>操作とシステム</h2>
+
+<div class="box why">
+<span class="lbl">v3からの整理</span>
+<p>v3では4章に「距離は振りの強さで制御」、3章に「9軸IMUで振りの向きを高精度に検出できるのが強み」と
+書かれており、文書内で矛盾していました。突合での回答は「振りの向きで制御」でした。
+v6では<strong>向き＝狙い（左右・奥行き）／強さ＝飛翔時間と軌跡の太さ</strong>に分離します。</p>
+</div>
+
+<h3 id="ch4-01-狙い-向き">狙い（向き）</h3>
+<p>大幣を向けた方向を画面内の照準位置へ写像する。有効スイング確定時（SwingAccepted）の照準が着弾目標点として固定される。</p>
+<ul>
+  <li>左右 …… 大幣のヨー角</li>
+  <li>奥行き …… 大幣のピッチ角を地面上3〜18mへ正規化（上に向けるほど遠く、下に向けるほど近く）。着弾予測点と実着弾点は一致させる</li>
+  <li>視点は<strong>固定1人称</strong>。プレイヤーが視点を動かす操作はない <span class="b new">新規</span><br>
+    <span class="note">見回し操作を足すと入力が3つになり、シンプル操作の柱が崩れる。</span></li>
+</ul>
+
+<h3 id="ch4-02-照準表示">照準表示<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#53 制御</b>／<b>#56 透明性</b>：プレイヤーの意図が世界へ正確に届くか。</p>
+<ul>
+  <li>画面に<strong>照準マーク</strong>（紙垂モチーフの小さな輪）を常時表示。大幣の向きに追従する</li>
+  <li>照準が地面に落ちる位置に、<strong>着弾予測点</strong>（光の輪）を薄く表示する</li>
+  <li>照準が参拝客に乗ったとき、その参拝客の輪郭が一段明るくなる（ロック表示ではない）</li>
+  <li><strong>大祓のチャージ中は照準が大きくなり、完了すると金色に変わる</strong> <span class="b add">追加</span><br>
+    <span class="note">Lens #60 モード。チャージ中は通常投擲ができないため、手元（振動と発光）だけでなく画面でも状態が読めるようにする。待機列から見ている人にも伝わる。</span></li>
+</ul>
+
+<div class="box why">
+<span class="lbl">なぜ照準が必要か</span>
+<p>「狙いが操作の核」と言いながら狙う手段が画面に無いと、子どもは当てられません。
+当てられないと3分で上達が実感できず、もう一度やりたいという気持ちが生まれません
+（Lens #18 フロー、#48 接近可能性）。</p>
+</div>
+
+<h3 id="ch4-03-画面に映る自分の身体">画面に映る自分の身体<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#64 投影</b>：プレイヤーが自分をそこに投影できるか。</p>
+<p>画面下部に<strong>巫女の袖と大幣の先端</strong>を表示し、振り下ろすと連動して動く。
+実装はカメラに追従する1枚のモデルのみで軽い。これがないと、ただの照準ゲームに見えてしまう。</p>
+
+<h3 id="ch4-04-投擲-強さ">投擲（強さ）</h3>
+<ul>
+  <li>振り下ろす動作が発射のトリガー</li>
+  <li>振りの速さは<strong>飛翔時間と軌跡の太さ</strong>に反映する。最遠距離でも0.65秒以内に着弾し、着弾位置はSwingAccepted時の照準で決まる</li>
+  <li>弾道は開始点と着弾点を結ぶ演出用スプライン。現実の放物運動は再現せず、強く振っても着弾点はずれない</li>
+</ul>
+<p class="note">位置を強さで決めると狙いが安定せず、子どもには当てられない。強さは気持ちよさに使い、正確さは向きに持たせる。</p>
+
+<h3 id="ch4-05-弾数とクールダウン">弾数とクールダウン<span class="b new">新規</span></h3>
+<ul>
+  <li>弾は<strong>無限</strong>。弾数管理・リロードはしない</li>
+  <li>発射の<strong>クールダウンは再検出禁止時間と同値</strong>。基準0.50秒、T0-CDで0.40〜0.65から決定する <span class="b chg">変更</span></li>
+</ul>
+<div class="box why">
+<span class="lbl">なぜこうするか</span>
+<p>弾を有限にすると「弾切れで何もできない時間」が生まれ、3分の試遊で最も避けたい空白になります。
+一方でクールダウンが無いと、狙わず連射するのが最適解になり投擲精度という腕前の軸が消えます。
+「1発を外すとクールダウンぶん損する」という重みを作ります。
+v3の「弾の無駄消費」というペナルティ表現は、この<strong>クールダウン分の時間損失</strong>に置き換えます。</p>
+<p>v6は0.60秒を固定値としていましたが、その根拠は「再検出禁止時間と揃えた」だけでした。
+0.60秒だと毎秒1.67発が上限で、終盤の負荷ウェーブに人数が追いつかない計算になります（→ <a href="#ch8">8章</a>）。
+v8では値ではなく<strong>決め方</strong>を仕様とし、重複誤発射と意図的連投欠落がともに2%以下となる最小値をT0-CDで選びます。</p>
+</div>
+
+<h3 id="ch4-06-入力の住み分け">入力の住み分け<span class="b fix">確定</span></h3>
+<p>入力は次の状態機械で一意に処理する。色は<strong>最後に押した色を記憶する方式ではなく、押している間だけ有効</strong>とする。</p>
+<table tabindex="0">
+  <caption class="sr-only">入力の住み分けの仕様表</caption>
+  <thead><tr><th scope="col">現在状態</th><th scope="col">入力</th><th scope="col">次状態／処理</th></tr></thead>
+  <tbody>
+    <tr><td><strong>無色待機</strong></td><td>色ボタンを1個押す</td><td><strong>色保持</strong>へ。該当LEDと大幣先端を点灯</td></tr>
+    <tr><td><strong>色保持</strong></td><td>押下から1.20秒未満で有効なスイング</td><td><strong>通常弾</strong>を1発生成。色・着弾点・優先救済対象・ご加護状態をSwingAccepted時に保存する。ボタンを押し続けていてもクールダウン後は色保持へ戻る</td></tr>
+    <tr><td><strong>色保持</strong></td><td>大祓ストック1の状態で新しく押し始めた同じ色を1.20秒連続保持</td><td><strong>大祓チャージ完了</strong>へ。色を保持中の救済でストックを得てもチャージ時計は始めず、一度すべて離して押し直す。ストック0なら時間に関係なく色保持のまま</td></tr>
+    <tr><td><strong>大祓チャージ完了</strong></td><td>その色を保持したまま有効なスイング</td><td>大祓を発射し、<strong>発射成立時</strong>にストックを1消費して無色待機へ</td></tr>
+    <tr><td>色保持／大祓チャージ完了</td><td>保持色を離す、別の色を押す、正面ボタンを押す、またはプレイが終了する</td><td><strong>キャンセル</strong>して無色待機へ。弾も出ず、ストックも消費しない。複数色同時押し中は発射・チャージを受理せず、LEDを赤点滅</td></tr>
+    <tr><td>任意</td><td>発射クールダウン中の有効スイング</td><td>弾・振動・得点イベントを作らない。照準を80msだけ灰色にし、短い低音を1回返して「振ったが待機中」を示す。色保持／チャージ時間は継続し、T0-CDではこの意図的な入力を欠落率へ数える</td></tr>
+    <tr><td><strong>無色待機</strong></td><td>正面ボタンを1.00秒保持</td><td>キャリブレーション条件を満たす場合だけ正面を更新。色ボタン押下中、スイング中、大祓チャージ中は受理しない（→ <a href="#ch3">3章</a>）</td></tr>
+  </tbody>
+</table>
+<p class="note"><span class="b mvp">MVP</span>は無色待機・色保持・通常弾・正面キャリブレーションだけを実装する。大祓チャージ状態は<span class="b add">追加</span><span class="b gate">T5通過時のみ</span>であり、未採用ビルドでは長押ししても通常弾の入力を妨げない。</p>
+
+<h3 id="ch4-07-お守りの切り替え">お守りの切り替え<span class="b new">新規</span></h3>
+<p>無色待機でボタンを押した瞬間にその色を保持し、切り替えの待ち時間はなし。
+色保持中に別色を押した場合は安全側に倒して一度キャンセルし、すべての色ボタンを離してから次の色を選び直す。
+大幣の先端の光は0.15秒かけて新しい色へ変わるが、判定色は押下時に即時切り替わる。</p>
+
+<!-- ============ 5 ============ -->
+<h2 id="ch5"><span class="num">5</span>弾の種類</h2>
+
+<h3 id="ch5-01-通常弾">通常弾<span class="b fix">確定</span></h3>
+<ul>
+  <li>参拝客1人のみに命中する単体弾。飛翔時間0.25〜0.65秒</li>
+  <li>SwingAccepted時に、選択色・着弾点・優先救済対象ID・ご加護倍率を弾へ保存する。飛翔中にボタン、二重円、ご加護状態が変わっても、その弾の判定は変えない</li>
+  <li>救済演出中の参拝客（当たり判定が消えている）は通過し、後方の参拝客に判定される <span class="b new">新規</span></li>
+</ul>
+
+<h3 id="ch5-02-特大弾-大祓-おおはらえ">特大弾「大祓（おおはらえ）」<span class="b add">追加</span><span class="b gate">T5通過時のみ</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">特大弾「大祓（おおはらえ）」の仕様表</caption>
+  <thead><tr><th scope="col">項目</th><th scope="col">仕様</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">解禁</th><td><strong>通常弾による救済完了6人ごとに1回</strong>。ストック上限1。ストック1の間は救済数を次回分へ繰り越さず、大祓による救済も数えない</td></tr>
+    <tr><th scope="row">発動</th><td>解禁後、1色を1.20秒長押しでチャージ完了 → その色を保持したまま振ると発射。<strong>チャージ中は通常投擲ができない</strong>。ボタン解放・別色／正面ボタン押下・終了でキャンセルし、ストックは発射成立時だけ消費する（→ <a href="#ch4">4章</a>）</td></tr>
+    <tr><th scope="row">爆発半径</th><td>2.5m。効果対象は照準中心から近い<strong>最大3人</strong></td></tr>
+    <tr><th scope="row">色が一致した参拝客</th><td>残り必要発数を1減らす。危険度は変えない。0になれば救済完了</td></tr>
+    <tr><th scope="row">色が違う参拝客</th><td><strong>効果なし</strong>。色選択を省略する万能弾にしない</td></tr>
+    <tr><th scope="row">得点</th><td>大祓で救済完了した各人は基礎点だけを×1.0で得る。命中精度・優先救済・福の連なり・ご加護は乗らず、ご加護専用カウンタにも加えない。救済後の笑顔の伝播は通常どおり起きるが、その+20も×1.0で計算する</td></tr>
+    <tr><th scope="row">黒客</th><td>範囲判定から除外。直接当てると「浄め直し」として退場するが、縁は増えない</td></tr>
+  </tbody>
+</table>
+<div class="box why">
+<span class="lbl">設計意図</span>
+<p>大祓は同色が2〜3人固まった瞬間を見抜く範囲技であり、通常投擲の上位互換ではありません。
+通常救済で使用権を得るため、派手な場面も必ずコア行為から生まれます。
+「通常救済6人で1回」なら通常投擲70%以上はほぼ自動的に満たすため、採用根拠には使いません。
+T5で、<strong>大祓による救済数が全救済数の25%以下、大祓由来の縁が総縁の20%以下、ストック獲得後5秒以内の即時消費率が50%以下</strong>を満たし、
+混色・疎配置では通常弾の縁／操作秒が大祓以上、同色密集では大祓1回あたり平均2人以上を救済し、使用者8/10以上が色・上限・チャージ・温存理由を説明できる場合だけ採用します。
+ここで<strong>大祓由来の縁</strong>には、大祓で直接救済した基礎点と、その救済客が退場中に起こした全伝播得点を含める。</p>
+</div>
+
+<h3 id="ch5-03-黒客-救済失敗客-との相互作用">黒客（救済失敗客）との相互作用</h3>
+<ul>
+  <li>通常弾が命中：クールダウンぶんの時間損失 ＋ 福の連なりが途切れる ＋ 評価 −15</li>
+  <li><strong>命中時のフィードバック</strong> <span class="b new">新規</span>：専用の低い音＋黒客の頭上に「−15」の数字＋評価ゲージが一瞬赤く光る<br>
+    <span class="note">Lens #41 罰。罰は理解可能で回避可能でなければ、ただの理不尽になる。子どもは頻繁に外すので、何が起きたかを必ず伝える。</span></li>
+</ul>
+
+<!-- ============ 6 ============ -->
+<h2 id="ch6"><span class="num">6</span>コアメカニクス ── 救済と輪郭発光</h2>
+
+<p>参拝客の状態は、時間切れを示す<strong>危険度 D（0〜100）</strong>と、救済までの手数を示す<strong>残り必要発数 R（1〜3）</strong>の2変数で管理する。両者を同じゲージとして増減させない <span class="b chg">v8分離</span>。</p>
+<table tabindex="0">
+  <caption>参拝客の一意な状態遷移</caption>
+  <thead><tr><th scope="col">状態／出来事</th><th scope="col">危険度 D</th><th scope="col">残り必要発数 R</th><th scope="col">次状態</th></tr></thead>
+  <tbody>
+    <tr><td>参道を歩いて入場中</td><td class="n">0で停止</td><td>種類ごとの初期値（1／2／3）</td><td><strong>予告中</strong>。輪郭色は見えるが、当たり判定・二重円・危険度進行はまだない</td></tr>
+    <tr><td>定位置へ到着</td><td class="n">0から開始</td><td>維持</td><td><strong>active（救済待ち）</strong>。移動客はactiveのまま横移動する</td></tr>
+    <tr><td>active中の時間経過</td><td><code>D += 100 × 経過秒 / 補正後満タン秒数</code></td><td>変化なし</td><td>Dは0〜100へ制限</td></tr>
+    <tr><td>現在要求中の正しい色が命中</td><td><strong>変化なし</strong></td><td class="n">Rを1減らす</td><td>R&gt;0ならactive継続、R=0なら<strong>rescued（救済成功）</strong></td></tr>
+    <tr><td>違う色が命中</td><td><strong>変化なし</strong></td><td><strong>変化なし</strong></td><td>active継続。誤投擲フィードバック、福の連なりCとご加護進捗Gのリセットを行う</td></tr>
+    <tr><td>笑顔が伝播</td><td class="n"><code>max(0, D−5)</code></td><td>変化なし</td><td>active継続</td></tr>
+    <tr><td>Dが100に到達</td><td class="n">100</td><td>以後使用しない</td><td><strong>black（黒客化）</strong>。救済へ戻らない</td></tr>
+  </tbody>
+</table>
+<p class="note">正色命中は「願いを1つ届ける」、危険度は「残り時間」であり、別の意味を持つ。誤色で危険度を下げる処理は、乱射で時間を稼げる抜け道になるため廃止する。rescued／blackは終端状態で、退場中に再びactiveへ戻さない。<strong>同じイベント時刻では、正色着弾と有効な笑顔伝播を先に解決 → RとDを更新 → R=0の救済判定 → なおactiveでD≥100なら黒客化</strong>の順に処理する。これにより同時刻の一投や伝播は間一髪の救済として一意に優先される。</p>
+
+<h3 id="ch6-01-欲しいお守りの提示">欲しいお守りの提示<span class="b fix">確定</span></h3>
+<ul>
+  <li>参拝客の輪郭（アウトライン）を、欲しいお守りの色で発光させて明示する</li>
+  <li>5色はお守り5種に対応し、ボタン箱の5ボタン・弾の色と完全統一</li>
+  <li>旧方式（見た目・仕草・吹き出しで察させる）は廃止</li>
+  <li>遮蔽物（鳥居・提灯等）越しには発光を見せない</li>
+  <li>天候中も輪郭の明度・色・パターンを維持する（→ <a href="#ch9">9章</a>）</li>
+  <li><strong>参道を歩いている間から光る</strong> <span class="b new">新規</span><br>
+    <span class="note">到着前に色を確認して準備できる。ランダムな出現を「予告付きのランダム」に変えられる（Lens #29 偶然）。</span></li>
+  <li>実装：URP Renderer Feature ＋ ステンシルのポストエフェクト方式</li>
+</ul>
+
+<h3 id="ch6-02-5色とパターン">5色とパターン<span class="b new">新規</span></h3>
+<p>v3ではプログラム側の資料で厄除けが白だったが、救済成功の演出（輪郭を白にする）と
+衝突するため紫へ変更する。</p>
+<table tabindex="0">
+  <caption class="sr-only">5色とパターンの仕様表</caption>
+  <thead><tr><th scope="col">お守り</th><th scope="col">色</th><th scope="col">カラーコード</th><th scope="col">輪郭パターン</th></tr></thead>
+  <tbody>
+    <tr><td>健康</td><td><span class="sw" style="background:#3FBF5F"></span>緑</td><td><code>#3FBF5F</code></td><td>実線</td></tr>
+    <tr><td>学業成就</td><td><span class="sw" style="background:#2F7FD8"></span>青</td><td><code>#2F7FD8</code></td><td>点線</td></tr>
+    <tr><td>厄除け安全</td><td><span class="sw" style="background:#8B5FD0"></span>紫</td><td><code>#8B5FD0</code></td><td>破線</td></tr>
+    <tr><td>縁結び</td><td><span class="sw" style="background:#E85F8F"></span>桃</td><td><code>#E85F8F</code></td><td>波線</td></tr>
+    <tr><td>金運</td><td><span class="sw" style="background:#E8B93F"></span>金</td><td><code>#E8B93F</code></td><td>二重線</td></tr>
+  </tbody>
+</table>
+<p>パターンは色覚対応のためのものだが、<strong>開発後半ではなく最初から実装する</strong>。
+輪郭シェーダーを作った後に足すと作り直しになる。
+太さ・間隔は展示モニターで2m離れ、色名を使わずパターンだけでも識別できることを基準に調整する。</p>
+<p class="note">T1の補助試験：対象者8人以上へ各パターン5回（計40問）をランダム提示し、正答率95%以上・回答2秒以内を合格とする。未達なら天候や人数を増やさず、線幅・間隔・背景コントラストを直す。</p>
+
+<h3 id="ch6-03-危険度の見せ方">危険度の見せ方<span class="b chg">変更</span></h3>
+<p class="lens">Lens <b>#59 チャネルと次元</b>：1つの表現に情報を載せすぎていないか。</p>
+
+<div class="box warn">
+<span class="lbl">v4からの修正</span>
+<p>v4は輪郭に「色（種類）＋パターン（種類）＋点滅速度（不満量）＋明度（天候減衰）」の
+<strong>4つの情報を載せていました</strong>。点滅とパターン（点線・破線）はどちらも「途切れて見える」表現で互いを潰し、
+雨天の明度減衰と点滅も干渉します。不満量を輪郭から外します。</p>
+</div>
+
+<table tabindex="0">
+  <caption>足元の円＝危険度 D</caption>
+  <thead><tr><th scope="col">危険度</th><th scope="col">表現</th></tr></thead>
+  <tbody>
+    <tr><td class="n">0≤D&lt;50</td><td>円なし</td></tr>
+    <tr><td class="n">50≤D&lt;85</td><td>薄い赤の円。Dが増えるほど濃くなる</td></tr>
+    <tr><td class="n">85≤D≤100</td><td>濃い赤で脈打つ（毎秒2回）。警告音は画面全体で1本だけ鳴らし、混雑を防ぐ</td></tr>
+  </tbody>
+</table>
+<table tabindex="0">
+  <caption>最危険マーク＝優先救済候補</caption>
+  <thead><tr><th scope="col">対象</th><th scope="col">表現</th></tr></thead>
+  <tbody>
+    <tr><td><strong>候補集合の中で危険度Dが最も高い1人</strong><br><span class="note">候補＝activeかつ未救済・非黒客・R&gt;0。入場中、退場中、黒客は除外</span></td><td><strong>足元の円が二重になる</strong>。D&lt;50でも細い二重の輪だけを表示する。<br>同値は「遠い方 → activeになった時刻が早い方 → 生成IDが小さい方」で決め、常に最大1人だけ表示する</td></tr>
+  </tbody>
+</table>
+<div class="box why">
+<span class="lbl">なぜ二重円を足したか</span>
+<p>v6の優先救済は「不満60%以上で、最高値との差が5ポイント以内」という条件でしたが、
+足元の円は60〜85%が一括で「薄い赤」なので、<strong>70%の人と78%の人を見分けられません</strong>。
+それなのに+50が入るのは78%の方だけでした。報酬の条件が、画面から読み取れない情報で決まっていました。
+v7では対象を常に1人に固定し、その1人だけを二重円で示しました。
+v8ではさらに候補集合と同値順を固定し、<strong>SwingAccepted時の対象IDを弾へ保存</strong>します。飛翔中に二重円が移っても、表示を見て投げた判断が無効になりません（Lens #57 フィードバック／#32 意味ある選択）。</p>
+</div>
+<ul>
+  <li>頭上ゲージは<strong>複数発が必要な参拝客だけ</strong>に表示する
+    <ul>
+      <li>表示する：欲張り客（2段階）、ボス客（3発）</li>
+      <li>表示しない：通常客、移動客、遠方客（すべて1発で救済）</li>
+    </ul>
+  </li>
+  <li>ボス客のゲージは<strong>3分割の目盛り</strong>を入れ、あと何発かが数えられる形にする <span class="b new">新規</span></li>
+</ul>
+<p class="note">輪郭＝種類、足元＝危険度、頭上＝残り発数。役割を1チャネルずつに分離した。
+これで画面に並ぶ頭上ゲージは最大15本から<strong>最大3人分</strong>に減る。</p>
+
+<h3 id="ch6-04-救済成功-失敗の演出">救済成功／失敗の演出<span class="b fix">確定</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">救済成功／失敗の演出の仕様表</caption>
+  <thead><tr><th scope="col">&nbsp;</th><th scope="col">成功時</th><th scope="col">失敗時（黒客）</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">輪郭</th><td>白に変更＋キラキラ</td><td>黒に変更</td></tr>
+    <tr><th scope="row">頭上ゲージ</th><td>消す</td><td>消す</td></tr>
+    <tr><th scope="row">当たり判定</th><td>消す</td><td>残る（邪魔になる）</td></tr>
+    <tr><th scope="row">退場</th><td>3秒かけて参道を歩いて退場 <span class="b new">新規</span></td><td>4秒かけて参道を歩いて退場 <span class="b new">新規</span></td></tr>
+    <tr><th scope="row">人数上限</th><td>退場開始と同時に枠を空ける</td><td>黒客化した瞬間に上限から外れる（補充は止まらない）<span class="b new">新規</span></td></tr>
+    <tr><th scope="row">音</th><td>鈴の音（列の後ろまで届く強さ）</td><td>低い鈍い音</td></tr>
+  </tbody>
+</table>
+
+<h3 id="ch6-05-笑顔の伝播-救う順番に意味を持たせる">笑顔の伝播（救う順番に意味を持たせる）<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#23 創発</b>：1つの行為に2つ目の用途を与え、台本のない状況を生む。</p>
+<p><strong>救済されて帰る参拝客が参道で別のactive参拝客と初めてすれ違うと、その参拝客の危険度Dを5ポイント減らし、縁+20（1救済4人まで）。</strong></p>
+<ul>
+  <li>対象は<strong>activeかつ未救済・非黒客・R&gt;0</strong>だけ。入場中、別の退場中の救済客、黒客は対象外<br>
+    <span class="note">黒客を含めると「黒客が多いほど縁が増える」抜け道になる。</span></li>
+  <li>救済客IDと対象客IDの<strong>有向ペアごとに1回だけ</strong>発動する。同じ2人の当たり判定が複数フレーム重なっても再発動しない。1人の対象が別々の救済客から伝播を受けることはできる</li>
+  <li><strong>伝播対象は予約しない</strong>。退場歩行中に実際に交差した時点で、相手がactive・未救済・非黒客・R&gt;0なら、上限4人の範囲でその場で発動する</li>
+  <li>救済完了時に、その救済の福の連なり倍率と、救済弾がSwingAccepted時に保存したご加護倍率を<strong>伝播用倍率スナップショット</strong>として保存する。後で起きる各伝播の得点は<code>round(20 × 保存した福の連なり倍率 × 保存したご加護倍率)</code>で即時加算し、伝播時点の倍率へ差し替えない。大祓で生じた救済客は両倍率を×1.0で保存する</li>
+  <li>参道の奥にいる参拝客ほど、すれ違う人数が多くなる</li>
+  <li>「どの順で救うか」に副作用が生まれ、早期救済と奥の救済に明確な価値が生まれる</li>
+  <li>テーマ（ひとりの喜びが次のひとりへ福として伝わる）と得点が同じ出来事を評価する</li>
+</ul>
+<div class="box why">
+<span class="lbl">なぜ入れたか</span>
+<p>v4の基本行為（色を選ぶ／狙う／振る／長押し）はすべて用途が1つしかなく、
+ルールの相互作用から予想外の展開が生まれる余地がありませんでした。
+このルール1つで「救済」が「他の参拝客への時間稼ぎ」という2つ目の用途を持ち、
+移動客の歩行ルールとも相互作用します。実装は接触判定1つで軽いです。</p>
+</div>
+
+<h3 id="ch6-06-誤投擲のフィードバック">誤投擲のフィードバック<span class="b fix">確定</span></h3>
+<p>輪郭色と違うお守りを当てると、参拝客が一瞬「渋る」リアクションを取る。</p>
+<ul>
+  <li><strong>危険度Dも残り必要発数Rも変えない</strong>／福の連なりとご加護進捗が途切れる／縁は入らない <span class="b chg">v8修正</span></li>
+  <li>評価は減らない（黒客ヒットより軽いペナルティ）</li>
+</ul>
+
+<!-- ============ 7 ============ -->
+<h2 id="ch7"><span class="num">7</span>スコアと神社の評価</h2>
+
+<h3 id="ch7-01-競う指標は-縁-1本">競う指標は「縁」1本<span class="b chg">変更</span></h3>
+<p>ランキングに載せるのは縁のみ。縁は「救済で生まれ、正確な一投と笑顔の伝播で増えた福の総量」と定義する。
+ MVPのランクは現在状態と最高称号の表示だけに使い、<strong>得点倍率・同時人数・Dの進行速度を変えない</strong>。
+人数とD速度を変えるのは、MVP合格後に動的難易度を採用したビルドだけである。</p>
+<p class="note">上手い人だけ得点機会と倍率の両方が増える正のフィードバックを避け、同じ救済は同じ価値として読めるようにする。</p>
+
+<h3 id="ch7-02-縁の成長を可視化する">縁の成長を可視化する<span class="b add">追加演出</span></h3>
+<p class="lens">Lens <b>#5 内生的価値</b>：報酬はゲーム内の判断を本当に変えるか。</p>
+
+<div class="box warn">
+<span class="lbl">v4からの修正</span>
+<p>v4の「縁」は貯めても何も起きず、使えず、プレイ中の判断を何も変えませんでした。
+一方、当時の「評価（ランク）」は同時出現人数まで変え、<strong>価値の薄い方を競う指標の主役にしていました</strong>。
+v8のMVPではランクを公平な表示へ限定し、縁のゲーム効果を増やす代わりに、追加演出の提灯で成長を可視化します。</p>
+</div>
+
+<p><strong>縁が3,000たまるごとに、境内の提灯が1つ灯る（最大5つ）。</strong></p>
+<ul>
+  <li>境内が段階的に明るく華やかになる</li>
+  <li>スコアが伸びるほど画面が豪華になるので、<strong>待機列から見ていても上手い人だと分かる</strong>（→ <a href="#ch13">13章</a>）</li>
+  <li>笑顔の伝播数に応じて灯りの粒が提灯へ飛び、<strong>救済→伝播→縁→境内の回復</strong>を一続きに見せる</li>
+  <li>提灯は演出報酬であり、命中率・視認性・得点倍率を変えない。ランキングの公平性を守る</li>
+</ul>
+
+<h3 id="ch7-03-得点表">得点表</h3>
+<table tabindex="0">
+  <caption>基礎点</caption>
+  <thead><tr><th scope="col">参拝客</th><th scope="col" class="n">基礎点</th><th scope="col">備考</th></tr></thead>
+  <tbody>
+    <tr><td>通常客</td><td class="n">100</td><td>物量で稼ぐ基本</td></tr>
+    <tr><td>移動客</td><td class="n">150</td><td>&nbsp;</td></tr>
+    <tr><td>遠方客</td><td class="n">200</td><td>当てにくい／帰路の笑顔伝播が多い</td></tr>
+    <tr><td>欲張り客</td><td class="n">300</td><td><strong>1色目は0（内部進行だけ）。2色目で救済完了した時に300を一括加算</strong></td></tr>
+    <tr><td>ボス客</td><td class="n">500</td><td>3発目の命中時のみ（1・2発目は0）</td></tr>
+    <tr><td>黒客に大祓</td><td class="n">0</td><td>浄め直しとして退場させるだけ。得点目的の掃除にしない</td></tr>
+  </tbody>
+</table>
+
+<table tabindex="0">
+  <caption>加点と倍率</caption>
+  <thead><tr><th scope="col">種類</th><th scope="col">条件</th><th scope="col" class="n">値</th><th scope="col">プレイ上の意味</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="3">命中精度</td><td>中心（半径40%以内）</td><td class="n">+50</td><td rowspan="3">狙う腕前を報いる</td></tr>
+    <tr><td>中間（40〜70%）</td><td class="n">+20</td></tr>
+    <tr><td>外周（70〜100%）</td><td class="n">+0</td></tr>
+    <tr><td><strong>優先救済</strong> <span class="b chg">変更</span></td><td>通常弾のSwingAccepted時に保存した優先対象IDと、その弾が救済完了させた参拝客IDが一致</td><td class="n">+50</td><td>二重円の優先度と、距離・伝播・必要発数を見比べて選ぶ。飛翔中の表示変化では判定を変えない</td></tr>
+    <tr><td><strong>笑顔の伝播</strong> <span class="b new">新規</span></td><td>救済客と別のactive参拝客の有向ペアごとに初回だけ（1救済4人まで）</td><td class="n">+20</td><td>早く・奥から救う価値を作る。救済時の倍率を使用</td></tr>
+    <tr><td rowspan="3">福の連なり<br>（旧コンボ）</td><td>3連続救済</td><td class="n">×1.10</td><td rowspan="3">救済が続くほど福が広がる。誤投擲・黒客への通常弾・5秒無命中でリセット</td></tr>
+    <tr><td>6連続救済</td><td class="n">×1.20</td></tr>
+    <tr><td>10連続以上（上限）</td><td class="n">×1.30</td></tr>
+    <tr><td>ご加護タイム</td><td>発動中</td><td class="n">×1.25</td><td>クライマックスの短い祝福。通常投擲の価値は残す</td></tr>
+  </tbody>
+</table>
+
+<div class="decision-rule">
+  <p><strong>縁の計算式（通常弾）</strong></p>
+  <p><code>救済得点 = round((基礎点 + 最終弾の命中精度加点 + 優先救済加点) × 救済時の福の連なり倍率 × 発射時のご加護倍率)</code></p>
+  <p><code>伝播得点 = round(20 × 救済時に保存した福の連なり倍率 × 救済時に保存したご加護倍率)</code>（有効な伝播1回ごと）</p>
+  <p class="note">危険度は倍率にも閾値にもしない。放置して危険度を上げても得点は1点も増えない。</p>
+</div>
+<ul>
+  <li><strong>優先救済の候補</strong>：activeかつ未救済・非黒客・R&gt;0の参拝客だけ。危険度D最大 → 遠い方 → active化が早い方 → 生成IDが小さい方の順で1人へ決める</li>
+  <li><strong>優先救済の判定</strong>：通常弾のSwingAccepted時に候補IDを弾へ保存し、その弾が同じIDの参拝客を救済完了させた場合だけ+50。飛翔中に二重円が別の人へ移っても保存値を変えない</li>
+  <li><strong>欲張り客1発目は画面上も内部スコアも0</strong>。救済待ちフラグだけを保持し、途中点を先払いしない。2発目でR=0になった時だけ基礎点300を確定し、最終弾の精度・優先救済と倍率を1回適用する。途中で黒客化した場合はフラグを破棄し、0のまま</li>
+  <li>ボス客1・2発目は得点0で、3発目の救済完了時に基礎点500と各加点を計算する</li>
+  <li><strong>倍率の保存順</strong>：救済完了時に福の連なりを+1してから、その段階の倍率を確定する。ご加護倍率は通常弾の発射時（色と優先対象を保存するのと同時）に確定する。救済得点を加算した直後、この2値を救済客へ保存し、後発の伝播得点にも使う</li>
+  <li>大祓で救済した場合は、救済時に基礎点だけを×1.0で加算し、伝播用の両倍率も×1.0として保存する</li>
+  <li>ランク昇格を起こした救済にも倍率差はない。計算は小数を掛けた最後に四捨五入して整数化する</li>
+</ul>
+
+<div class="box rule">
+<span class="lbl">3:00境界の処理順</span>
+<ol>
+  <li>Unityの単調増加時計でSwingAccepted時刻が<strong>180.000秒未満</strong>なら受理し、180.000秒以上は新しい弾を生成しない。</li>
+  <li>3:00でスポーン、危険度進行、入力受付、天候・ご加護の時計を停止する。受理済みの通常弾／大祓だけは最大飛翔時間0.65秒まで解決し、その弾が生んだ救済得点は加算する。ただし3:00以後の救済から新しいご加護タイムや祭事を開始しない。</li>
+  <li>伝播は接触時刻が180.000秒未満のものだけ有効。3:00以後の退場歩行は演出のみで、危険度減少・伝播得点を新しく発生させない。</li>
+  <li>全受理済み弾の解決後（最長3:00.65）にスコアを固定してリザルトへ移る。端末のフレームレートではなくイベント時刻で判定する。</li>
+</ol>
+</div>
+
+<div class="box why">
+<span class="lbl">優先救済から閾値を外した理由（v7の最重要変更）</span>
+<p class="lens">Lens <b>#32 意味ある選択</b>／<b>#33 三角性</b>／<b>#9 統一</b></p>
+<p>この項目は3回書き換わっています。経緯を残します。</p>
+<ul>
+  <li><strong>v5</strong>：不満80%以上で得点×1.5。→ 救えるのにわざと放置して稼ぐのが最適になり、テーマ（早く救う）と真っ向から矛盾していた</li>
+  <li><strong>v6</strong>：不満60%以上の最危険層に+50（60%以降は一定）。→ 「80%まで引っ張る利益」は消えたが、
+    <strong>「60%に到達させる利益」が残っていた</strong>。全員を20%で手早く救うと+50は一度も入らず、
+    60%を超えてから救うと毎回入る。問題が80%から60%へ移動しただけだった</li>
+  <li><strong>v7</strong>：閾値を撤廃。不満20%でも90%でも、その時点で最も不満が高い1人を救えば+50。
+    → 待つ利益が構造的にゼロになる。報われるのは「見抜いた」という判断だけで、これはテーマと完全に一致する</li>
+  <li><strong>v8</strong>：候補集合・同値順・発射時の対象ID固定を追加。飛翔中に二重円が移っても、画面を読んだ判断を無効にしない</li>
+</ul>
+<p>閾値を外しても選択が一択にならないのは、基礎点の差が大きいためです（→ 下の表）。
++50は通常客の基礎点の半分しかないので、遠方客や欲張り客を狙う理由は残ります。</p>
+</div>
+
+<h3 id="ch7-04-意味ある選択の設計">意味ある選択の設計<span class="b mvp">MVP</span></h3>
+<table tabindex="0">
+  <caption>選択ごとの利益・費用・読み取る情報</caption>
+  <thead><tr><th scope="col">選択</th><th scope="col" class="n">取れる縁の目安</th><th scope="col">利益</th><th scope="col">費用・危険</th><th scope="col">画面で読む情報</th></tr></thead>
+  <tbody>
+    <tr><td>手前の通常客を救う</td><td class="n">基礎100<br>＋共通加点</td><td>命中が確実／福の連なりを維持／時間が短い</td><td>伝播人数と基礎点が少ない</td><td>距離・照準サイズ</td></tr>
+    <tr><td>二重円の1人を救う</td><td class="n">+50 上乗せ</td><td>黒客化を防ぐ（評価 −20 の回避）／優先救済+50</td><td>遠い・動く位置にいると外す危険</td><td>足元の二重円</td></tr>
+    <tr><td>奥の遠方客を救う</td><td class="n">基礎200<br>＋共通加点</td><td>基礎点200／帰路が長く伝播人数が多い（最大+80）</td><td>命中難度が高い。外すとクールダウンぶん損する</td><td>位置・帰路の長さ</td></tr>
+    <tr><td>欲張り客へ2発</td><td class="n">基礎300<br>＋共通加点</td><td>最高基礎点／救済完了の最終弾だけ精度加点</td><td>同じ時間で通常客を2人救える。途中で他が黒客化する</td><td>2色輪郭・残り発数</td></tr>
+  </tbody>
+</table>
+<p class="note">「取れる縁の目安」は加点込み・倍率なしの概算。二重円は他の3行に上乗せされる性質のもので、独立した4つ目の選択ではない。
+つまり<strong>「どの参拝客を狙うか」と「二重円が今どこにあるか」の2軸が毎回ずれる</strong>ことで迷いが生まれる。</p>
+<p class="note">固定シード場面のT2で、最初に選ばれる対象が1種類へ70%超で偏った場合は「意味ある選択」ではなく支配戦略と判定し、得点・距離・伝播経路を調整する。
+特に「二重円だけを追う」が支配戦略になった場合は、優先救済を+50から+30へ下げる。</p>
+
+<h3 id="ch7-05-福の連なり-旧コンボ-の判定">福の連なり（旧コンボ）の判定</h3>
+<ul>
+  <li>通常弾による救済完了で福の連なりCを+1し、加算後のC（0〜2＝×1.0、3〜5＝×1.10、6〜9＝×1.20、10以上＝×1.30）をその救済に使う</li>
+  <li>欲張り客の1発目、ボス客の1・2発目は<strong>増やさないが維持</strong>し、正色命中タイマーを0へ戻す</li>
+  <li>誤投擲（色違い）／黒客への通常弾でCを0へ戻す。大祓はCを増やさず、切らない</li>
+  <li>別の参拝客が黒客化しても連なりは切らず、評価値だけ下げる。狙いどおりの投擲と画面全体の失敗を混同しない</li>
+  <li><strong>5秒間、正しい色をどの参拝客にも当てない</strong>と0へ戻る <span class="b new">新規</span><br>
+    <span class="note">これが無いと、ゆっくり確実に狙うだけで福の連なりが伸び続け、テンポの速さが得点に繋がらない。</span></li>
+</ul>
+
+<h3 id="ch7-06-福の連なりの盛り上げ">福の連なりの盛り上げ<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#58 ジューシーさ</b>：少ない入力に豊かで快い反応を返す。</p>
+<ul>
+  <li>命中音の<strong>音階を1段ずつ上げていく</strong>（3・6・10連続の節目で和音を追加）</li>
+  <li>福の連なりが伸びるほど鈴の音が重なり、画面の縁が明るくなる</li>
+  <li>振動の長さを80 → 100 → 120msへ伸ばす</li>
+</ul>
+<p class="note">音が階段状に上がるだけで、数字を読まなくても「いま繋がっている」ことが体で分かる。</p>
+
+<h3 id="ch7-07-想定スコア">想定スコア</h3>
+<table tabindex="0">
+  <caption class="sr-only">想定スコアの仕様表</caption>
+  <thead><tr><th scope="col">プレイヤー</th><th scope="col" class="n">想定スコア</th></tr></thead>
+  <tbody>
+    <tr><td>初めて遊ぶ小学生</td><td class="n">5,000 〜 9,000</td></tr>
+    <tr><td>2〜3回遊んだ人</td><td class="n">10,000 〜 17,000</td></tr>
+    <tr><td>上手い人</td><td class="n">18,000 〜 26,000</td></tr>
+  </tbody>
+</table>
+<p class="note">暫定帯。欲張り客の途中点廃止と0:30競技開始を反映した実測前の仮説で、T3の実測から再推定する。
+HUDは5桁。提灯を採用した場合、初見は1〜3つ、上達者は4〜5つ点灯する想定（3,000刻み・最大5個＝15,000）。</p>
+
+<h3 id="ch7-08-神社の評価-ランク表示">神社の評価・ランク表示<span class="b mvp">MVP</span></h3>
+<table tabindex="0">
+  <caption>評価値の増減</caption>
+  <thead><tr><th scope="col">できごと</th><th scope="col" class="n">評価値</th></tr></thead>
+  <tbody>
+    <tr><td>救済成功（通常客・移動客）</td><td class="n">+10</td></tr>
+    <tr><td>救済成功（遠方客・欲張り客）</td><td class="n">+15</td></tr>
+    <tr><td>救済成功（ボス客）</td><td class="n">+25</td></tr>
+    <tr><td>参拝客を怒らせた（黒客化）</td><td class="n">−20</td></tr>
+    <tr><td>遠方客・ボス客を怒らせた</td><td class="n">−30</td></tr>
+    <tr><td>黒客に通常弾を当てた</td><td class="n">−15</td></tr>
+    <tr><td>誤投擲</td><td class="n">0</td></tr>
+  </tbody>
+</table>
+<p>評価値の範囲：0 〜 300（下限0・上限300で止まる）。展示ビルドでは<strong>毎プレイ必ず評価値0・ランクCスタート</strong><span class="b fix">確定</span>。</p>
+
+<table tabindex="0">
+  <caption>ランクの閾値（昇格と降格で別の値＝ヒステリシス）</caption>
+  <thead><tr><th scope="col">&nbsp;</th><th scope="col" class="n">C→B</th><th scope="col" class="n">B→A</th><th scope="col" class="n">A→S</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">昇格</th><td class="n">60</td><td class="n">150</td><td class="n">250</td></tr>
+    <tr><th scope="row">降格</th><td class="n">40</td><td class="n">120</td><td class="n">210</td></tr>
+  </tbody>
+</table>
+<p class="note">同じ値だと境界でランク表示が上下にちらついて読めなくなる。</p>
+
+<div class="box warn">
+<span class="lbl">v7の変更：称号は「最高ランク」で出す</span>
+<p>リザルトで表示する神社の称号は、<strong>最終ランクではなくプレイ中に到達した最高ランク</strong>とする。</p>
+<p>理由：終盤の負荷ウェーブは意図的に人数を増やす区間なので、そこで黒客化が続いて評価が下がるのは
+設計どおりの現象です。にもかかわらず最終ランクを称号にすると、
+<strong>クライマックスで頑張った結果として全員の称号が低ランクで揃う</strong>ことになります。
+最高ランクを称号にすれば、山場の崩れが達成の記録を消しません。
+HUDの表示は現在ランクのまま（今の状態を示す必要があるため）で、リザルトだけ最高ランクを使います。</p>
+</div>
+
+<p><strong>MVPのランクは、現在の調子をHUDで伝え、到達した最高称号をリザルトに残す評価表示である。</strong>
+得点倍率・同時人数・危険度の進行速度には影響させない。したがって、ランクが上がっても得点機会は増えず、
+順位の公平性を壊さない。</p>
+
+<table tabindex="0">
+  <caption>追加要素「動的難易度」を採用した場合だけ有効になる変化</caption>
+  <thead><tr><th scope="col">ランク</th><th scope="col" class="n">同時出現上限</th><th scope="col" class="n">縁倍率（固定）</th><th scope="col" class="n">満タン秒数</th></tr></thead>
+  <tbody>
+    <tr><td>C</td><td class="n">7人</td><td class="n">×1.0</td><td class="n">×1.0</td></tr>
+    <tr><td>B</td><td class="n">8人</td><td class="n">×1.0</td><td class="n">×1.0</td></tr>
+    <tr><td>A</td><td class="n">9人</td><td class="n">×1.0</td><td class="n">×0.92</td></tr>
+    <tr><td>S</td><td class="n">10人</td><td class="n">×1.0</td><td class="n">×0.85</td></tr>
+  </tbody>
+</table>
+<p class="note">この表はMVPでは実行しない。T3後に追加要素へ進む条件を満たし、動的難易度を有効化したビルドだけで使う。</p>
+
+<h3 id="ch7-09-動的難易度">動的難易度<span class="b add">追加</span></h3>
+<p class="lens">Lens <b>#18 フロー</b>／<b>#31 挑戦</b>：技能の成長に合わせて挑戦が変化するか。</p>
+<div class="box warn">
+<span class="lbl">v4からの修正</span>
+<p>v4はランクが上がると人数（＝得点機会）が増えるだけで、上手い人への報酬にしかなっていませんでした。
+下手な人はランクCの7人のまま3分が終わり、挑戦が上がらないまま退屈側に落ちます。
+人数だけでなく<strong>満タン秒数</strong>も動かし、上下どちらにも効くようにします。</p>
+</div>
+<ul>
+  <li>上方向：ランクAで満タン秒数 ×0.92、Sで ×0.85（人数＋速度の2軸で難しくなる）</li>
+  <li>下方向：<strong>ランクCで30秒以上停滞している場合、満タン秒数を ×1.2 にする</strong>（見えない救済）。停滞タイマーの開始・停止・リセット条件は<a href="#ch11">11章</a>に従う</li>
+  <li>いずれもプレイヤーには通知しない。演出も変えない</li>
+</ul>
+
+<h3 id="ch7-10-ご加護タイム-フィーバー">ご加護タイム（フィーバー）<span class="b add">追加</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">ご加護タイム（フィーバー）の仕様表</caption>
+  <thead><tr><th scope="col">項目</th><th scope="col">仕様</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">発動条件</th><td>ご加護専用進捗Gが10。Gは<strong>ご加護中でない時の、通常弾による連続救済完了</strong>だけで+1する。大祓による救済、途中命中、笑顔の伝播は数えない</td></tr>
+    <tr><th scope="row">継続時間</th><td>12秒</td></tr>
+    <tr><th scope="row">効果</th><td>ご加護中に<strong>発射した通常弾</strong>の救済・その救済客からの伝播を×1.25（福の連なり倍率と掛け算）／天候は表示だけ晴へ遷移／輪郭発光が明るくなる</td></tr>
+    <tr><th scope="row">演出</th><td>0.8秒。<strong>巫女の姿が一瞬透けて神の姿が重なる</strong>＋画面の縁が金色に光り、鈴が鳴る <span class="b new">新規</span><br>操作は止めない（止めると3分の体験が削られる）</td></tr>
+    <tr><th scope="row">評価</th><td>発動中も通常どおり増減する（黒客ペナルティも生きる）</td></tr>
+    <tr><th scope="row">カウンタ</th><td><strong>Gと福の連なりCは別変数</strong>。G=10になった救済得点を確定した直後に発動し、同時にG=0へ戻す。ご加護中は新たな救済があってもGを0のまま固定し、再発動を予約しない。Cは通常どおり増減する <span class="b chg">v8明確化</span></td></tr>
+    <tr><th scope="row">Gのリセット</th><td>ご加護中でない時の誤投擲、黒客への通常弾、正色無命中5秒で0。別客の黒客化・大祓・途中の正色命中では切らない</td></tr>
+    <tr><th scope="row">終了時</th><td>福の連なりCは途切れない。G=0から再開し、終了後に通常弾でさらに10人を連続救済できた時だけ再発動する</td></tr>
+    <tr><th scope="row">天候との競合</th><td><strong>baseWeather</strong>（抽選・残り時間・ゲーム効果）と<strong>visualWeather</strong>（表示）を分離する。ご加護中もbaseWeatherの時計と効果は通常どおり進み、visualWeatherだけを晴に上書きする。終了時は、その時点のbaseWeatherへ0.4秒で戻す。天候の抽選を破棄・延期・二重適用しない</td></tr>
+  </tbody>
+</table>
+<p class="note">「巫女に変身した神」という設定が、ここで初めてルールと演出に接続される（Lens #69 最も奇妙なもの）。</p>
+
+<h3 id="ch7-11-HUDに出すもの">HUDに出すもの</h3>
+<table tabindex="0">
+  <caption class="sr-only">HUDに出すものの仕様表</caption>
+  <thead><tr><th scope="col">位置</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>右上</td><td>縁（5桁）。<strong>開始30秒までは非表示</strong></td></tr>
+    <tr><td>右上・その下</td><td>今日のベストスコア（小さく）<span class="b new">新規</span></td></tr>
+    <tr><td>左上</td><td>現在ランク（C/B/A/S）の文字＋提灯モチーフの評価ゲージ（金色）</td></tr>
+    <tr><td>画面中央</td><td>照準マーク（大幣に追従）</td></tr>
+    <tr><td>画面下部</td><td>巫女の袖と大幣の先端（選択中のお守りの色に光る）</td></tr>
+    <tr><td>非表示</td><td>タイマー（→ <a href="#ch8">8章</a>の日周表現と篝火で代替）</td></tr>
+  </tbody>
+</table>
+<p class="note">開始30秒は学習に必要な情報だけを段階開示する。得点・ランク・ご加護・大祓は操作と危険度が理解された後に表示する。</p>
+
+<!-- ============ 8 ============ -->
+<h2 id="ch8"><span class="num">8</span>時間・興味曲線・祭事・スポーン</h2>
+
+<h3 id="ch8-01-時間">時間<span class="b mvp">MVP</span></h3>
+<ul>
+  <li>現実の1分 ＝ ゲーム内の1ヶ月。3ヶ月経過で1ゲーム終了（3分通し。区切りなし）</li>
+  <li>時間の提示は空・照明の日周表現で行う。1日＝1ヶ月。日が昇り、沈み、月が昇り沈んで、再び日が昇ったら翌月開始</li>
+  <li>タイマーUIは表示しない</li>
+  <li>終了予告：<strong>残り10秒からカウントダウンを開始し、残り3秒から演出を強調する</strong>（時計のかちかち音）</li>
+  <li><strong>競技計時は0:30.000から2:59.999まで</strong>。0:00〜0:30は学習専用で、縁・評価・最高ランク・福の連なり・C停滞時間へ算入しない。0:30.000で全競技カウンタを0へ初期化する</li>
+</ul>
+
+<h3 id="ch8-02-進行の可視化">進行の可視化<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#49 見える進歩</b>：進歩が見え、あとどれだけかが分かるか。</p>
+<ul>
+  <li>参道に<strong>篝火（かがりび）が3つ</strong>並んでおり、月が変わるごとに1つ灯る</li>
+  <li>月が切り替わる瞬間、画面上部に月名（例「十一月」）を1.5秒だけ表示する</li>
+</ul>
+<p class="note">日周表現は情緒的には良いが、太陽の位置から「あと何秒」を子どもが読むのは難しい。
+篝火3つならUIを増やさずに「あと1つ」が分かる（Lens #72 間接制御）。</p>
+
+<h3 id="ch8-03-3分間の興味曲線">3分間の興味曲線<span class="b chg">変更</span></h3>
+<p class="lens">Lens <b>#61 興味曲線</b>：開始直後・途中・クライマックス・終了直前の感情を図にできるか。単調な区間、早すぎる頂点、弱い終わりはないか。</p>
+
+<div class="box warn">
+<span class="lbl">v4からの修正（重要）</span>
+<p>v4は「祭事は各月30秒目から20秒間。残り10秒のカウントダウンと重ならないようにする」と
+していました。これは情報の混雑を避けるつもりの記述でしたが、興味曲線としては逆で、
+<strong>最終月の祭事が終わった直後の10秒が失速したままゲームが終わる</strong>形になっていました。
+また3つの月がまったく同じ形の繰り返しで単調でした。
+最後こそ最大の山にし、カウントダウンと重ねます。</p>
+</div>
+
+<div class="curve">
+<svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="3分間の興味曲線">
+  <line x1="46" y1="180" x2="740" y2="180" stroke="#ddd6ca" stroke-width="1.5"/>
+  <line x1="46" y1="20" x2="46" y2="180" stroke="#ddd6ca" stroke-width="1.5"/>
+  <text x="10" y="30" font-size="11" fill="#7a7269">関心</text>
+  <!-- month dividers -->
+  <line x1="277" y1="20" x2="277" y2="180" stroke="#eae4d8" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="508" y1="20" x2="508" y2="180" stroke="#eae4d8" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="140" y="198" font-size="11.5" fill="#4a443f" text-anchor="middle">6月（0:00–1:00）</text>
+  <text x="392" y="198" font-size="11.5" fill="#4a443f" text-anchor="middle">11月（1:00–2:00）</text>
+  <text x="624" y="198" font-size="11.5" fill="#4a443f" text-anchor="middle">1月（2:00–3:00）</text>
+  <text x="140" y="213" font-size="10.5" fill="#7a7269" text-anchor="middle">段階学習30秒→小負荷ウェーブ</text>
+  <text x="392" y="213" font-size="10.5" fill="#7a7269" text-anchor="middle">中負荷ウェーブ</text>
+  <text x="624" y="213" font-size="10.5" fill="#a8322c" text-anchor="middle">大負荷ウェーブ（最後まで／CDと重ねる）</text>
+  <!-- curve -->
+  <path d="M46,168 L84,158 L120,140 L156,132 L162,96 L214,90 L220,126 L277,120
+           L300,112 L330,104 L336,66 L400,60 L406,104 L508,98
+           L530,88 L554,80 L560,36 L660,26 L700,16 L740,14"
+        fill="none" stroke="#a8322c" stroke-width="2.6" stroke-linejoin="round"/>
+  <!-- climax marker -->
+  <circle cx="700" cy="16" r="4.5" fill="#a8322c"/>
+  <text x="694" y="9" font-size="10.5" fill="#a8322c" text-anchor="end">クライマックス</text>
+  <!-- practice marker -->
+  <circle cx="60" cy="165" r="3.5" fill="#b8892a"/>
+  <text x="68" y="162" font-size="10.5" fill="#b8892a">段階学習30秒</text>
+</svg>
+</div>
+
+<table tabindex="0">
+  <caption>時間割</caption>
+  <thead><tr><th scope="col">月</th><th scope="col">時刻</th><th scope="col">できごと</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="6">6月</td><td>0:00–0:08<br>（上限）</td><td><strong>教える1：届ける</strong>。緑1色・近距離1人。救済できたら直ちに次へ。未達でも0:08で教える2へ進む。Dは増えない</td></tr>
+    <tr><td>〜0:18<br>（上限）</td><td><strong>教える2：選ぶ</strong>。2色・2人。2人救済で直ちに次へ。未達でも0:18で教える3へ進む</td></tr>
+    <tr><td>〜0:30<br>（上限）</td><td><strong>教える3：見抜く</strong>。3色・3人。二重円の1人を救済したら、残り時間は同じ3色で自由練習。未達時は0:30で通常進行へ移り、最初の5秒だけ状況別ゴーストを1回表示する</td></tr>
+    <tr><td>0:30–0:38</td><td><strong>本番開始</strong>。学習中の値を破棄し、縁=0、評価=0、福の連なりC=0、ご加護進捗G=0、現在／最高ランク=Cで開始。C停滞タイマーも0:30.000から計時する。通常客のみ</td></tr>
+    <tr><td>0:38–1:00</td><td><strong>欲張り客を解禁</strong>（0:38）→ <strong>遠方客を解禁</strong>（0:48） <span class="b chg">変更</span></td></tr>
+    <tr><td>0:40–0:55</td><td><strong>小負荷ウェーブ</strong> <span class="b mvp">MVP</span>：上限 +3人、15秒。名称・太鼓・季節演出を付ける場合のみ「夏越の大祓」 <span class="b add">追加</span></td></tr>
+    <tr><td rowspan="3">11月</td><td>1:00</td><td><strong>移動客を解禁</strong> <span class="b chg">変更</span></td></tr>
+    <tr><td>1:20–1:45</td><td><strong>中負荷ウェーブ</strong> <span class="b mvp">MVP</span>：上限 +5人、25秒（総上限15人）。名称・太鼓・季節演出を付ける場合のみ「新嘗祭・七五三」 <span class="b add">追加</span></td></tr>
+    <tr><td>1:45–2:00</td><td>通常</td></tr>
+    <tr><td rowspan="3">1月</td><td>2:00</td><td><strong>ボス客を解禁</strong> <span class="b add">追加</span></td></tr>
+    <tr><td>2:20–3:00</td><td><strong>大負荷ウェーブ</strong> <span class="b mvp">MVP</span>：基準 +4人、T3では+3／+4／+5を比較（総上限15人）。<strong>40秒＝最後まで続く</strong>。名称・太鼓・季節演出を付ける場合のみ「歳旦祭・初詣」 <span class="b add">追加</span></td></tr>
+    <tr><td>2:50–3:00</td><td>カウントダウンが大負荷ウェーブに重なる（最大の山）</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+<span class="lbl">v7の変更1：参拝客の解禁を時間割に固定した</span>
+<p>v6は「0:30以降、移動客・欲張り客を20秒以上離して1種ずつ解禁」としていました。
+この間隔だと欲張り客は約1:10からになりますが、<strong>6月は1:00で終わります</strong>。
+それなのに6月の出現比率は欲張り25%（3ヶ月で最多）で、月の性格も「欲張り客多め」でした。
+成立していませんでした。</p>
+<p>v7では解禁の順番と時刻を時間割に書き、月の性格と一致させます。</p>
+<ul>
+  <li><strong>6月＝選ぶ月</strong>：欲張り客（2色を順番に）と遠方客を解禁。茅の輪くぐり＝複数の穢れと合う</li>
+  <li><strong>11月＝動く月</strong>：移動客を解禁。七五三の子どもが走り回る</li>
+  <li><strong>1月＝総決算</strong>：MVPは既存4種の物量と連続精度。追加要素を採用した場合だけボス客を解禁</li>
+</ul>
+<p>結果として、MVPでは11月に移動客が増え、追加要素まで採用した製品版では1月にボス客も増えます。
+3ヶ月が同じ形の繰り返しにならず、興味曲線の段差にもなります。</p>
+</div>
+
+<div class="box warn">
+<span class="lbl">v8の修正：クールダウンではなく、実際の1投周期と複数発を含めて見積もる</span>
+<p>クールダウンはセンサーの再受付間隔であり、子どもが「選ぶ→狙う→振る→反応を見る」を繰り返す速度ではありません。
+ T0-3Mで目標とする実操作周期 <strong>1.0〜1.4秒／投</strong>を使う。T3はボスOFFなので、1月比率からボス5%を通常客へ戻し、
+さらに負荷ウェーブの通常客+15ポイントを適用した<strong>通常75%／移動6.25%／遠方9.375%／欲張り9.375%</strong>で計算する。
+救済1人に必要な平均命中数は約<strong>1.094発</strong>、Dが100になる加重平均は約<strong>20.94秒</strong>です。</p>
+<table tabindex="0">
+  <caption>大負荷ウェーブ候補の処理負荷比較</caption>
+  <thead><tr><th scope="col">大負荷ウェーブ候補</th><th scope="col" class="n">総同時上限</th><th scope="col" class="n">必要救済/秒</th><th scope="col" class="n">必要命中/秒</th><th scope="col" class="n">許容される1投周期</th></tr></thead>
+  <tbody>
+    <tr><td>低負荷 +3</td><td class="n">13人</td><td class="n">約0.62</td><td class="n">約0.68</td><td class="n">約1.47秒</td></tr>
+    <tr><td><strong>基準 +4</strong></td><td class="n"><strong>14人</strong></td><td class="n">約0.67</td><td class="n">約0.73</td><td class="n">約1.37秒</td></tr>
+    <tr><td>高負荷 +5</td><td class="n">15人</td><td class="n">約0.72</td><td class="n">約0.78</td><td class="n">約1.28秒</td></tr>
+  </tbody>
+</table>
+<p>これは全命中・待ち時間なしの定常近似で、色選択ミス、照準移動、スポーン歩行、黒客、伝播の時間を含みません。
+したがって<strong>+4が成立するという結論ではなく、T3で棄却するための仮説</strong>です。MVPでは祭事名・太鼓・季節演出と、ランク連動の動的難易度を切り、
+同じ無演出負荷ウェーブだけを +3／+4／+5 の順序を釣り合わせて比較します。最大同時人数はすべてのモードで15人を超えません。</p>
+</div>
+
+<table tabindex="0">
+  <caption>区間ごとの体験意図とT3観測</caption>
+  <thead><tr><th scope="col">区間</th><th scope="col">学ぶ／感じる</th><th scope="col">観測するもの</th><th scope="col">危険信号</th></tr></thead>
+  <tbody>
+    <tr><td class="n">0:00–0:30</td><td>届ける→選ぶ→見抜く。「自分で分かった」</td><td>初救済秒、色誤り、3秒停止、介入</td><td>説明待ち、照準ではなくスタッフを見る</td></tr>
+    <tr><td class="n">0:30–1:20</td><td>4拍を反復し、福の連なりを作る</td><td>投擲間隔、命中率、救済／分</td><td>連打、最寄り固定、停止時間増加</td></tr>
+    <tr><td class="n">1:20–2:20</td><td>危険・距離・伝播の選択で迷う</td><td>標的分布、決定秒、理由</td><td>1対象へ70%超集中、情報の読み違い</td></tr>
+    <tr><td class="n">2:20–3:00</td><td>身につけた判断と投擲を大負荷ウェーブで出し切る</td><td>命中率の落ち幅、表情、投擲数、疲労、<strong>黒客化数・救済数・黒客化率、同時黒客数の最大、評価値の推移</strong></td><td>腕が下がる、命中率15pt超低下、興味が戻らない、<strong>黒客化数が救済数を上回る、画面の黒客が5人を超える</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="ch8-04-終わり方-余韻">終わり方（余韻）<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#40 報酬</b>（完成）／<b>#61 興味曲線</b>：余韻を残しているか。</p>
+<ol>
+  <li><strong>3:00.000</strong>で新規スポーン・D進行・新しい入力受付を停止。3:00より前に検出済みの投擲だけを最大0.65秒待って決着し、それ以後の振りは得点にしない</li>
+  <li>決着後の救済人数・縁・最高ランクを確定し、境内を静めて日を昇らせる</li>
+  <li><strong>「〇〇人の願いが叶いました」</strong>をリザルト第1段として表示する（下表の2秒に含む。別の2秒演出を重ねない）</li>
+</ol>
+<p class="note">スコアが低かった子にも持ち帰るものが残る。</p>
+
+<h3 id="ch8-05-リザルト画面">リザルト画面<span class="b new">新規</span></h3>
+<table tabindex="0">
+  <caption class="sr-only">リザルト画面の仕様表</caption>
+  <thead><tr><th scope="col">順</th><th scope="col">内容</th><th scope="col" class="n">秒</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>救済した人数（「〇〇人の願いが叶いました」）＋境内が静まり日が昇る演出</td><td class="n">2</td></tr>
+    <tr><td class="n">2</td><td>縁の合計（カウントアップ演出）</td><td class="n">5</td></tr>
+    <tr><td class="n">3</td><td><strong>プレイ中の最高ランク</strong>を神社の称号として表示 <span class="b chg">変更</span></td><td class="n">3</td></tr>
+    <tr><td class="n">4</td><td>今日のベストスコアとの比較（超えたら大きく祝う）</td><td class="n">5</td></tr>
+    <tr><td class="n">5</td><td>待機画面へ戻る</td><td class="n">5</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>ハイスコアは<strong>1位のみ・名前入力なし</strong>（名前入力は1試遊あたり20〜30秒増えるため）</li>
+  <li>ハイスコアは<strong>展示日ごとにリセット</strong>（後の日の子が勝てなくなるのを避ける）</li>
+</ul>
+
+<h3 id="ch8-06-スポーン-常時補充制">スポーン ── 常時補充制<span class="b fix">確定</span></h3>
+<ul>
+  <li>画面内の参拝客を常に<strong>MVP基準上限10人</strong>まで維持する。無演出負荷ウェーブは+3〜+5、<strong>総同時上限は15人</strong>。ランク連動の基準上限変更はT3後の追加要素</li>
+  <li>救済成功・怒り退場のいずれでも枠が空き次第補充する</li>
+  <li>黒客は上限人数にカウントしない</li>
+  <li>補充は参道奥（鳥居）からスポーンし、歩いて定位置に入る<br>
+    <strong>退場から1.5秒後にスポーン → 3秒歩行して定位置</strong></li>
+  <li>危険度Dは定位置に到着してから進み始める（歩行中は増えない）</li>
+  <li>輪郭は歩行中から光る（→ <a href="#ch6">6章</a>）</li>
+  <li>一斉出現するウェーブ制は不採用。ここでいう「負荷ウェーブ」は常時補充の上限だけを一時的に上げる区間を指す</li>
+</ul>
+
+<table tabindex="0">
+  <caption>空間配置の比率</caption>
+  <thead><tr><th scope="col">位置</th><th scope="col">距離</th><th scope="col" class="n">比率</th></tr></thead>
+  <tbody>
+    <tr><td>近</td><td>3〜7m</td><td class="n">40%</td></tr>
+    <tr><td>中</td><td>7〜12m</td><td class="n">40%</td></tr>
+    <tr><td>遠</td><td>12〜18m</td><td class="n">20%</td></tr>
+  </tbody>
+</table>
+<p class="note"><strong>この比率は「新規1体ごとの抽選率」ではなく、定位置にいる非黒客の目標占有率</strong>。
+現在上限に40／40／20%を掛けて最大剰余法で整数枠へ丸め、補充時は不足率が最大の距離帯を優先する。
+参拝客の種類は10章の出現比率で先に抽選し、遠方客は必ず遠へ置く。種類制約で目標を満たせないときだけ次に不足する帯へ置き、実占有率をログへ残す。
+天候効果を採用した場合は9章の比率を同じ占有目標として使う。</p>
+
+<h3 id="ch8-07-負荷ウェーブ-祭事演出">負荷ウェーブ<span class="b mvp">MVP</span>／祭事演出<span class="b add">追加</span></h3>
+<ul>
+  <li>開始時は一気に湧かせず、5秒かけて徐々に増員する</li>
+  <li>終了時、超過分の残客は強制退場させず自然減を待つ</li>
+  <li>負荷ウェーブ中は通常客の抽選率を +15<strong>ポイント</strong>とし、残りの種類を元の比率に応じて按分する</li>
+  <li>MVPの加算人数は 6月 +3／11月 +5／1月はT3で選んだ+3〜+5。どの場合も総同時上限15人</li>
+  <li>祭事名、太鼓、提灯の一時点灯、季節固有の導入演出だけを<span class="b add">追加</span>とする。削除しても人数曲線とT3は成立する</li>
+</ul>
+
+<!-- ============ 9 ============ -->
+<h2 id="ch9"><span class="num">9</span>天候</h2>
+
+<div class="box warn">
+<span class="lbl">v8のスコープ境界</span>
+<p><strong>MVPは晴の基準環境だけ</strong>とし、天候抽選を持たない。雨・風・雪の視覚／音響オーバーレイは<span class="b add">追加</span>で、
+採用しても輪郭の明度、弾速、着弾点、入力判定を変えない。
+プレイヤーの振り・センサー・照準・弾道にランダムな風を重ねると、外れた理由が説明できなくなるためである。
+ゲーム効果はさらにT4比較テストを通ったものだけ<span class="b add">追加</span>として解禁する。</p>
+</div>
+
+<h3 id="ch9-01-追加時の抽選ルール">追加時の抽選ルール<span class="b add">追加</span></h3>
+<ul>
+  <li>各月（1分）の開始時と30秒目に抽選（1ヶ月に2回）</li>
+  <li>切り替えは10秒かけて遷移させる（急に変わると理不尽になる）</li>
+  <li>効果を入れる場合は、切替3秒前に空・環境音・画面上部の短いアイコンで予告する</li>
+  <li>ご加護タイム中は<strong>visualWeatherだけ</strong>晴へ遷移し、baseWeatherの抽選時計と戦術効果は継続する<span class="b fix">確定</span></li>
+</ul>
+
+<table tabindex="0">
+  <caption>天候オーバーレイ採用後の月別発生確率（MVPでは使用しない）</caption>
+  <thead><tr><th scope="col">月</th><th scope="col" class="n">晴</th><th scope="col" class="n">雨</th><th scope="col" class="n">風</th><th scope="col" class="n">雪</th></tr></thead>
+  <tbody>
+    <tr><td>6月</td><td class="n">50%</td><td class="n">50%</td><td class="n">—</td><td class="n">—</td></tr>
+    <tr><td>11月</td><td class="n">60%</td><td class="n">—</td><td class="n">40%</td><td class="n">—</td></tr>
+    <tr><td>1月</td><td class="n">50%</td><td class="n">—</td><td class="n">—</td><td class="n">50%</td></tr>
+    <tr><td>12月（延期候補）</td><td class="n">40%</td><td class="n">—</td><td class="n">30%</td><td class="n">30%</td></tr>
+  </tbody>
+</table>
+
+<table tabindex="0">
+  <caption>晴の基準環境と、追加で実装できる天候オーバーレイ</caption>
+  <thead><tr><th scope="col">天候</th><th scope="col">見た目・音</th><th scope="col">ゲーム数値への影響</th></tr></thead>
+  <tbody>
+    <tr><td>晴 <span class="b mvp">MVP</span></td><td>高い彩度、鳥の声</td><td>なし</td></tr>
+    <tr><td>雨 <span class="b add">追加</span></td><td>雨粒・濡れ・雨音。参拝客と輪郭の手前には濃い雨粒を描かない</td><td>なし</td></tr>
+    <tr><td>風 <span class="b add">追加</span></td><td>紙垂・木々・吹き流しが同方向へ揺れる</td><td>なし。<strong>弾道は曲げない</strong></td></tr>
+    <tr><td>雪 <span class="b add">追加</span></td><td>雪・積雪・静かな環境音。輪郭の背後だけ雪粒を弱める</td><td>なし。<strong>弾速は落とさない</strong></td></tr>
+  </tbody>
+</table>
+
+<table tabindex="0">
+  <caption>T4通過後に試せる戦術効果（1天候1軸・同時採用しない）</caption>
+  <thead><tr><th scope="col">天候</th><th scope="col">候補効果</th><th scope="col">選択への作用</th><th scope="col">不採用条件</th></tr></thead>
+  <tbody>
+    <tr><td>雨</td><td>定位置の目標占有率を近／中／遠＝50／40／10%へ</td><td>安全に連なりをつなぎやすいが、遠方の高基礎点が減る</td><td>天候前後で選択理由が変わらない、またはスコア差が±15%を超える</td></tr>
+    <tr><td>風</td><td>新規スポーンの65%を風下側へ寄せる。既存客と弾は動かさない</td><td>密集側の連鎖と反対側の危険客が競合する</td><td>予告を見ずに「勝手に外れた」と誤認する人が10%超</td></tr>
+    <tr><td>雪</td><td>Dが100になる秒数×1.10</td><td>終盤の休息を作り、奥の客へ狙い直す余裕を与える</td><td>行動停止が増える、または興味曲線の山を弱める</td></tr>
+  </tbody>
+</table>
+
+<div class="box why">
+<span class="lbl">天候ゲート T4</span>
+<p>固定シードを晴／天候で各2回、対象層10人に比較してもらう。
+<strong>2mで5色・5パターン正答率95%以上</strong>、命中率差5ポイント以内、
+失敗原因を正しく説明できる人90%以上、平均スコア差±15%以内をすべて満たすこと。
+さらに30〜60%の場面で標的選択が変われば戦術効果として採用し、変わらなければ演出へ戻す。</p>
+</div>
+
+<h3 id="ch9-02-ライティング設計">ライティング設計<span class="b fix">確定</span></h3>
+<p>時刻帯を <strong>朝／昼／夕／夜</strong> の4基礎プロファイルに離散化する。
+雨・風・雪は別ライティングを焼かず、粒子・霧・環境音・色補正の3オーバーレイとして合成する。
+手調整する正本を「時刻4＋天候3」の7プロファイルに抑え、全組合せを個別制作しない。</p>
+
+<!-- ============ 10 ============ -->
+<h2 id="ch10"><span class="num">10</span>参拝客</h2>
+<p>「変化要素は1人につき1軸」が基本方針<span class="b fix">確定</span>。</p>
+
+<div class="box warn">
+<span class="lbl">v4からの修正</span>
+<p>v4の「せっかち客（満ちる速度が2倍）」を廃止し、<strong>通常客の満タン秒数の幅に吸収</strong>しました。
+数値の違いだけで参拝客の種類を1つ増やすと、モデル・識別手段・出現比率の全部が重くなります
+（Lens #43 優雅さ）。6種 → 5種。</p>
+</div>
+
+<table tabindex="0">
+  <caption>参拝客一覧</caption>
+  <thead><tr><th scope="col">種類</th><th scope="col">軸</th><th scope="col" class="n">必要発数</th><th scope="col" class="n">満タン秒数</th><th scope="col" class="n">基礎点</th><th scope="col" class="n">評価</th><th scope="col">識別手段</th></tr></thead>
+  <tbody>
+    <tr><td>通常客</td><td>時間</td><td class="n">1発</td><td class="n">15〜25秒（ランダム）</td><td class="n">100</td><td class="n">+10</td><td>変化なし</td></tr>
+    <tr><td>移動客</td><td>空間</td><td class="n">1発</td><td class="n">20秒</td><td class="n">150</td><td class="n">+10</td><td>歩いている（1.0m/s）</td></tr>
+    <tr><td>遠方客 <span class="b mvp">MVP</span></td><td>空間</td><td class="n">1発</td><td class="n">22秒</td><td class="n">200</td><td class="n">+15</td><td>立ち位置が奥（12m以上）</td></tr>
+    <tr><td>欲張り客</td><td>要求</td><td class="n">2発</td><td class="n">28秒</td><td class="n">300</td><td class="n">+15</td><td>輪郭が2重（内側に2色目）＋頭上ゲージ</td></tr>
+    <tr><td>ボス客 <span class="b add">追加</span></td><td>要求</td><td class="n">3発</td><td class="n">30秒</td><td class="n">500</td><td class="n">+25</td><td>体が1.3倍大きい＋3分割の頭上ゲージ</td></tr>
+  </tbody>
+</table>
+<div class="box warn">
+<span class="lbl">v7の変更：遠方客をMVPへ繰り上げた</span>
+<p>v6は遠方客を「追加」に置いていましたが、T2（意味ある選択）はMVPゲートです。
+T2で検証する4つの選択のうち「奥を救う」は遠方客が前提なので、
+<strong>MVP時点では4択のうち1つが存在せず、合格ラインを満たせません</strong>。</p>
+<p>遠方客はモデルを通常客から流用し、配置を12〜18mに固定して基礎点を200にするだけなので、
+実装コストはほぼゼロです。繰り上げてT2を4択で判定できるようにします。
+MVPで「追加」に残るのはボス客だけになります。</p>
+</div>
+
+<table tabindex="0">
+  <caption>解禁スケジュール（→ <a href="#ch8">8章</a>の時間割と対応）<span class="b new">新規</span></caption>
+  <thead><tr><th scope="col">時刻</th><th scope="col">解禁</th><th scope="col">その月の性格</th></tr></thead>
+  <tbody>
+    <tr><td class="n">0:00</td><td>通常客（段階学習では1色ずつ）</td><td rowspan="3">6月＝選ぶ月</td></tr>
+    <tr><td class="n">0:38</td><td>欲張り客</td></tr>
+    <tr><td class="n">0:48</td><td>遠方客</td></tr>
+    <tr><td class="n">1:00</td><td>移動客</td><td>11月＝動く月</td></tr>
+    <tr><td class="n">2:00</td><td>ボス客 <span class="b add">追加</span></td><td>1月＝総決算</td></tr>
+  </tbody>
+</table>
+<p class="note">解禁されていない種類は抽選から除外し、その比率を通常客へ寄せる。MVPの1月はボス客を除外して通常客へ5ポイントを戻し、ボスを採用した追加ビルドだけ2:00に解禁する。</p>
+
+<ul>
+  <li>正しい色の通常弾が当たるたびに<strong>残り必要発数Rを1減らす</strong>。危険度Dは変えず、命中位置でRの減り方も変えない（精度は得点だけに反映）<br>
+    <span class="note">危険度Dと残り必要発数Rを分けることで、「あと何発」と「どれほど危ないか」を同じ量として誤解させない。</span></li>
+  <li>欲張り客：2色は必ず異なる色を抽選。1色目を届けてRが1になると輪郭色が2色目に切り替わり、2色目で救済完了となる<span class="b fix">確定</span></li>
+  <li>ボス客：輪郭は同色のまま。実装は Phase 2 後半<span class="b fix">確定</span></li>
+  <li>移動客：定位置到着後、現在の距離帯の中を左右3mの往復経路で移動。奥行帯は変えない</li>
+  <li>遠方客：必ず12〜18mへ配置。下記の「遠方15%」は<strong>種類抽選率</strong>であり、8章の「遠20%」は<strong>定位置にいる全種類の目標占有率</strong>。遠の占有には通常・移動・欲張り客も入る</li>
+  <li>同時上限：欲張り客2人、ボス客1人。<strong>頭上ゲージを表示する客は最大3人</strong>（欲張り2人＋ボス1人）。欲張りは2区画、ボスは3区画で、区画数を「ゲージ本数」と数えない。上限時は通常客へ置換する</li>
+  <li>追加のアイコンやラベルは使わない。すでに画面にある情報（位置・動き・大きさ・輪郭の重なり）で見分ける</li>
+</ul>
+
+<table tabindex="0">
+  <caption>出現比率</caption>
+  <thead><tr><th scope="col">月</th><th scope="col" class="n">通常</th><th scope="col" class="n">移動</th><th scope="col" class="n">遠方</th><th scope="col" class="n">欲張り</th><th scope="col" class="n">ボス</th></tr></thead>
+  <tbody>
+    <tr><td>6月（0:30–0:38）</td><td class="n">100%</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+    <tr><td>6月（0:38–0:48）</td><td class="n">70%</td><td class="n">—</td><td class="n">—</td><td class="n">30%</td><td class="n">—</td></tr>
+    <tr><td>6月（0:48–1:00）</td><td class="n">55%</td><td class="n">—</td><td class="n">15%</td><td class="n">30%</td><td class="n">—</td></tr>
+    <tr><td>11月</td><td class="n">45%</td><td class="n">30%</td><td class="n">15%</td><td class="n">10%</td><td class="n">—</td></tr>
+    <tr><td>1月</td><td class="n">55%</td><td class="n">10%</td><td class="n">15%</td><td class="n">15%</td><td class="n">5%</td></tr>
+  </tbody>
+</table>
+<p class="note"><strong>出現比率は、補充が必要になった瞬間に行う「参拝客種類の抽選率」</strong>。未解禁・同時上限到達の種類を除外して残りを100%へ再正規化し、その後に8章の目標占有率を使って距離帯を決める。
+6月は解禁の進行に合わせて3段階になる <span class="b chg">変更</span>。移動客は11月からなので6月には出ない。
+v6は6月に移動10%・欲張り25%と書いていたが、解禁が20秒間隔だと欲張り客が6月中に出ないという矛盾があった。
+負荷ウェーブ中は通常客を +15ポイント、他を元の比率に応じて按分する。</p>
+
+<!-- ============ 11 ============ -->
+<h2 id="ch11"><span class="num">11</span>スコープと難易度</h2>
+
+<h3 id="ch11-01-3段階の完成定義">3段階の完成定義<span class="b chg">変更</span></h3>
+<table tabindex="0">
+  <caption>MVP・追加・余裕時の完成条件</caption>
+  <thead><tr><th scope="col">段階</th><th scope="col">含めるもの</th><th scope="col">着手条件</th><th scope="col">完成条件</th></tr></thead>
+  <tbody>
+    <tr>
+      <th scope="row"><span class="b mvp">MVP</span><br>絶対に完成</th>
+      <td>ソロ／大幣で照準・通常投擲／5色＋パターン／<strong>通常・移動・欲張り・遠方客</strong>／危険度D・残り発数R・黒客化／二重円と優先救済／笑顔の伝播／縁／<strong>評価・ランク表示と最高ランク称号</strong>／開始30秒の段階学習／解禁スケジュール／1環境で180秒／<strong>無演出負荷ウェーブ</strong>／リザルト／命中・救済・失敗の視音触演出／安全・再基準化／<strong>USB接続</strong></td>
+      <td>即着手。装飾前は3色・通常客1種の箱と図形でもよい</td>
+      <td>T0-A/B、T0-CD、T0-3M、T1、T2、T3、T6-USBがすべて合格。致命的不具合0。T6-BLEは未実施でもよい</td>
+    </tr>
+    <tr>
+      <th scope="row"><span class="b add">追加</span><br>コア合格後</th>
+      <td>3ヶ月の風景／<strong>祭事名・太鼓・季節固有の祭事演出</strong>／<strong>ボス客</strong>／ランクによる動的難易度／提灯／ご加護タイム／大祓／<strong>天候オーバーレイ（数値影響0）</strong>／T4通過後の天候戦術効果／BLE展示接続</td>
+      <td>MVPのT0-A/B・T0-CD・T0-3M・T1〜T3・T6-USBが緑、担当と見積りがあり、ポリッシュ期間4週間を侵食しない</td>
+      <td>天候効果はT4、大祓はT5、BLEはT6-BLEを通過し、<strong>全追加機能がTA-単機能、採用済み機能の組合せがTA-統合を通る</strong></td>
+    </tr>
+    <tr>
+      <th scope="row"><span class="b later">余裕時</span><br>なくても提出</th>
+      <td>二人協力／12月／投福神社オリジナル祭事／追加の季節固有天候バリエーション／外れ弾を拾う等の創発追加</td>
+      <td>β版完成、重大・高バグ0、T7連続稼働合格、残作業に20%以上の余白</td>
+      <td>展示運用とMVP品質を悪化させず、単独で撤去可能</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="decision-rule">
+  <p><strong>スコープの切り方</strong></p>
+  <p>遅延時は <span class="b later">余裕時</span> → <span class="b add">追加</span> の順に削る。
+  MVPの品質基準を下げて機能数を守らない。追加機能が専用テストに2回連続で落ちたら、調整を続けず原則削除する。</p>
+</div>
+
+<h3 id="ch11-02-季節として実装する月">季節として実装する月<span class="b add">追加</span></h3>
+<p>v3は代表4ヶ月だったが、残り約5ヶ月・プログラム2人という条件を踏まえ3ヶ月に絞る。</p>
+<table tabindex="0">
+  <caption class="sr-only">季節として実装する月の仕様表</caption>
+  <thead><tr><th scope="col">月</th><th scope="col">祭事</th><th scope="col">天候</th><th scope="col">性格</th></tr></thead>
+  <tbody>
+    <tr><td>6月</td><td>夏越の大祓</td><td>晴／雨</td><td>欲張り客多め。茅の輪くぐり＝複数の穢れ。導入の月</td></tr>
+    <tr><td>11月</td><td>新嘗祭・七五三</td><td>晴／風</td><td>移動客（子ども）が多い。動くターゲット</td></tr>
+    <tr><td>1月</td><td>歳旦祭・初詣</td><td>晴／雪</td><td>通常客大量＋ボス。物量と連続精度の総決算。クライマックス</td></tr>
+    <tr><td>12月</td><td>師走大祓・除夜祭</td><td>—</td><td><span class="b later">余裕時</span>。β版とT7合格後だけ着手</td></tr>
+  </tbody>
+</table>
+<div class="box why">
+<span class="lbl">なぜ削るか</span>
+<p>1ヶ月ぶんの制作物は「季節の風景・ライティング・祭事演出・参拝客構成・天候」のセットです。
+4ヶ月から3ヶ月にすると制作物が25%減り、その分を手触りと視認性の調整に回せます。
+クライマックスは1月（歳旦祭）で成立するため、体験の山は失われません。</p>
+</div>
+
+<h3 id="ch11-03-1プレイの構成">1プレイの構成</h3>
+<p><strong>追加要素まで入る製品版：6月 → 11月 → 1月（固定・3分）</strong></p>
+<p><strong>MVP：背景は6月の1環境のみ。ただし180秒の進行（解禁スケジュール・無演出負荷ウェーブ・篝火3つ）は時間割どおり動かす。</strong>
+出ないのはボス客だけ。背景を作り分けないだけで、体験の骨格はMVPで完成させる。</p>
+
+<h3 id="ch11-04-難易度">難易度<span class="b chg">変更</span></h3>
+<div class="box warn">
+<span class="lbl">v3・v4からの変更</span>
+<p>v3のEasy（4月・5月・6月）は実装対象外の月を含んでいて成立していませんでした。
+v4では月を共通にして数値で作り分ける方式にしましたが、
+<strong>アテンドが忙しい展示現場で難易度を切り替える運用は実際には回りません</strong>。
+難易度選択を廃止し、<strong>1本に統一</strong>します。MVPはT3で固定した1本の人数・時間で成立させ、
+<a href="#ch7">7章</a>の動的難易度（ランクによる速度変化＋ランクC停滞時の緩和）はMVP合格後の<span class="b add">追加</span>です。</p>
+</div>
+<ul>
+  <li>難易度選択の画面を出さない（プレイ前の選択は回転率に直接効く）</li>
+  <li>基準は「初めての子どもが最後まで遊びきれて、上手い人が終盤にSへ届く」水準</li>
+  <li>この水準はPhase 3の観察テストで決める（→ <a href="#ch19">19章</a>）</li>
+  <li>動的難易度を採用した場合、<strong>ランクC停滞タイマーは競技開始の0:30.000から計時</strong>し、B以上へ上がった瞬間に0へ戻す。学習中、ポーズ、リザルト、通信復帰中は加算しない</li>
+</ul>
+
+<!-- ============ 12 ============ -->
+<h2 id="ch12"><span class="num">12</span>二人協力モード<span class="b later">余裕時</span></h2>
+<p class="lens">Lens <b>#37 協力</b>／<b>#21 社会</b>／<b>#13 八つのフィルター</b>（社会・コミュニティの条件）</p>
+
+<p>デバイスがすでに2台（大幣＋ボタン箱）に分かれているため、役割を2人に分担できる。
+ただし、ソロのβ版・T7連続稼働・展示サイクルが完成するまでは着手しない。</p>
+<div class="box why">
+<span class="lbl">なぜ強いか</span>
+<p>協力が成立する条件は「役割が違う」「相談が必要」「一人では難しい」。
+このゲームは<strong>「色を見て選ぶ」と「狙って投げる」が構造的に分かれている</strong>ため、
+条件を最初から満たしています。狙って作ったわけではないのに噛み合っているので拾う価値があります。
+展示会の親子来場者にも刺さり、ソロ時の持ち方問題（片手で大幣、片手でボタン箱）の逃げ道にもなります。</p>
+</div>
+
+<table tabindex="0">
+  <caption class="sr-only">二人協力モードの仕様表</caption>
+  <thead><tr><th scope="col">項目</th><th scope="col">仕様</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">役割</th><td>投げ手＝大幣／選び手＝ボタン箱</td></tr>
+    <tr><th scope="row">入力の解釈</th><td>投げ手が振った瞬間に、選び手が押していた色が発射される</td></tr>
+    <tr><th scope="row">既定</th><td>ソロ。アテンドが「2人で遊びますか」と聞いて切り替える</td></tr>
+    <tr><th scope="row">同時出現上限</th><td><strong>ソロ比 +2人</strong>（2人いるので処理能力が上がる）</td></tr>
+    <tr><th scope="row">ランキング</th><td><strong>ソロとは別枠（親子ランキング）</strong>。同じ表に載せない</td></tr>
+    <tr><th scope="row">追加実装</th><td>入力分岐／モードUI／専用チュートリアル／別ランキング／協力時バランス／アテンド手順／親子テスト。独立した機能一式として見積もる</td></tr>
+  </tbody>
+</table>
+
+<!-- ============ 13 ============ -->
+<h2 id="ch13"><span class="num">13</span>観戦と展示運用<span class="b new">新規</span></h2>
+<p class="lens">Lens <b>#21 社会</b>：社会的な楽しさは勝敗だけでなく、観戦・共有まで含む。</p>
+
+<div class="box why">
+<span class="lbl">なぜこの章があるか</span>
+<p>展示会では1台の前に<strong>遊んでいる1人と待っている5〜10人</strong>がいます。
+つまり体験している人の大半は観戦者です。v4には観戦者向けの設計が何もありませんでした。</p>
+</div>
+
+<h3 id="ch13-01-観戦体験の設計">観戦体験の設計</h3>
+<ul>
+  <li>大幣を振る動作そのものが大きいので、そこは既に観戦向き。<strong>この強みを潰さない</strong>（小さく振れば当たる設計にしない）</li>
+  <li>命中エフェクトを大きめにする（外から見て当たったと分かる）</li>
+  <li>救済成功時の鈴の音を強めに鳴らす。音は列の後ろまで届く</li>
+  <li>画面右上に「今日のベストスコア」と「今のスコア」を並べる（待っている子が「勝てそう」と思える）</li>
+  <li>縁と現在ランクはMVPでも画面外から読める大きさにする。提灯で画面が明るくなる表現は<span class="b add">追加演出</span>で、未採用時も観戦情報を失わない</li>
+</ul>
+
+<h3 id="ch13-02-安全領域と配線">安全領域と配線<span class="b mvp">MVP</span></h3>
+<ul>
+  <li>プレイヤーの立ち位置を床マットで固定し、<strong>前後左右へ各1.5m</strong>を振り抜き安全領域としてコーンまたはベルトで囲う。観戦列とアテンド待機位置は後方2m以上、かつ領域外</li>
+  <li>大幣の全長＋最大腕長で実地確認し、紙垂を含む先端が境界へ届く場合は境界を広げる。子どもが領域を出たら即時停止する</li>
+  <li>USBはボタン箱・大幣からプレイヤー後方へ逃がし、台の脚へ二点でストレインリリーフする。床を横切る部分はケーブルカバーで固定し、振り抜き領域と通路を横断させない</li>
+  <li>開場前と各休憩後に、床マット、ストラップ、接合部、ケーブルカバー、USB端子をチェックリストで確認する</li>
+</ul>
+
+<h3 id="ch13-03-1試遊サイクル">1試遊サイクル</h3>
+<table tabindex="0">
+  <caption class="sr-only">1試遊サイクルの仕様表</caption>
+  <thead><tr><th scope="col">工程</th><th scope="col" class="n">秒</th></tr></thead>
+  <tbody>
+    <tr><td>声かけ・大幣の受け渡し・ストラップ装着</td><td class="n">20</td></tr>
+    <tr><td>安全説明（操作説明はゲーム内で行う）</td><td class="n">15</td></tr>
+    <tr><td>キャリブレーション（画面の的を向けて「正面」ボタンを1秒長押し）</td><td class="n">5</td></tr>
+    <tr><td>プレイ</td><td class="n">180</td></tr>
+    <tr><td>リザルト</td><td class="n">20</td></tr>
+    <tr><td>交代・拭き取り</td><td class="n">20</td></tr>
+    <tr><th scope="row">合計</th><td class="n">260秒（4分20秒）</td></tr>
+  </tbody>
+</table>
+<p>目標は<strong>試遊サイクルp90で270秒以内</strong>、1時間あたり13〜14人。展示6時間 × 1台で休憩・トラブルを含め<strong>約75人</strong>を目標とする。</p>
+
+<h3 id="ch13-04-アテンド手順書">アテンド手順書<span class="b new">新規</span></h3>
+<p>展示当日は7人が交代でアテンドに入るため、<strong>A4一枚の手順書</strong>を作る。内容：</p>
+<ol>
+  <li>声かけの一言（固定の台詞を決めておく）</li>
+  <li>大幣の渡し方とストラップの装着</li>
+  <li>キャリブレーションの誘導</li>
+  <li>プレイ中に言うこと／言わないこと</li>
+  <li>終了後の受け取りと拭き取り（接触面は毎回、全面は5人ごと）</li>
+  <li>トラブル時の対処（無線切断→有線に差し替え／フリーズ→再起動手順）</li>
+  <li>二人協力を採用した場合のみ、別紙の協力モード切り替え手順</li>
+</ol>
+
+<!-- ============ 14 ============ -->
+<h2 id="ch14"><span class="num">14</span>開発スケジュール</h2>
+<p>残り期間：2026年8月 〜 2027年1月（約5ヶ月）</p>
+
+<table tabindex="0">
+  <caption>開発フェーズとマイルストーン</caption>
+  <thead><tr><th scope="col">Phase</th><th scope="col">期間</th><th scope="col">内容</th><th scope="col">マイルストーン</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>1</strong><br>プリプロ</td><td>8月</td>
+      <td><strong>T0-A/B玩具→T0-CD技術探索→T0-3M耐久</strong>の順に実施／USB接続の大幣＋ボタン箱第一版／持ち方と安全／T1段階学習／T6-USB遅延・ドリフト・負荷。参拝客は図形1体でよい。T6-BLEはUSB合格後に余力がある場合だけ行う</td>
+      <td><strong>8月末</strong>：T0-A/B・T0-CD・T0-3M・T1・T6-USBが緑。初見の子どもが15秒以内に1人を救済できる</td>
+    </tr>
+    <tr>
+      <td><strong>2</strong><br>メイン開発</td><td>9月〜11月中旬</td>
+      <td><strong>MVPのみ</strong>：5色＋パターン／通常・移動・欲張り・遠方／二重円と優先救済／危険度D・残り発数R・黒客／笑顔伝播／縁／<strong>評価・ランク表示</strong>／段階学習と解禁／1環境180秒／<strong>無演出負荷ウェーブ</strong>／リザルト／自動復帰。T2意味ある選択とT3テンポを毎週反復</td>
+      <td><strong>10月末</strong>：α版（MVPで3分完走）<br><strong>11月中旬</strong>：T0-A/B・T0-CD・T0-3M・T1〜T3・T6-USBを2回連続合格しMVP固定</td>
+    </tr>
+    <tr>
+      <td><strong>3</strong><br>ポリッシュ</td><td>11月下旬〜12月中旬</td>
+      <td>UI/UX・演出・SE・BGM統合／対象層10〜15人の最終テスト。余白がある場合のみ、3ヶ月の背景・祭事演出・ボス客・動的難易度・提灯・ご加護を1機能ずつ追加し、各機能をTAで回帰確認。大祓はT5、天候効果はT4、BLEはT6-BLEにも合格してからTAへ進み、採用追加が2つ以上なら最後にTA-ALLを行う</td>
+      <td><strong>12月中旬</strong>：β版（重大・高バグ0、追加機能は採用済み分だけ）</td>
+    </tr>
+    <tr>
+      <td><strong>4</strong><br>最終提出</td><td>12月下旬〜1月上旬</td>
+      <td>QA／T7デバイス連続稼働／<strong>完全予備コントローラ一式の交換訓練</strong>／アテンド手順書／プレゼン資料・PV・提出物。BLE不合格・未実施時はUSBを既定とし、T7不合格なら追加機能→演出のみの順で縮退</td>
+      <td><strong>1月</strong>：工芸ゲームショウ</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============ 15 ============ -->
+<h2 id="ch15"><span class="num">15</span>チーム構成と役割分担</h2>
+<table tabindex="0">
+  <caption>担当別の役割分担</caption>
+  <thead><tr><th scope="col">担当</th><th scope="col">氏名</th><th scope="col">持ち場</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="2">企画 2</td><td>淡路 悠翔</td><td rowspan="2">バランス数値の設計と更新（付録Bの管理）／観察テストの実施と記録／祭事・月構成の演出設計／アテンド手順書</td></tr>
+    <tr><td>久岡 紘己</td></tr>
+    <tr><td rowspan="3">デザイン 3</td><td>足立 紗英</td><td rowspan="3">風景・参拝客モデル・アニメーション・UIデザイン<br>うち1名が<strong>音（SE・BGM）の選定と制作</strong>を兼任 <span class="b new">新規</span></td></tr>
+    <tr><td>高橋 錬太郎</td></tr>
+    <tr><td>玉木 陽都</td></tr>
+    <tr><td rowspan="2">プログラム 2</td><td>小林 祐斗</td><td><strong>A</strong>：ESP32ファームウェア／BLE通信／入力処理／遅延計測／有線フォールバック／キャリブレーション</td></tr>
+    <tr><td>ジュンガヤ チェービ</td><td><strong>B</strong>：Unity本体／輪郭シェーダー（T2）／スポーン／評価・スコア／UI実装</td></tr>
+  </tbody>
+</table>
+<p class="note">A/Bの割り当ては本人の希望で入れ替え可。重要なのは「ファーム」と「Unity＋シェーダー」を分けること。
+v3には担当分野の記載のみで、この分担がなかったため工数が偏るリスクがあった。</p>
+
+<h3 id="ch15-01-音の方針">音の方針<span class="b new">新規</span></h3>
+<ul>
+  <li>BGM：<span class="b mvp">MVP</span>は1環境の1ループ。残り2ヶ月の2曲＋祭事1曲は<span class="b add">追加</span>で、フリー素材またはAI生成をベースに調整</li>
+  <li>SE（MVP必須の<strong>7種</strong>）：発射・命中・救済・失敗（黒客化）・黒客ヒット・カウントダウン・鈴<br>
+    追加分：ご加護タイム <span class="b add">追加</span>／大祓のチャージと発射 <span class="b add">追加</span>／太鼓（祭事） <span class="b add">追加</span></li>
+  <li><strong>重要なのは音そのものより発音タイミング</strong>。投擲SEは「振りのピークを検出した瞬間」に鳴らす。
+    ここが遅れると無線遅延と重なって手応えが死ぬ</li>
+  <li>命中音は音階を上げられる素材にする（福の連なり演出のため／→ <a href="#ch7">7章</a>）</li>
+</ul>
+
+<!-- ============ 16 ============ -->
+<h2 id="ch16"><span class="num">16</span>展示機材と予算</h2>
+<p>miniPC ─ 展示用大型モニター ─ 自作コントローラ一式。コントローラは<strong>本番機と、通電・動作確認済みの完全予備機</strong>を各1式用意する。</p>
+
+<table tabindex="0">
+  <caption>展示機材・予算内訳</caption>
+  <thead><tr><th scope="col">区分</th><th scope="col">品目</th><th scope="col" class="n">金額</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="7">電子部品<br>（本番機）</td><td>ESP32DevkitC ×2</td><td class="n">3,600円</td></tr>
+    <tr><td>BNO055（9軸IMU）×1</td><td class="n">3,000円</td></tr>
+    <tr><td>ボタン 6個（お守り5色＋正面1） <span class="b chg">変更</span></td><td class="n">1,200円</td></tr>
+    <tr><td>ボタン用LEDリング 5個</td><td class="n">500円</td></tr>
+    <tr><td>振動モーター ×1</td><td class="n">300円</td></tr>
+    <tr><td>電源類・配線</td><td class="n">1,000円</td></tr>
+    <tr><th scope="row">小計</th><td class="n">9,600円</td></tr>
+    <tr><td rowspan="7">完全予備機<br>（通電済み1式）</td><td>ESP32DevkitC ×2</td><td class="n">3,600円</td></tr>
+    <tr><td>BNO055 ×1</td><td class="n">3,000円</td></tr>
+    <tr><td>ボタン 6個</td><td class="n">1,200円</td></tr>
+    <tr><td>ボタン用LEDリング 5個</td><td class="n">500円</td></tr>
+    <tr><td>振動モーター ×1</td><td class="n">300円</td></tr>
+    <tr><td>電源類・配線</td><td class="n">1,000円</td></tr>
+    <tr><th scope="row">小計</th><td class="n">9,600円</td></tr>
+    <tr><td rowspan="5">筐体・造形<br>（本番＋予備）</td><td>大幣の造形材料 ×2（棒・紙垂・塗料）</td><td class="n">4,000円</td></tr>
+    <tr><td>ボタン箱の外装 ×2</td><td class="n">3,000円</td></tr>
+    <tr><td>スタンド／台</td><td class="n">2,000円</td></tr>
+    <tr><td>ストラップ ×2</td><td class="n">1,000円</td></tr>
+    <tr><th scope="row">小計</th><td class="n">10,000円</td></tr>
+    <tr><td rowspan="4">消耗品・運用</td><td>モバイルバッテリー ×2</td><td class="n">3,000円</td></tr>
+    <tr><td>USBデータケーブル ×4＋床用ケーブルカバー2経路</td><td class="n">2,000円</td></tr>
+    <tr><td>アルコールシート</td><td class="n">500円</td></tr>
+    <tr><th scope="row">小計</th><td class="n">5,500円</td></tr>
+    <tr><th scope="row" colspan="2" style="text-align:right">合計</th><td class="n">34,700円</td></tr>
+  </tbody>
+</table>
+<p class="note">予備「部品」では交換に組立・書込み・再調整が必要で、60秒復帰を満たせない。
+予備は大幣・ボタン箱・ファームウェアを含む完成状態で保管し、展示前に本番PCへUSB接続して同じテストIDを通す。
+miniPCとモニターは会場備品を前提とし、完全予備機の範囲には含めない。</p>
+
+<!-- ============ 17 ============ -->
+<h2 id="ch17"><span class="num">17</span>課題・リスク・検証の合格ライン</h2>
+<p class="lens">Lens <b>#14 リスク軽減</b>：プロジェクトを失敗させうる仮説は何か。最も危険なものを先に、最小の費用で試しているか。</p>
+
+<h3 id="ch17-01-体験ゲート-T0-A-B-T7-TA-危険度順">体験ゲート T0-A/B〜T7＋TA（危険度順）<span class="b chg">変更</span></h3>
+<p>すべて<span class="hold">未検証</span>から開始する。探索は各回5人でもよいが、完成判定は対象層10人以上（T0-CD、T3比較、T6-USB、T6-BLE、T7を除く）で行う。
+T0を「T0-A/B玩具」「T0-CD検出」「T0-3M耐久」に分け、<strong>1テスト1仮説</strong>を守る。USBはMVP必須、BLEは任意の追加ゲートである。</p>
+<table tabindex="0" class="gate-table">
+  <caption class="sr-only">体験ゲート T0-A/B〜T7＋TA（危険度順）の仕様表</caption>
+  <thead><tr><th scope="col">ID</th><th scope="col">仮説／対象</th><th scope="col">手順と記録</th><th scope="col">合格ライン</th><th scope="col">不合格時</th></tr></thead>
+  <tbody>
+    <tr>
+      <th scope="row">T0-A/B<br>玩具の手応え</th>
+      <td>参拝客・得点がなくても、軌跡・音・振動のフィードバックで「もう一度振りたい」と思う<br><span class="note">対象層10人</span></td>
+      <td>同じ的・重量・判定で、事前固定したフィードバック案A/Bを各45秒。提示順を5人ずつBA/ABに割り付け、間に60秒休む。自発投数、表情・声、手応え5段階、「すぐもう一度振りたい」二択、採用案の強制二択と理由を記録する。クールダウン値や3分疲労は同時に検証しない</td>
+      <td>8/10が採用案を手応え4/5以上／8/10が「すぐもう一度振りたい」を選ぶ／7/10以上が同じ案を選ぶ／映像・音・振動の同期ずれ指摘が2/10以下／痛み・恐怖・ストラップ逸脱0件</td>
+      <td><strong>参拝客制作を停止</strong>。投擲SE、軌跡出現、振動開始の時刻差を1つずつ直して新しいA/Bを行う</td>
+    </tr>
+    <tr>
+      <th scope="row">T0-CD<br>検出探索</th>
+      <td>意図しない二重発射を抑えながら、意図した連投を欠落させないクールダウン値がある<br><span class="note">操作経験の異なる8人。人数ではなく投数で判定</span></td>
+      <td>USBで0.40／0.50／0.60／0.65秒を4条件ラテン方格の各順序へ2人ずつ割り付ける。各値につき合計で単発100回と「自分の最速で2回振る」50組を行い、外部動画の振りピークを意図の正本にする。余分な発射、意図的連投の欠落、実連投間隔を別々に記録する</td>
+      <td><strong>誤発射≤2%</strong>かつ<strong>意図的連投の欠落≤2%</strong>を両方満たす最小値を採用／全値でストラップ逸脱・筐体接触0件。母数と95%信頼区間も記録</td>
+      <td>両方を満たす値がなければ閾値・ピーク検出・ヒステリシスを変更する。片方だけを優先して値を決めない</td>
+    </tr>
+    <tr>
+      <th scope="row">T0-3M<br>標準耐久</th>
+      <td>採用した手応えと検出設定で、対象層が安全に3分振り続けられる<br><span class="note">対象層10人</span></td>
+      <td>採用案・採用CD・USBを固定し、参拝客や得点のない標準ターゲットを3分。1分ごとの投数と命中率、持ち替え、腕の下がり、終了希望、直後の疲労・痛み、実際の再挑戦選択、実操作周期の中央値とp75を記録する</td>
+      <td>9/10が3分完走／最終1分の投数低下が初分比20%以内／疲労中央値2/5以下／7/10がもう一度を選択／痛み・恐怖・ストラップ逸脱0件</td>
+      <td>重量・重心・握り・必要振幅を直す。疲労を演出の弱さやゲーム内容で覆い隠さない。実操作周期が想定1.0〜1.4秒から外れた場合は、中央値とp75で8章の負荷算術を更新し、p75より短い投周期を要求する人数案をT3候補から外す</td>
+    </tr>
+    <tr>
+      <th scope="row">T6-USB<br>必須技術</th>
+      <td>基準接続のUSBで、意図が遅れ・欠落・ずれなく届き、最悪描画でも動く<br><span class="note"><span class="b mvp">MVP必須</span></span></td>
+      <td>開始前に前後左右1.5mの領域、後方2m以上の観客境界、USB4本の経路、ストラップ、接合部をチェック。その後、検出済みの意図的100投ログ／3分静止・操作／黒客・退場者込み30体の負荷／子ども5人が2分練習後に近・遠各10投。入力時刻、Unity受信、発射確定を同一ログへ記録</td>
+      <td>安全チェック全項目適合・接触／逸脱0／遅延p95≤80ms・最大≤100ms／意図的入力欠落&lt;2%・誤発射≤2%／切断0／3分ドリフト≤画面幅5%／60fps・1% low≥55fps／近7/10・遠6/10命中</td>
+      <td>相対姿勢へ／当たり判定・照準補正／描画を簡略化。USBが赤ならMVPを固定しない</td>
+    </tr>
+    <tr>
+      <th scope="row">T6-BLE<br>任意技術</th>
+      <td>BLEがUSBと同等の操作感で30分安定し、展示の配線を減らせる<br><span class="note"><span class="b add">追加</span>。未実施・不合格でもMVPは合格可能</span></td>
+      <td>T6-USBと同じビルド・負荷で意図的100投と30分連続操作。USB基準との差、欠落、誤発射、切断、再接続秒を記録する</td>
+      <td>絶対遅延p95≤80ms・最大≤100ms、かつUSB比p95悪化≤20ms／欠落&lt;2%・誤発射≤2%／切断0／30分後ドリフト≤画面幅5%</td>
+      <td><strong>展示既定をUSBにする</strong>。BLEの再調整はMVP・ポリッシュ日程を使わない</td>
+    </tr>
+    <tr>
+      <th scope="row">T1<br>初見</th>
+      <td>説明書なしで「色を選ぶ→狙う→振る→危険客を救う」を理解する<br><span class="note">対象層10人</span></td>
+      <td>30秒の段階学習。スタッフは安全以外を説明しない。各段階の早期達成・時間切れ、自由練習秒、初救済秒、色誤り、停止3秒、0:30後の状況別ゴースト、介入を記録</td>
+      <td>8/10が15秒以内に初救済／9/10が2投目までに正色／スタッフ介入1/10以下／各段階の未達がそれぞれ2/10以下／7/10が30秒後に次の標的を理由付きで説明</td>
+      <td>文章を増やさず、配置・同期パルス・照準反応・ゴースト表示の順に修正</td>
+    </tr>
+    <tr>
+      <th scope="row">T2<br>意味ある選択</th>
+      <td>確実・二重円・遠方伝播・複数発の選択が状況で競合する<br><span class="note">対象層10人。<strong>遠方客をMVPへ繰り上げたので4択で判定できる</strong></span></td>
+      <td>固定シードの二択場面6種を提示。最初の標的、決定秒、理由、1変数変更後の選択変化を記録</td>
+      <td>主要3場面で各選択肢が20〜80%に分布／7/10が利益と危険を説明／6場面中4場面以上で、変数変更に応じて多数派が変わる</td>
+      <td>支配選択の得点・距離・伝播経路・必要発数を変更。「二重円だけを追う」が支配戦略なら優先救済を+50→+30へ下げる。情報を読めない場合は表示を先に修正</td>
+    </tr>
+    <tr>
+      <th scope="row">T3<br>3分</th>
+      <td>無演出負荷ウェーブに、認知負荷と身体疲労を超えず最後を最大の山にできる人数がある<br><span class="note">比較は対象層12人。祭事演出・動的難易度・ボス・天候効果はOFF</span></td>
+      <td>+3／+4／+5（総上限13／14／15人）を各参加者が3回体験。6通りの提示順へ2人ずつ割り付け、条件間に3分休憩。固定シードA/B/Cも条件と直交するよう回す。0〜60／60〜120／120〜180秒ごとの命中率、投擲数、停止時間、表情、疲労、<strong>救済数・黒客化数・黒客化率・同時黒客最大・評価推移</strong>を記録する</td>
+      <td>採用候補で11/12が完走／総停止時間中央値&lt;18秒／最終1分の命中率低下≤15pt／疲労中央値≤2/5／再挑戦希望≥70%／<strong>最終1分の黒客化数≤救済数／同時黒客≤5人</strong>。全条件を満たす中で、最終40秒の楽しさ中央値が最大の人数を採用</td>
+      <td>+3も赤なら基準上限・持続時間・情報表示を下げる。+3が緑なら+4、次に+5の順で採否を判断する。<strong>180秒は変えず、祭事演出を足して合格扱いにしない</strong></td>
+    </tr>
+    <tr>
+      <th scope="row">T4<br>天候</th>
+      <td>必要情報と制御感を壊さず、選択だけを変える<br><span class="note">対象層10人・固定シード</span></td>
+      <td>晴／候補効果を各2回比較。色・パターン認識、命中率、原因説明、標的選択、スコアを記録</td>
+      <td>識別95%以上／命中率差≤5pt／原因説明90%以上／スコア差±15%以内／30〜60%の場面で標的選択が変化</td>
+      <td>ゲーム効果を削除し、演出のみへ戻す</td>
+    </tr>
+    <tr>
+      <th scope="row">T5<br>大祓</th>
+      <td>派手な選択肢だが、通常投擲を置き換えない<br><span class="note">対象層10人・6配置</span></td>
+      <td>チャージ済みで始める同色密集2／混色2／疎2の固定配置を順序交替し、配置別の大祓選択率、保持秒、対象数、誤チャージ、説明を記録。続けて通常分布の3分を行い、<strong>大祓由来の救済数・得点（その救済客が後で生んだ伝播点も含む）の占有率、ストック獲得後5秒以内の消費率、通常弾との縁／操作秒</strong>を測る</td>
+      <td>同色密集で1回平均2人以上を救済／混色・疎では通常弾の縁／操作秒が大祓以上／3分全体で大祓由来の救済数占有≤25%・得点占有≤20%・5秒以内消費≤50%／8/10が色・対象上限・チャージと温存理由を説明／誤チャージ≤10%</td>
+      <td>対象数・半径・解禁条件を調整。2回連続不合格なら大祓を削除</td>
+    </tr>
+    <tr>
+      <th scope="row">TA<br>追加機能の単体回帰</th>
+      <td>追加機能1つが、宣言した利益を生みながらMVPの理解・命中・疲労・再挑戦・運用を壊さない<br><span class="note">対象層10人。祭事演出、ボス、動的難易度、提灯、ご加護、天候、大祓、BLEを1機能ずつ判定</span></td>
+      <td>MVP固定版Aと、追加機能を1つだけ有効にした版Bを同じ固定シードで比較し、AB／BAへ5人ずつ割り付ける。実施前にその機能の主要利益指標と合格値を1つ登録する。初救済秒、命中率、停止秒、疲労、再挑戦、介入、重大不具合、安全事象を同じ様式で記録する</td>
+      <td>登録した主要利益値を達成／初救済中央値の悪化≤10%／命中率低下≤5ポイント／再挑戦意向の低下≤1/10／疲労中央値の増加&lt;1段階／介入増加≤1/10／重大不具合・安全事象0。見えるルールは8/10が説明可能</td>
+      <td>利益が出なければ削除。コア指標だけ落ちた場合は1変更で再試験し、2回連続不合格なら演出のみへ縮退または削除。複数機能をまとめて調整しない</td>
+    </tr>
+    <tr>
+      <th scope="row">TA-ALL<br>追加機能の統合回帰</th>
+      <td>単体では合格した追加機能を併用しても、効果の累積や競合でMVPのコア体験を壊さない<br><span class="note">新しい対象層10人。採用済み追加が2つ以上ある場合、β版固定前に必須</span></td>
+      <td>MVP固定版Aと、採用済み追加機能をすべてONにした統合版Bを同じ固定シードで比較し、AB／BAへ5人ずつ割り付ける。TAと同じコア指標に加え、機能同士の表示・入力・得点・時計の競合、3:00境界、通信復帰を記録する</td>
+      <td>初救済中央値の悪化≤10%／命中率低下≤5ポイント／再挑戦意向の低下≤1/10／疲労中央値の増加&lt;1段階／介入増加≤1/10／機能競合・重大不具合・安全事象0</td>
+      <td>直近に追加した機能から1つずつOFFにして原因を分離する。1変更で再試験し、合格する最小構成だけをβ版へ残す。単体合格を理由に併用を強行しない</td>
+    </tr>
+    <tr>
+      <th scope="row">T7<br>展示運用</th>
+      <td>会場で安全に回転し、故障しても60秒以内に戻せる</td>
+      <td>USBを基準に30連続プレイ相当・3時間稼働。完全予備機への交換訓練、床の安全領域と配線、温度、清掃、試遊サイクルを記録。BLE採用時だけ同じ試験をBLEでも追加する</td>
+      <td>クラッシュ・切断0／重大な入力欠落0／<strong>完全予備機へ60秒以内で交換・再開</strong>／試遊サイクルp90≤270秒／ケーブル浮き・領域侵入・安全事故0</td>
+      <td>展示接続をUSBへ固定／追加機能を演出のみに縮退／交換手順を簡略化。安全失敗は即停止</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="ch17-02-ゲートの順序と判定ルール">ゲートの順序と判定ルール<span class="b mvp">MVP</span></h3>
+<div class="decision-rule">
+  <p><strong>T0-A/B → T0-CD → T0-3M → T6-USB → T1 → T2 → T3 →（追加1機能ごとに専用ゲート＋TA）→ TA-ALL → T7</strong></p>
+  <p>上流が赤のまま下流機能を作らない。T4・T5・T6-BLEは該当機能の専用ゲートで、その後にTAも通す。専用ゲートのない祭事演出・ボス・動的難易度・提灯・ご加護もTAを必須とする。採用追加が2つ以上ならTA-ALLをβ版固定前に行う。追加ゲート未実施でもMVPは固定できる。</p>
+</div>
+<table tabindex="0">
+  <caption>ゲート判定と次の行動</caption>
+  <thead><tr><th scope="col">判定</th><th scope="col">条件</th><th scope="col">次の行動</th></tr></thead>
+  <tbody>
+    <tr><td class="pass">緑／採用</td><td>全合格値を満たす。MVPの体験ゲートは別日・別対象者で2回連続合格（T0-CDは別日・同じ投数で再現、T3比較は採用条件を別対象者10人で再確認）</td><td>仕様を固定し、ランタイム値は付録B、ゲート結果は17章のテスト記録へテストIDを残す</td></tr>
+    <tr><td class="hold">黄／調整</td><td>安全以外の1指標だけが基準の10%以内で未達</td><td>原因仮説を1つ選び、1変更だけ入れて同じ手順で再試験</td></tr>
+    <tr><td class="cut">赤／停止</td><td>安全失敗、複数指標未達、または基準から10%超の未達</td><td>下流作業を止める。2回改善しても赤なら単純化・演出化・削除</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><strong>1ビルド1仮説</strong>。複数箇所を同時に変えず、何が効いたかを残す</li>
+  <li>観察事実・原因仮説・修正案を別欄に書き、感想だけで採否を決めない</li>
+  <li>固定シードと同じ機材条件で比較する。スタッフは説明・弁護・誘導をしない</li>
+  <li>数値変更にはテストID、日付、対象人数、責任者を必須とする</li>
+</ul>
+
+<h3 id="ch17-03-主要課題">主要課題</h3>
+<table tabindex="0">
+  <caption class="sr-only">主要課題の仕様表</caption>
+  <thead><tr><th scope="col">領域</th><th scope="col">課題</th></tr></thead>
+  <tbody>
+    <tr><td>技術</td><td>玩具感を保った入力遅延／意図的連投の欠落／ヨー角ドリフト／輪郭発光の負荷／子どもが全力で振る前提の接合部の強度。T6-USBは黒客・退場者込み30体で測り、BLEは独立した任意ゲートにする</td></tr>
+    <tr><td>UI密度</td><td>通常時10体、負荷ウェーブ最大15体でも、輪郭5色＋パターン＋危険円（D≥50）＋D&lt;50でも出る二重円1つ＋<strong>ゲージ表示客最大3人</strong>＋照準を2秒以内に読めるか。開始30秒は段階開示</td></tr>
+    <tr><td>風景</td><td>境内の奥行・視線誘導と季節差。天候は必須情報の明度を変えない。固定1人称で近／中／遠の3層が読み分けられる配置</td></tr>
+    <tr><td>攻略の偏り</td><td>手前の確実性（基礎100）、二重円の+50、奥の遠方客（基礎200＋伝播最大+80）、欲張り客（基礎300・2発）が競合するかをT2で確認。精度加点と倍率は共通条件として分けて記録し、単一選択が70%超なら調整。<strong>優先救済に閾値がないため「待って稼ぐ」攻略は構造的に存在しない</strong></td></tr>
+    <tr><td>運用</td><td>デバイス故障（完全予備機＋USB＋キーボード代替）／無線混雑／3時間連続稼働／振り抜き安全領域／USB配線／衛生</td></tr>
+  </tbody>
+</table>
+
+<h3 id="ch17-04-自覚しているリスク-創発が薄い">自覚しているリスク：創発が薄い<span class="b later">余裕時</span></h3>
+<p class="lens">Lens <b>#23 創発</b>：基本行為はいくつの用途を持つか。</p>
+<p>基本行為（色を選ぶ／狙う／振る／長押し）は用途がほぼ1つずつで、
+MVPで毎回違う体験になる要素は「出現のランダム」「笑顔の伝播」の2つです。追加要素を採用した場合だけ「天候」が3つ目に加わります。
+ルールの相互作用から予想外の展開が次々生まれる構造ではありません。</p>
+<p><strong>3分の展示ゲームとしては致命傷ではありませんが、リピートは1人あたり1〜2回が現実的</strong>という
+前提で他を設計しています（＝1回目の満足度を最大化する方向に振っている）。
+もしβ版・T7まで合格し、なお20%以上の余白があれば、次の候補を1つだけ検討します。</p>
+<ul>
+  <li>外れた弾が地面に数秒残り、近くの参拝客が拾いに歩いてくる（「外す」が戦術になる）</li>
+  <li>大祓の爆風で参拝客が少し後ろに下がる（近→中に押し出される）</li>
+</ul>
+
+<!-- ============ 18 ============ -->
+<h2 id="ch18"><span class="num">18</span>遊び方の伝え方</h2>
+<p class="lens">Lens <b>#48 接近可能性</b>／<b>#56 透明性</b>：始めやすく、説明書なしで理解できるか。</p>
+<p>前例のないデバイスなので言葉では伝わらない。v3ではβ版扱いだったが Phase 2 に前倒しする。</p>
+
+<h3 id="ch18-01-待機中-誰も遊んでいないとき">待機中（誰も遊んでいないとき）</h3>
+<ul>
+  <li>8秒の無音ループ：困り顔の参拝客 → 同色ボタンが脈動 → 大幣のゴーストが向く → 一振り → 笑顔と光が隣へ伝わる</li>
+  <li>文字は「<strong>同じ色を押す → ねらう → 振る</strong>」の1行だけ。実写の持ち方映像を右下へ添える</li>
+  <li>今日のベストスコアを大きく出す（待っている子の動機になる）</li>
+</ul>
+
+<h3 id="ch18-02-筐体の掲示">筐体の掲示</h3>
+<p>持ち方と振り方のイラストをA3程度で貼る。文字は最小限。</p>
+
+<h3 id="ch18-03-プレイ開始直後の30秒">プレイ開始直後の30秒<span class="b mvp">MVP</span></h3>
+<table tabindex="0">
+  <caption>開始30秒の段階学習</caption>
+  <thead><tr><th scope="col">締切時刻</th><th scope="col">教えること</th><th scope="col">画面と入力</th><th scope="col">達成／未達の分岐</th></tr></thead>
+  <tbody>
+    <tr><td class="n">0:08</td><td>届ける</td><td>緑1色・1人。対象輪郭と緑ボタンを同時に脈動。照準が乗ると参拝客がこちらを見る。3秒止まったら大幣ゴーストを1回だけ表示</td><td><strong>達成：</strong>1回救済した瞬間に「選ぶ」へ。<br><strong>未達：</strong>0:08で自動的に「選ぶ」へ進み、未達フラグを記録</td></tr>
+    <tr><td class="n">0:18</td><td>色を選ぶ</td><td>緑と青の2人。ボタンの自動脈動は最初の1回だけ。Dは増えない</td><td><strong>達成：</strong>2人救済した瞬間に「見抜く」へ。<br><strong>未達：</strong>0:18で自動的に「見抜く」へ進み、未達フラグを記録</td></tr>
+    <tr><td class="n">0:30</td><td>危ういひとりを見抜く</td><td>3色・3人。<strong>1人だけD=65をスクリプトで固定し、足元に薄い赤の円＋二重円を出す</strong>。この1人を救うと「先に救えた」＋笑顔伝播を強調</td><td><strong>達成：</strong>残り時間は3色の自由練習。<br><strong>未達：</strong>0:30から最初の5秒だけ、その時点で不足する操作のゴーストを1回表示。口頭説明はしない</td></tr>
+    <tr><td class="n">0:30.000</td><td>本番</td><td>学習中の仮値を破棄し、縁=0、評価=0、C=0、G=0、現在／最高ランク=Cで開始。C停滞タイマーもここから計時する。通常客のみで開始し、0:38 欲張り／0:48 遠方／1:00 移動／2:00 ボス <span class="b add">追加</span>を解禁</td><td>学習の達成状況にかかわらず固定時刻に開始。未達者のゴースト表示は介入としてログへ残すが、競技時計は止めない</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>この30秒は黒客化しない。誤投擲は「色が違う」短表示だけで罰を与えない</li>
+  <li>0:00〜0:18はDが増えないため、0:18〜0:30の二重円は<strong>時間経過ではなくスクリプトで与えたD=65</strong>で表現する。
+    0:30以降は通常のルールで最大値の1人に付く</li>
+  <li><strong>学習中は競技用の得点・評価・ランクを加算しない</strong>。成功を伝えるための仮表示を使う場合も0:30.000で破棄し、最高ランク記録へ含めない</li>
+  <li>ボス、大祓、ご加護、天候のゲーム効果は表示しない</li>
+  <li>アテンドは安全説明とストラップ装着だけ行い、操作説明は求められるまでしない</li>
+</ul>
+<div class="box why">
+<span class="lbl">初見ゲート T1</span>
+<p>対象層10人中、<strong>8人以上が口頭説明なし15秒以内に初救済</strong>、
+<strong>9人以上が2投目までに正しい色を選択</strong>、スタッフ介入が1人以下、
+各段階の未達がそれぞれ2人以下、30秒後に7人以上が「次に誰を狙うか」を理由付きで答えられれば合格。
+未達なら説明文を増やさず、配置・同期パルス・照準反応・段階数を修正する。</p>
+</div>
+
+<!-- ============ 19 ============ -->
+<h2 id="ch19"><span class="num">19</span>テストプレイの記録</h2>
+<p class="lens">Lens <b>#91 プレイテスト</b>：このテストで何を知りたいか。発言より行動を観察したか。</p>
+
+<h3 id="ch19-01-記録シートの項目-1人1枚">記録シートの項目（1人1枚）</h3>
+<ul>
+  <li>テストID／ビルド番号／日付／検証する仮説／固定シード</li>
+  <li>年齢層／ゲーム経験／利き手／眼鏡・座位など操作へ関係する条件（本人が答えたい範囲）</li>
+  <li>初救済秒、各投の時刻・選択色・標的（危険度／距離／種類）・命中位置・結果</li>
+  <li>学習3段階それぞれの開始秒・達成秒・時間切れ、自由練習秒、0:30時のカウンタ初期化、状況別ゴーストの有無</li>
+  <li>スタッフ介入、大祓、天候、救済、黒客化、3秒以上の停止をイベントログとして記録</li>
+  <li>手が止まった瞬間、そのとき見ていた場所と直前の画面状態</li>
+  <li>声に出した言葉をそのまま書き取る</li>
+  <li>終わった直後の表情と第一声</li>
+  <li>再挑戦する／別の遊びへ移る、の実選択。楽しさ・手応え・疲労・判断感を各5段階</li>
+  <li>救済人数、縁、命中率、<strong>最終評価・プレイ中の最高ランク・最高ランク到達秒</strong>、提灯<span class="b add">追加</span>、通常投擲数と大祓使用数</li>
+  <li><strong>3:00境界ログ</strong>：最後に受理した振りの検出時刻、境界時の飛翔中弾数、3:00以前の投擲による決着時刻、決着前後の縁・救済数、3:00以後に拒否した入力数</li>
+</ul>
+
+<h3 id="ch19-02-ルール">ルール</h3>
+<ul>
+  <li>観察対象は<strong>開発メンバー以外</strong>。できれば小中学生</li>
+  <li>記録は本人に見せず、後ろから書く。感想は最後にだけ聞く</li>
+  <li>探索1回は5人、MVPの完成判定は対象層10人以上。T0-A/B・T0-3M・T1・T2は別日・別対象者で2回連続合格。T0-CDは別日に同じ投数で再現し、T3比較は採用条件を別対象者10人で再確認する</li>
+  <li>「面白かった」だけでは決めないが無視もしない。<strong>行動＋表情＋5段階回答</strong>の3つで照合する</li>
+  <li>テストごとに「何が分かれば成功か」を1つ決め、比較時は1ビルド1変更にする</li>
+  <li>観察者は説明・弁護をしない。質問はプレイ終了後に同じ文面で行う</li>
+  <li>黒客化率は<strong>黒客化数 ÷（救済数＋黒客化数）</strong>として記録し、「率」と「数」を比較しない。分母0は欠測とする</li>
+</ul>
+
+<h3 id="ch19-03-テスト後の意思決定記録">テスト後の意思決定記録<span class="b mvp">MVP</span></h3>
+<table tabindex="0">
+  <caption>テスト後の意思決定記録項目</caption>
+  <thead><tr><th scope="col">欄</th><th scope="col">書く内容</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">観察事実</th><td>解釈を入れず、時刻と行動を書く（例：0:12に青客へ緑を投げ、3秒停止）</td></tr>
+    <tr><th scope="row">原因仮説</th><td>なぜ起きたと思うか。事実と分け、確度を高／中／低で記す</td></tr>
+    <tr><th scope="row">判定</th><td>緑／黄／赤。17章の基準値と実測値を並べる</td></tr>
+    <tr><th scope="row">次の1変更</th><td>次ビルドで変えるものを1つだけ書く。変えないものも明記</td></tr>
+    <tr><th scope="row">責任と期限</th><td>担当者、実装期限、再テスト日、採用／保留／削除</td></tr>
+  </tbody>
+</table>
+
+<h3 id="ch19-04-参加者の確保">参加者の確保<span class="b new">新規</span></h3>
+<p>小中学生を最終ゲートごとに10人以上集めるには段取りが必要なので、<strong>8月中に手を打つ</strong>。
+候補：学内の子ども向けイベント、メンバーの家族・親戚、近隣の学童。</p>
+<ul>
+  <li>未成年者は<strong>保護者の事前同意</strong>と本人の当日同意（アセント）の両方を得る。参加しない・途中でやめる選択に不利益がないと最初に伝える</li>
+  <li>収集するのはテストIDと年齢層を基本とし、氏名を記録シートへ書かない。動画・写真・音声は観察同意と分けて許可を取り、拒否時は数値ログと手書き観察だけで実施する</li>
+  <li>痛み、恐怖、めまい、ストラップ逸脱、領域外への踏み出しが1件でもあれば即時中止し、保護者へ状況を共有する</li>
+</ul>
+
+<!-- ============ 20 ============ -->
+<h2 id="ch20"><span class="num">20</span>用語と表記</h2>
+<table tabindex="0">
+  <caption class="sr-only">用語と表記の仕様表</caption>
+  <thead><tr><th scope="col">使う</th><th scope="col">使わない</th></tr></thead>
+  <tbody>
+    <tr><td>お守り</td><td>御守り</td></tr>
+    <tr><td>参拝客（本文中で短く書く場合のみ「客」を許容）</td><td>—</td></tr>
+    <tr><td>黒客（社内用語。プレイヤーには名前を表示しない）</td><td>—</td></tr>
+    <tr><td>危険度D（0〜100。時間で増え、救済途中の命中では減らない）</td><td>不満ゲージ／モヤモヤゲージ</td></tr>
+    <tr><td>残り必要発数R（1〜3。正しい色の命中で1ずつ減る）</td><td>危険度と同じゲージへ統合する表記</td></tr>
+    <tr><td>厄除け安全</td><td>厄除け（略さない）</td></tr>
+    <tr><td>祭事</td><td>祭り／例大祭</td></tr>
+    <tr><td>大祓（おおはらえ）＝特大弾の正式名称</td><td>—</td></tr>
+    <tr><td>ご加護タイム（正式名称）</td><td>フィーバー</td></tr>
+    <tr><td>福の連なり <span class="b new">新規</span></td><td>コンボ（変数名・UI文言でも使わない）</td></tr>
+    <tr><td>二重円（優先救済の対象マーク） <span class="b new">新規</span></td><td>ロックオン／ターゲットマーカー</td></tr>
+    <tr><td>正面ボタン（キャリブレーション用の白ボタン） <span class="b new">新規</span></td><td>リセットボタン</td></tr>
+    <tr><td>篝火（進行表示）／提灯（縁のマイルストーン）</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<!-- ============ 21 ============ -->
+<h2 id="ch21"><span class="num">21</span>残る未確定事項</h2>
+
+<h3 id="ch21-01-実測を待つもの-Phase-1で確定">実測を待つもの（Phase 1で確定）</h3>
+<ul>
+  <li><strong>発射クールダウンの値</strong>（T0-CDで0.40／0.50／0.60／0.65を比較し、重複誤発射率と意図的高速2連投の2発目欠落率がともに2%以下となる最小値を採る）</li>
+  <li>USB入力遅延の実測値（T6-USB）と、BLEを展示既定にするかの独立判断（T6-BLE）</li>
+  <li>大幣の最終的な重量・全長（持ち方モックの結果次第）</li>
+  <li>輪郭パターンの太さと間隔（T1の視認性次第）</li>
+  <li>二重円の見た目（薄い赤の円と重なっても1人だけと分かるか。T1で確認）</li>
+  <li>優先救済が+50で妥当か、+30へ下げるか（T2の選択分布次第）</li>
+  <li><strong>終盤の負荷ウェーブ加算</strong>（T3で +3／+4／+5 を比較。総同時上限15人）</li>
+  <li>MVPの通常時同時上限10人が妥当か（T3で+3も破綻するなら基準上限から見直す）</li>
+  <li>スポーン間隔1.5秒／歩行3秒の体感（画面が空いて見えないか）</li>
+  <li>解禁時刻（0:38／0:48／1:00／2:00）の間隔が詰まりすぎていないか（T1・T3）</li>
+</ul>
+
+<h3 id="ch21-02-決めていないもの">決めていないもの</h3>
+<ul>
+  <li><strong>投福神社オリジナルの祭事</strong>を入れるか、入れるならどの月か<br>
+    <span class="note">v3の17章で「ある。何月かは未確定」のまま。3ヶ月すべてに既存祭事が入っているため、入れるなら差し替えになる。「投福神社」という架空神社の独自性に関わる。</span></li>
+  <li>BGM・SEを自作するかフリー素材にするか（→ <a href="#ch15">15章</a>の方針で進めるが最終決定は未）</li>
+  <li>12月・二人協力・親子ランキングはβ版とT7合格後に余裕があれば採否を判断</li>
+</ul>
+
+<h3 id="ch21-03-この文書で解決していないこと">この文書で解決していないこと<span class="b new">新規</span></h3>
+<p>紙の上で潰せる矛盾は潰しましたが、次の2つは文書では解決できません。</p>
+<ul>
+  <li><strong>大幣を振ることが面白いかどうか</strong>。T0-A/Bが落ちればこの文書の大半は書き直しになります。
+    そのとき守るのは「振る・狙う・色を選ぶ」の3要素と180秒という枠だけで、
+    得点設計・参拝客の種類・祭事は全部作り直す前提でいます。</li>
+  <li><strong>創発が薄いこと</strong>（→ <a href="#ch17">17章</a>）。基本行為の用途が1つずつなので、
+    リピートは1人1〜2回が現実的という前提で設計しています。
+    これは展示ゲームとして許容できる割り切りですが、解決したわけではありません。</li>
+</ul>
+
+<h3 id="ch21-04-文書運用">文書運用<span class="b new">新規</span></h3>
+<p class="lens">Lens <b>#90 文書化</b>：巨大で固定的な文書はすぐ古くなり読まれなくなる。誰が何を決めるために読む文書か。</p>
+<ul>
+  <li><strong>Phase 1までは、ゲーム内で読み込むバランス値・入力閾値について<a href="#numbers">付録B</a>が唯一のマスター</strong>。テスト合格値は17章、安全寸法は13章（3章へ同値再掲）、予算は16章を正本とする。Phase 2開始時に付録Bの値をスプレッドシートへ移管し、以後はそのシートだけをランタイム数値のマスターとする</li>
+  <li>移管後は各値を固有キー（例：<code>INPUT.CD</code>、<code>WAVE.FINAL</code>）で管理し、HTML公開前に本文・付録B・実装設定との一致を確認する。HTMLとシートを同時に正本にしない</li>
+  <li>本文は「なぜそうするか」と方針だけを持つ。数値の再掲は説明用</li>
+  <li>更新責任者：企画2名（→ <a href="#ch15">15章</a>）</li>
+  <li>プログラム側の仕様書と食い違ったら、Phase 1は付録B、Phase 2以降は移管済みスプレッドシートを正とし、差分を解消してから次のビルドを作る</li>
+</ul>
+
+<hr class="sec">
+
+<!-- ============ APPENDIX A ============ -->
+<h2 id="approve">付録A. 要承認リスト</h2>
+<p>ここだけ判断してもらえれば残りは進められます。第1段から順に。</p>
+<dl class="approval-dashboard" aria-label="承認状況">
+  <dt>文書全体の状態</dt>
+  <dd><span class="approval-state" data-state="pending">承認待ち</span></dd>
+  <dt>項目の状態</dt>
+  <dd>各項目の先頭に表示。承認後は「承認済み」、判断を先送りする場合は「保留」へ更新する</dd>
+  <dt>最終更新</dt>
+  <dd><time datetime="2026-08-04">2026年8月4日</time></dd>
+</dl>
+
+<h3 id="approve-01-第1段-今週決めたい-実装の根幹">第1段：今週決めたい（実装の根幹）</h3>
+<ul class="check">
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span><strong>本質的経験</strong>を「優先救済・伝播範囲・残り発数を見比べ、いま救うひとりを選び、狙って間一髪で福をつなぐ」に固定する（<a href="#ch1">1章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span><strong>危険度D（時間）と残り必要発数R（命中）を別状態</strong>にする。正色命中はRだけを1減らし、誤色はD／Rを変えない（<a href="#ch5">5章</a>・<a href="#ch10">10章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>欲張り客の途中命中は0点、<strong>R=0の救済完了時に基礎点300</strong>。待って稼ぐ倍率は置かず、優先救済は候補集合から常に1人を決める（<a href="#ch7">7章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>SwingAccepted時に色・標的ID・ご加護倍率を保存し、同点は固定規則で解く。福の連なり倍率は救済完了後にCを1増やして確定する（<a href="#ch4">4章</a>・<a href="#ch7">7章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>入力を「無色／色保持／通常投擲／大祓チャージ／取消」に分け、色の複数押し・通信欠落・クールダウン中の扱いを状態機械どおり実装する（<a href="#ch3">3章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>5色＋正面の<strong>6ボタン状態をビットマスク＋ハートビート</strong>で送信し、断線・矛盾時は安全側に発射取消する（<a href="#ch3">3章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>MVPは<strong>USB接続</strong>、BLEはT6-BLEを通過した場合だけ展示既定にする。USB一式を完全な温予備として残す（<a href="#ch3">3章</a>・<a href="#ch16">16章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>MVPは晴・固定難易度・無演出負荷ウェーブ。祭事演出、動的難易度、雨風雪、ボス、大祓、ご加護は追加へ分離する（<a href="#ch9">9章</a>・<a href="#ch11">11章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>評価・現在ランク・最高称号はMVPだが、得点倍率と人数変化は持たせない。動的難易度を採用したビルドだけ人数／速度を変える（<a href="#ch7">7章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>T0-A/B → T0-CD → T0-3M → T6-USB → T1 → T2 → T3の順でMVPを判定し、全合格まで追加要素へ着手しない。追加は1機能ずつTA、2機能以上の併用はTA-ALLを通す（<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>競技計測は段階学習後の<strong>0:30.000から全カウンタを0で開始</strong>し、3:00前に受理した弾だけ3:00.650まで解決する（<a href="#ch8">8章</a>・<a href="#ch18">18章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>未成年テストは保護者同意＋本人アセント、匿名ID、動画等の別同意、無条件の中止権を必須にする（<a href="#ch19">19章</a>）</li>
+</ul>
+
+<h3 id="approve-02-第2段-Phase-1中に決めたい-体験品質と安全">第2段：Phase 1中に決めたい（体験品質と安全）</h3>
+<ul class="check">
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>玩具テストT0-A/Bで、採用案の手応え4/5以上が8/10、即時再投擲意向が8/10、同期ずれ指摘2/10以下、安全事象0件を確認する（<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>クールダウンはT0-CDで4候補を比較し、重複誤発射率と意図的高速2連投の2発目欠落率がともに2%以下となる最小値を採用する（<a href="#ch4">4章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>T0-3Mで3分間の実操作周期と疲労を測り、負荷計算には機械上限ではなく実測周期を使う（<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>輪郭5色＋5パターン、危険度D、残り発数R、二重円を別チャネルとして読み分けられることをT1で確認する（<a href="#ch6">6章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>笑顔の伝播は退場歩行中の実交差時にactive非黒客へ最大4人、同一有向ペア1回、D−5ポイント・縁+20。対象は予約せず、C倍率は救済時、ご加護倍率は発射時の保存値を使う（<a href="#ch6">6章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>福の連なりCとご加護用Gを別カウンタにし、ご加護はG=10で12秒、発動時G=0、発動中はGをためない（<a href="#ch7">7章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>大祓は追加要素としてT5で、救済数占有25%以下・得点占有20%以下・獲得直後消費50%以下などを満たす場合だけ採用する（<a href="#ch5">5章</a>・<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>プレイ領域、観客境界、USBケーブル経路、ストラップ、接合部をT6-USBとT7で確認し、安全事象1件で停止する（<a href="#ch16">16章</a>・<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>初見導線は15秒以内の初救済、介入率10%以下、色・照準・振りの未達分岐ごとの復帰をT1で検証する（<a href="#ch18">18章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>総予算34,700円に、完全USB予備・USBデータケーブル4本・ケーブル保護・予備接合部・消耗品を含める（<a href="#ch16">16章</a>）</li>
+</ul>
+
+<h3 id="approve-03-第3段-仮値の承認-必ずテストIDで更新">第3段：仮値の承認（必ずテストIDで更新）</h3>
+<ul class="check">
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>参拝客の危険度満タン秒数、初期R、基礎点、評価値（<a href="#numbers">付録B</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>命中精度、優先救済+50、伝播+20、福の連なり倍率（<a href="#numbers">付録B</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>クールダウン候補0.40／0.50／0.60／0.65秒と、入力遅延p95 80ms・最大100ms（<a href="#numbers">付録B</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>終盤負荷ウェーブ+3／+4／+5の12人・6順序反転比較と、総同時上限15人（<a href="#ch17">17章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>6月の3段階の種類比率、近／中／遠の目標占有40／40／20%（<a href="#ch8">8章</a>・<a href="#ch10">10章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>評価値の増減とランク閾値。動的難易度の人数・速度補正は追加要素として別承認する（<a href="#ch7">7章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>雨・風・雪の抽選率は追加要素の仮値。数値効果はT4合格後だけ1天候1軸で採用する（<a href="#ch9">9章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>大祓のチャージ1.2秒、半径2.5m、最大3人、通常救済6人で1回とT5の棄却基準（<a href="#ch5">5章</a>）</li>
+  <li data-approval-state="pending"><span class="approval-state" data-state="pending" aria-label="承認状態：承認待ち">承認待ち</span>1試遊サイクルp90 270秒以内、1日75人目標、3時間連続運用の復帰基準（<a href="#ch13">13章</a>・<a href="#ch17">17章</a>）</li>
+</ul>
+
+<!-- ============ APPENDIX B ============ -->
+<h2 id="numbers">付録B. 数値表マスター</h2>
+<p class="note"><strong>Phase 1は、ゲーム内で読み込むバランス値・入力閾値についてこの付録が唯一の数値マスター</strong>。テストの母数・合格値は17章、安全寸法は13章（3章へ同値再掲）、予算は16章を正本とする。Phase 2開始時に固有キー付きスプレッドシートへ移管し、以後はそのシートをランタイム数値の唯一の正本とする。各変更にはテストID・ビルド番号・更新者を残す。</p>
+
+<table tabindex="0">
+  <caption>B-1 参拝客</caption>
+  <thead><tr><th scope="col">種類</th><th scope="col" class="n">初期R</th><th scope="col" class="n">Dが100になる秒数</th><th scope="col" class="n">救済完了の基礎点</th><th scope="col" class="n">評価(成功)</th><th scope="col" class="n">評価(失敗)</th></tr></thead>
+  <tbody>
+    <tr><td>通常客</td><td class="n">1</td><td class="n">15〜25</td><td class="n">100</td><td class="n">+10</td><td class="n">−20</td></tr>
+    <tr><td>移動客</td><td class="n">1</td><td class="n">20</td><td class="n">150</td><td class="n">+10</td><td class="n">−20</td></tr>
+    <tr><td>遠方客</td><td class="n">1</td><td class="n">22</td><td class="n">200</td><td class="n">+15</td><td class="n">−30</td></tr>
+    <tr><td>欲張り客</td><td class="n">2</td><td class="n">28</td><td class="n">300</td><td class="n">+15</td><td class="n">−20</td></tr>
+    <tr><td>ボス客</td><td class="n">3</td><td class="n">30</td><td class="n">500</td><td class="n">+25</td><td class="n">−30</td></tr>
+  </tbody>
+</table>
+<p class="note">全員D=0で開始し、定位置到着後にDだけが時間で増える。正色命中はRを1減らしDを変えない。欲張り客のR=2→1は0点、R=0の救済完了時だけ300点を得る。</p>
+
+<table tabindex="0">
+  <caption>B-2 加点・倍率</caption>
+  <thead><tr><th scope="col">項目</th><th scope="col" class="n">値</th><th scope="col">状態</th></tr></thead>
+  <tbody>
+    <tr><td>命中精度：中心（半径40%以内）／中間（40〜70%）／外周</td><td class="n">+50 / +20 / +0</td><td><span class="b mvp">MVP</span> 仮説</td></tr>
+    <tr><td><strong>優先救済：有効候補中でD最大の一意対象</strong></td><td class="n">+50</td><td><span class="b mvp">MVP</span> 発射受理時の対象IDを固定。T2で支配的なら+30へ</td></tr>
+    <tr><td>欲張り客の途中命中／救済完了</td><td class="n">0 / 300</td><td><span class="b mvp">MVP</span> 部分点なし</td></tr>
+    <tr><td>笑顔の伝播：1人ごと／1救済上限</td><td class="n">+20 / 4人</td><td><span class="b mvp">MVP</span> 対象は実交差時に判定。同一有向ペア1回。C倍率は救済時、ご加護倍率はSwingAccepted時の保存値</td></tr>
+    <tr><td>福の連なり：3 / 6 / 10連続</td><td class="n">×1.10 / ×1.20 / ×1.30</td><td><span class="b mvp">MVP</span> T3で検証</td></tr>
+    <tr><td>ランク：C / B / A / S</td><td class="n">すべて×1.0</td><td><span class="b mvp">MVP</span> 表示と称号のみ。得点倍率なし</td></tr>
+    <tr><td>ご加護タイム</td><td class="n">×1.25</td><td><span class="b add">追加</span></td></tr>
+  </tbody>
+</table>
+
+<table tabindex="0">
+  <caption>B-3 その他の数値</caption>
+  <thead><tr><th scope="col">固有キー</th><th scope="col">項目</th><th scope="col" class="n">値</th></tr></thead>
+  <tbody>
+    <tr><td><code>INPUT.SWING</code></td><td>有効スイング：角速度／下向き姿勢変化／判定窓</td><td class="n">200deg/s超 / 25°以上 / 300ms以内</td></tr>
+    <tr><td><code>INPUT.CD</code></td><td>発射クールダウン＝再検出禁止時間<br><span class="note">T0-CDで両エラー率2%以下となる最小値</span></td><td class="n">基準0.50秒<br>候補0.40 / 0.50 / 0.60 / 0.65</td></tr>
+    <tr><td><code>SHOT.FLIGHT</code></td><td>飛翔時間（距離と振り強さで補間）</td><td class="n">0.25〜0.65秒</td></tr>
+    <tr><td><code>GAME.END</code></td><td>入力締切／受理済み弾の解決締切</td><td class="n">180.000秒未満 / 180.650秒</td></tr>
+    <tr><td><code>STATE.WRONG</code></td><td>誤色命中：D／Rの変化、C／Gの結果</td><td class="n">0 / 0 / 0へ / 0へ</td></tr>
+    <tr><td><code>STATE.DANGER</code></td><td>危険度D：初期／黒客化</td><td class="n">0 / 100</td></tr>
+    <tr><td><code>UI.DANGER</code></td><td>足元円の表示開始／脈打ち開始</td><td class="n">D=50 / D=85</td></tr>
+    <tr><td><code>PRIORITY.MARK</code></td><td>二重円：対象数／D閾値</td><td class="n">1人 / なし</td></tr>
+    <tr><td><code>CHAIN.TIMEOUT</code></td><td>福の連なりC：正色無命中で途切れる時間</td><td class="n">5秒</td></tr>
+    <tr><td><code>BLESSING.G</code></td><td>ご加護G：発動／継続／演出／終了</td><td class="n">G=10 / 12秒 / 0.8秒 / G=0<br><span class="note">発動中はG蓄積なし</span></td></tr>
+    <tr><td><code>PURIFY.CHARGE</code></td><td>大祓：チャージ／半径／対象上限／解禁</td><td class="n">1.2秒 / 2.5m / 3人 / 通常救済6人</td></tr>
+    <tr><td><code>PURIFY.WRONG</code></td><td>大祓の色不一致によるD／R変化、黒客への縁</td><td class="n">0 / 0 / 0</td></tr>
+    <tr><td><code>PURIFY.T5</code></td><td>大祓採用上限：救済数占有／得点占有／獲得後5秒以内消費／誤チャージ</td><td class="n">≤25% / ≤20% / ≤50% / ≤10%</td></tr>
+    <tr><td><code>PURIFY.VALUE</code></td><td>大祓採用下限：同色密集の平均救済／説明できる参加者</td><td class="n">≥2人 / ≥8/10<br><span class="note">大祓由来得点は後続の伝播点を含む</span></td></tr>
+    <tr><td><code>RANK.UP</code></td><td>ランク昇格 C→B / B→A / A→S</td><td class="n">60 / 150 / 250</td></tr>
+    <tr><td><code>RANK.DOWN</code></td><td>ランク降格 B→C / A→B / S→A</td><td class="n">40 / 120 / 210</td></tr>
+    <tr><td><code>RANK.VALUE</code></td><td>評価値範囲／開始ランク／称号</td><td class="n">0〜300 / C / 最高到達ランク</td></tr>
+    <tr><td><code>RANK.DDA</code></td><td>追加時のみ：同時上限C/B/A/S、D満タン秒数A/S、C停滞秒／補正</td><td class="n">7 / 8 / 9 / 10人<br>×0.92 / ×0.85<br>30秒 / ×1.2</td></tr>
+    <tr><td><code>SPAWN.BASE</code></td><td>MVPの通常時同時上限</td><td class="n">10人</td></tr>
+    <tr><td><code>WAVE.SMALL</code></td><td>MVP小負荷ウェーブ：加算／長さ</td><td class="n">+3人 / 15秒</td></tr>
+    <tr><td><code>WAVE.MIDDLE</code></td><td>MVP中負荷ウェーブ：加算／長さ</td><td class="n">+5人 / 25秒</td></tr>
+    <tr><td><code>WAVE.FINAL</code></td><td>MVP終盤負荷ウェーブ比較／長さ／総同時上限</td><td class="n">+3 / +4 / +5人<br>40秒 / 最大15人</td></tr>
+    <tr><td><code>SPAWN.TIMING</code></td><td>退場後の待ち／定位置までの歩行</td><td class="n">1.5秒 / 3秒</td></tr>
+    <tr><td><code>EXIT.TIMING</code></td><td>救済／黒客の退場</td><td class="n">3秒 / 4秒</td></tr>
+    <tr><td><code>UNLOCK.TIME</code></td><td>欲張り／遠方／移動／ボスの解禁</td><td class="n">0:38 / 0:48 / 1:00 / 2:00</td></tr>
+    <tr><td><code>SPAWN.TYPE.06A</code></td><td>0:30〜0:38 通常／移動／遠方／欲張り／ボス</td><td class="n">100 / 0 / 0 / 0 / 0%</td></tr>
+    <tr><td><code>SPAWN.TYPE.06B</code></td><td>0:38〜0:48 通常／移動／遠方／欲張り／ボス</td><td class="n">70 / 0 / 0 / 30 / 0%</td></tr>
+    <tr><td><code>SPAWN.TYPE.06C</code></td><td>0:48〜1:00 通常／移動／遠方／欲張り／ボス</td><td class="n">55 / 0 / 15 / 30 / 0%</td></tr>
+    <tr><td><code>SPAWN.TYPE.11</code></td><td>11月 通常／移動／遠方／欲張り／ボス</td><td class="n">45 / 30 / 15 / 10 / 0%</td></tr>
+    <tr><td><code>SPAWN.TYPE.01</code></td><td>1月 通常／移動／遠方／欲張り／ボス</td><td class="n">55 / 10 / 15 / 15 / 5%<br><span class="note">MVPはボス5を通常へ戻して60 / 10 / 15 / 15 / 0%</span></td></tr>
+    <tr><td><code>PROPAGATE</code></td><td>伝播：D減少／縁／1救済上限／黒客</td><td class="n">−5ポイント / +20 / 4人 / 対象外</td></tr>
+    <tr><td><code>PLACEMENT</code></td><td>定位置の目標占有：近／中／遠</td><td class="n">40 / 40 / 20%</td></tr>
+    <tr><td><code>LANTERN</code></td><td>提灯：縁間隔／最大／ゲーム効果</td><td class="n">3,000 / 5個 / なし</td></tr>
+    <tr><td><code>WEATHER.MVP</code></td><td>MVPの環境／天候抽選</td><td class="n">晴のみ / なし</td></tr>
+    <tr><td><code>WEATHER.OVERLAY</code></td><td>追加オーバーレイによる輪郭明度／弾道／弾速／入力閾値の変化</td><td class="n">0 / 0 / 0 / 0</td></tr>
+    <tr><td><code>WEATHER.PROB.06</code></td><td>追加時：6月 晴／雨</td><td class="n">50 / 50%</td></tr>
+    <tr><td><code>WEATHER.PROB.11</code></td><td>追加時：11月 晴／風</td><td class="n">60 / 40%</td></tr>
+    <tr><td><code>WEATHER.PROB.01</code></td><td>追加時：1月 晴／雪</td><td class="n">50 / 50%</td></tr>
+    <tr><td><code>WEATHER.PROB.12</code></td><td>余裕時：12月 晴／風／雪</td><td class="n">40 / 30 / 30%</td></tr>
+    <tr><td><code>WEATHER.TIMING</code></td><td>追加時：抽選／遷移／効果予告</td><td class="n">各月0秒・30秒 / 10秒 / 3秒前</td></tr>
+    <tr><td><code>WEATHER.RAIN</code></td><td>追加＋T4通過時：雨の近／中／遠</td><td class="n">50 / 40 / 10%</td></tr>
+    <tr><td><code>WEATHER.WIND</code></td><td>追加＋T4通過時：新規客の風下側比率</td><td class="n">65%</td></tr>
+    <tr><td><code>WEATHER.SNOW</code></td><td>追加＋T4通過時：D満タン秒数補正</td><td class="n">×1.10</td></tr>
+    <tr><td><code>MOVE.SPEED</code></td><td>移動客の歩行速度</td><td class="n">1.0m/s</td></tr>
+    <tr><td><code>BOSS.SCALE</code></td><td>ボス客の体格</td><td class="n">×1.3</td></tr>
+    <tr><td><code>HAPTIC.TIME</code></td><td>振動：発射／命中／救済／チャージ完了</td><td class="n">40 / 80〜120 / 120 / 120ms</td></tr>
+    <tr><td><code>LATENCY.USB</code></td><td>USB入力遅延p95／最大</td><td class="n">80 / 100ms</td></tr>
+  </tbody>
+</table>
+
+<table tabindex="0">
+  <caption>B-4 数値の状態管理</caption>
+  <thead><tr><th scope="col">系統</th><th scope="col">状態</th><th scope="col">根拠ゲート</th><th scope="col">更新責任</th><th scope="col">記録方法</th></tr></thead>
+  <tbody>
+    <tr><td>玩具感・投擲・疲労</td><td><span class="hold">仮説</span></td><td>T0-A/B／T0-3M</td><td>プログラムA＋企画1名</td><td>条件順・楽しさ・再投擲・周期・疲労</td></tr>
+    <tr><td>検出・USB遅延</td><td><span class="hold">仮説</span></td><td>T0-CD／T6-USB</td><td>プログラムA＋企画1名</td><td>候補値別の両エラー率・ビルド・100投ログ</td></tr>
+    <tr><td>BLE展示接続</td><td><span class="hold">未採用</span></td><td>T6-BLE／TA</td><td>プログラムA＋展示責任者</td><td>USB差分・30分ログ・再接続秒</td></tr>
+    <tr><td>初見表示・人数</td><td><span class="hold">仮説</span></td><td>T1／T3</td><td>企画＋UI担当</td><td>対象人数・初救済秒・介入率</td></tr>
+    <tr><td>得点・優先救済・伝播</td><td><span class="hold">仮説</span></td><td>T2／T3</td><td>企画2名</td><td>固定シード・選択分布・縁／秒</td></tr>
+    <tr><td>負荷ウェーブ・黒客化率</td><td><span class="hold">仮説</span></td><td>T3</td><td>企画2名</td><td>+3／+4／+5の6順序反転比較・区間別推移</td></tr>
+    <tr><td>動的難易度</td><td><span class="hold">未採用</span></td><td>TA</td><td>企画2名</td><td>MVP固定条件との差・コア指標の回帰</td></tr>
+    <tr><td>天候</td><td><span class="hold">晴のみ採用</span></td><td>T4／TA</td><td>企画＋背景担当</td><td>オーバーレイ採否と、晴との独立比較結果</td></tr>
+    <tr><td>大祓</td><td><span class="hold">未採用</span></td><td>T5／TA</td><td>企画＋Unity担当</td><td>救済数占有・得点占有・即時消費・通常投擲継続</td></tr>
+    <tr><td>祭事演出・ボス・提灯・ご加護</td><td><span class="hold">未採用</span></td><td>TA</td><td>各機能担当＋企画1名</td><td>事前登録した利益値・MVPコア指標の回帰</td></tr>
+    <tr><td>採用済み追加機能の統合</td><td><span class="hold">未採用</span></td><td>TA-ALL</td><td>企画2名＋展示責任者</td><td>全追加ON対MVP・機能競合・累積回帰</td></tr>
+    <tr><td>展示運用</td><td><span class="hold">仮説</span></td><td>T7</td><td>展示責任者</td><td>3時間ログ・復帰秒・サイクルp90</td></tr>
+  </tbody>
+</table>
+<p class="note">「仮説」を「検証済」に変えるには、該当ゲートのテストIDが必要。テストIDのない数値変更は正本へ反映しない。</p>
+
+<!-- ============ APPENDIX C ============ -->
+<h2 id="principles">付録C. 参照した設計原則</h2>
+<p>この仕様書の判断根拠として使った書籍と、どこに効いているか。</p>
+
+<table tabindex="0">
+  <caption class="sr-only">付録C. 参照した設計原則の仕様表</caption>
+  <thead><tr><th scope="col">出典</th><th scope="col">使った原則</th><th scope="col">効いている箇所</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>吉沢秀雄<br>『「気持ちいい」から考えるゲームアイデア講座』</td>
+      <td>気持ちいい→操作→遊び→課題・目的・ご褒美→ゲームの順序／行為・操作・感情＋テンポ／仕様を足すたびにコンセプトを言い直す／「うまくできたり、できなかったり」</td>
+      <td>1章（4拍とフィードバック予算）／11章（MVP）／17章（T0-A/B玩具・T2選択）</td>
+    </tr>
+    <tr>
+      <td>『ゲームの企画書①』</td>
+      <td>画面の中より画面の前を作る／数値と体感はズレる／理不尽は予告・回避・原因表示とセット／良いアイデアはコストが低い／説明書なしで遊べるか</td>
+      <td>9章（天候の演出化）／13章（観戦）／17章（行動観察）／18章（段階学習）</td>
+    </tr>
+    <tr>
+      <td>『ゲームの企画書②』</td>
+      <td>パラメーターは足すより減らす／負けた理由が分かる設計／初心者の入力意図を汲む／玩具としての手触りを最優先</td>
+      <td>3〜4章（意図と同期）／6章（情報チャネル）／10章（1人1軸）／17章（T0-A/B・T0-CD・T6-USB）</td>
+    </tr>
+    <tr>
+      <td>『ゲームの企画書③』</td>
+      <td>リアルより納得感／プレイ時間を疑う／企画は言葉より触れる試作で通す／物量より体験を磨く</td>
+      <td>4章（演出用弾道）／11章（段階スコープ）／13章（試遊時間）／17章（T0-3M・T3）</td>
+    </tr>
+    <tr>
+      <td>Jesse Schell<br>『The Art of Game Design』</td>
+      <td>#1 本質的経験／#5 内生的価値／#9 統一／#10 共鳴／#14 リスク軽減／#15 玩具／#18 フロー／#21 社会／#23 創発／#29 偶然／#32 意味ある選択／#33 三角性／#37 協力／#41 罰／#43 優雅さ／#49 見える進歩／#53 制御／#56 透明性／#57 フィードバック／#58 ジューシーさ／#59 チャネルと次元／#60 モード／#61 興味曲線／#64 投影／#72 間接制御／#90 文書化／#91 プレイテスト／#92 技術</td>
+      <td>1章（本質的経験・テーマ）／5章（大祓ゲート）／6章（伝播）／7章（縁と選択）／8章（興味曲線）／9章（偶然と透明性）／11章（スコープ）／17章（T0-A/B〜T7）／18章（初見）／19章（観察記録）</td>
+    </tr>
+  </tbody>
+</table>
+
+<footer>
+  <p><strong>投福神社 企画・仕様書 v8 完成版</strong>　2026年8月4日　Cyber Septet</p>
+  <p>Phase 1のランタイム数値は<a href="#numbers">付録B</a>、テスト基準は17章、安全寸法は13章（3章へ同値再掲）、予算は16章が正本。Phase 2以降は付録Bの値を固有キー付きスプレッドシートへ移管する。
+  承認が必要な項目は<a href="#approve">付録A</a>に集約。</p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>
+
