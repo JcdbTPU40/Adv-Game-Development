@@ -60,6 +60,9 @@ namespace Toufuku.Rescue
         public UnityEvent onAngry;                 // 怒り（救済失敗）
         public UnityEvent onGlow;                  // ゲージ0で光る演出のトリガ
 
+        /// <summary>どの客でも結末（解消 / 怒り）が確定したら発火する（#64 失敗SE など、客ごとに結線しない購読者用）。</summary>
+        public static event System.Action<CustomerMood, MoodState> AnyFinished;
+
         private float _gauge;
         private MoodState _state = MoodState.Resisting;
         private float _breakthroughTimer;
@@ -165,6 +168,7 @@ namespace Toufuku.Rescue
                 Debug.Log($"[Mood] 怒り（救済失敗）… ({name})", this);
                 onAngry?.Invoke();
             }
+            AnyFinished?.Invoke(this, result);
 
             // 企画書 v3 §16【B】：救済成功後の再ヒットを不可能にするため、
             // 結末確定（解消/怒りのどちらも）と同時に当たり判定を消す。

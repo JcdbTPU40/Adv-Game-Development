@@ -65,6 +65,7 @@ namespace Toufuku.Aim
         float _arcHeight;
         float _elapsed;
         float _lingerSeconds;
+        double _impactRealtime;
         OmamoriType _type;
         bool _flying;
 
@@ -84,6 +85,8 @@ namespace Toufuku.Aim
             _type = type;
             _lingerSeconds = Mathf.Max(0f, lingerSeconds);
             _elapsed = 0f;
+            // #64: 命中音・救済音の遅延はこの「着弾予定時刻」から測る（フレーム単位で着くぶんの遅れも含める）
+            _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
             transform.position = start;
         }
@@ -120,7 +123,7 @@ namespace Toufuku.Aim
             {
                 hit = FindTarget(_target, out normalized);
                 if (hit != null)
-                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized));
+                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime);
                 else
                     OmamoriHitResolver.ApplyMiss();
             }
