@@ -21,12 +21,14 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 4294967295
     maskResolutionScale: 1
+    depthBiasEpsilon: 0.03
     rainIntensityScale: 0.45
     nearDistance: 12
     farDistance: 33
     farIntensity: 0.55
-    maskShader: {fileID: 0}
-    composeShader: {fileID: 0}
+    stencilShader: {fileID: 4800000, guid: f621b37a21f2e46408f6141212297099, type: 3}
+    maskShader: {fileID: 4800000, guid: 3ddfb70def515494288690cf9371d1b7, type: 3}
+    composeShader: {fileID: 4800000, guid: 0c4252ae86ecbb347b6ce01dde86e7fd, type: 3}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54,7 +56,7 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: -4266479018497326236}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  m_RendererFeatureMap: ad6b866f10d7b46c6443cffcef6bcac4
   m_UseNativeRenderPass: 0
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
