@@ -40,6 +40,13 @@ namespace Toufuku.Rescue.Mock
           ・exitWalk: 救済なら3秒、黒客なら4秒かけて手前の出口まで歩いていなくなる（CustomerMotion）
           ・救済されたり黒客になったりした客の定位置は、歩いていなくなるのを待たずにその瞬間に空ける（企画書 v8 6章「退場開始と同時に枠を空ける」）
 
+        #57 で足したもの（useTimetable。ふつうは OFF）:
+          ・同時上限と客の種類のわりあいを、180秒の時間割（SpawnTimetable）で決める。ランクと祭事モードは使わない
+            （動的難易度・祭事演出は追加要素なので、ランクや祭事で人数を変えない。企画書 v8 8章・11章）
+          ・時計は GameSession のプレイ開始からの秒。3:00 でプレイが終わったら新しい客を出さない（いる客はそのまま）
+          ・解禁と負荷ウェーブの始まり・終わりを Console に出す
+          ・useKindDangerSeconds: 客プレハブに残っている D の満タン秒数の上書きを外して、客の種類ごとの本番の秒数にする
+
         ※ 検証用の使い捨て。Mock/ フォルダごと消せる
     */
     public class MockCrowdDirector : MonoBehaviour
@@ -244,6 +251,26 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("遠方客を必ず置く帯（bands の添字）。")]
         [SerializeField] private int distantBandIndex = 2;
 
+        // ---- 時間割（#57） ----
+        [Header("時間割（#57：解禁スケジュールと無演出負荷ウェーブ）")]
+        [Tooltip("ON なら同時上限と客種の抽選率を 180秒の時間割（SpawnTimetable）で決める。ランク・祭事モードは使わない（動的難易度・祭事演出は追加要素）。" +
+                 "OFF なら従来どおり（#44/#52 の既存シーン）。assignKinds も ON にすること。")]
+        [SerializeField] private bool useTimetable;
+
+        [Tooltip("時間割の数値（付録B）。T3 の大負荷ウェーブ +3／+4／+5 は finalWaveAdd で切り替える（実行中の変更も次のフレームから効く）。")]
+        [SerializeField] private SpawnTimetable timetable = new SpawnTimetable();
+
+        [Tooltip("ON なら客プレハブの危険度D満タン秒数の上書き（#44 の 66.7秒）を外し、客種ごとの本番値（付録B B-1）を使う。useTimetable のときだけ効く。")]
+        [SerializeField] private bool useKindDangerSeconds = true;
+
+        [Tooltip("T0-3M（#53）で測った実操作周期の中央値（秒）。0 なら未測定。右クリックメニュー「負荷ウェーブの算術」で使う。")]
+        [Min(0f)]
+        [SerializeField] private float measuredCycleMedian;
+
+        [Tooltip("T0-3M（#53）で測った実操作周期の p75（秒）。0 なら未測定。")]
+        [Min(0f)]
+        [SerializeField] private float measuredCycleP75;
+
         // ---- 移動客（#62） ----
         [Header("移動客（#62）")]
         [Tooltip("歩行速度（m/秒）。付録B MOVE.SPEED＝1.0。実行中に変えると、歩いている移動客にも次のフレームから反映する（T2 の変数変更テスト用）。")]
@@ -315,6 +342,17 @@ namespace Toufuku.Rescue.Mock
         private bool _layoutReshuffled;
         private bool _warnedSlotShortage;
         private bool _warnedMissingPrefab;
+
+        // 時間割のログ用に、前のフレームの解禁の状態とウェーブを覚えておく（#57）
+        private int _trackedUnlocked = -1;
+        private int _trackedWave = int.MinValue;
+        private float _trackedSeconds = -1f;
+
+        // 解禁をログに出す種類（通常客は最初から）
+        private static readonly CustomerKind[] UnlockOrder =
+        {
+            CustomerKind.Greedy, CustomerKind.Distant, CustomerKind.Moving, CustomerKind.Boss
+        };
 
         // ---- 外から使うもの（HUD やデバッグ操作から読む） ----
 
@@ -402,6 +440,20 @@ namespace Toufuku.Rescue.Mock
         // 目標の人数を直接決めた値。-1 なら決めていない（ランクから計算する）
         public int OverrideTargetCount => overrideTargetCount;
 
+        // 時間割で人数と客の種類を決めているか（#57）
+        public bool UseTimetable => useTimetable;
+
+        // 時間割（#57）。T3 の条件（大負荷ウェーブの人数）はここから切りかえられる
+        public SpawnTimetable Timetable => timetable;
+
+        // 時間割の時計（秒）。GameSession があればプレイ開始からの秒、なければシーンが始まってからの秒
+        public float TimetableSeconds =>
+            GameSession.Instance != null ? GameSession.Instance.ElapsedSeconds : Time.timeSinceLevelLoad;
+
+        // 3:00 でプレイが終わって、新しい客を出すのを止めているか（#57。時間割を使っているときだけ）
+        public bool SpawningStopped =>
+            useTimetable && GameSession.Instance != null && !GameSession.Instance.IsPlaying;
+
         // いなくなってから出てくるまでの待ち時間（秒）
         public float RespawnDelay => respawnDelay;
 
@@ -423,6 +475,11 @@ namespace Toufuku.Rescue.Mock
                 if (overrideTargetCount >= 0)
                 {
                     want = overrideTargetCount;
+                }
+                else if (useTimetable)
+                {
+                    // #57: 基準10人＋負荷ウェーブの加算（総上限15人）。ランクと祭事は使わない
+                    want = timetable.CapAt(TimetableSeconds);
                 }
                 else
                 {
@@ -463,6 +520,14 @@ namespace Toufuku.Rescue.Mock
 
             if (customerParent == null) customerParent = transform;
 
+            if (useTimetable)
+            {
+                foreach (string problem in timetable.Validate())
+                    Debug.LogWarning($"[MockCrowd] 時間割: {problem}", this);
+                if (!assignKinds)
+                    Debug.LogWarning("[MockCrowd] useTimetable が ON ですが assignKinds が OFF なので、客種の解禁は効きません（人数だけ時間割に従います）。", this);
+            }
+
             BuildSlots();
 
             if (prefillInstant)
@@ -475,10 +540,98 @@ namespace Toufuku.Rescue.Mock
 
         private void Update()
         {
+            if (useTimetable) ResetIfClockRewound();
+
             SweepDeparted();
-            BalanceToTarget();
-            TickTickets();
+
+            // #57: 3:00 でプレイが終わったら新しい客は出さない（企画書 v8 8章「3:00.000 で新規スポーン停止」）。いる客はそのまま
+            if (SpawningStopped)
+            {
+                _tickets.Clear();
+            }
+            else
+            {
+                BalanceToTarget();
+                TickTickets();
+            }
+
             ApplyMovingSpeed();
+            if (useTimetable) TrackTimetable();
+        }
+
+        /*
+            リトライ（GameSession.Retry）で時計が 0 にもどったら、前のプレイの続きを持ちこまないように最初にもどす（#57）
+            補充チケット・前に出した時刻・輪郭の色の順番がのこっていると、同じシードでも2回目の出現列がずれる（T3 はリトライをはさんで同じシードでくらべる）
+            残っている客は GameSession.Retry も消すけど、Customer タグが付いていない客もいるかもしれないので、ここでも片付ける
+        */
+        private void ResetIfClockRewound()
+        {
+            float t = TimetableSeconds;
+            bool rewound = t + 0.0001f < _trackedSeconds;
+            _trackedSeconds = t;
+            if (!rewound) return;
+
+            for (int i = _members.Count - 1; i >= 0; i--)
+            {
+                Member m = _members[i];
+                FreeSlot(m);
+                if (m != null && m.Go != null) Destroy(m.Go);
+            }
+            _members.Clear();
+            _tickets.Clear();
+            _lastSpawnTime = -999f;
+            _nextColorIndex = 0;
+            _trackedUnlocked = -1;
+            _trackedWave = int.MinValue;
+
+            Debug.Log("[MockCrowd] 時計が 0 にもどったので、補充待ち・色の順番・時間割のログを最初にもどしました（リトライ）。", this);
+        }
+
+        // 解禁とウェーブの始まり・終わりを Console に出す（#57。T3 の区間を目で追えるように）
+        private void TrackTimetable()
+        {
+            if (SpawningStopped) return;
+
+            float t = TimetableSeconds;
+            int unlocked = 0;
+            for (int i = 0; i < UnlockOrder.Length; i++)
+            {
+                if (timetable.IsUnlocked(UnlockOrder[i], t)) unlocked |= 1 << i;
+            }
+
+            LoadWaveState wave = timetable.WaveAt(t);
+            bool unlockChanged = unlocked != _trackedUnlocked;
+            bool waveChanged = wave.Index != _trackedWave;
+            if (!unlockChanged && !waveChanged) return;
+
+            string clock = SpawnTimetable.FormatClock(t);
+            if (unlockChanged)
+            {
+                Debug.Log($"[MockCrowd] {clock} {SpawnTimetable.MonthLabel(timetable.MonthAt(t))} 解禁: {timetable.DescribeUnlocked(t)}" +
+                          $"（抽選率 {timetable.WeightsAt(t).Describe()}）", this);
+            }
+            if (waveChanged)
+            {
+                Debug.Log(wave.IsActive
+                    ? $"[MockCrowd] {clock} {wave.Label} 開始: 上限 {timetable.BaseCap}人 → {Mathf.Min(timetable.MaxTotalCap, timetable.BaseCap + wave.Added)}人" +
+                      $"（{timetable.WaveRampSeconds:0.#}秒かけて +{wave.Added}、{SpawnTimetable.FormatClock(wave.EndSeconds)} まで）／抽選率 {timetable.WeightsAt(t).Describe()}"
+                    : $"[MockCrowd] {clock} 通常: 上限 {timetable.CapAt(t)}人（多いぶんは帰らせず自然に減るのを待つ）／抽選率 {timetable.WeightsAt(t).Describe()}", this);
+            }
+
+            _trackedUnlocked = unlocked;
+            _trackedWave = wave.Index;
+        }
+
+        /*
+            T0-3M の実操作周期で、時間割の3つの負荷ウェーブに追いつけるかを計算して Console に出す（#57。企画書 v8 8章）
+            Inspector の measuredCycleMedian / measuredCycleP75 に #53 の実測値を入れてから使う
+        */
+        [ContextMenu("負荷ウェーブの算術を Console に出す (#57)")]
+        public void LogWaveLoadArithmetic()
+        {
+            Debug.Log($"[MockCrowd] {timetable.DescribeLoad(kindTable, measuredCycleMedian, measuredCycleP75)}", this);
+            foreach (string problem in timetable.Validate())
+                Debug.LogWarning($"[MockCrowd] 時間割: {problem}", this);
         }
 
         private void LateUpdate()
@@ -670,6 +823,9 @@ namespace Toufuku.Rescue.Mock
             AssignIdentity(member, black);
             if (assignKinds && member.State != null)
             {
+                // #57: 時間割で動かすときは、検証用の D の満タン秒数の上書き（#44）を外して、客の種類ごとの本番の秒数にする
+                if (useTimetable && useKindDangerSeconds) member.State.DangerFullSecondsOverride = 0f;
+
                 // 最初のR・Dが満タンになる秒数・基礎点・評価を、客の種類から入れる。D はここで 0 にもどるので、最初のばらつきはこのあとで付ける
                 member.State.Setup(kind, kindTable,
                     PlaytestRandom.Value(PlaytestRandom.TryFor(PlaytestStreams.DangerSeconds, spawnId.Id)));
@@ -851,10 +1007,14 @@ namespace Toufuku.Rescue.Mock
             return n;
         }
 
-        // 客の種類をくじで決める。欲張り客2人・ボス客1人の同時の上限に届いた種類は外す（企画書 v8 10章）
+        /*
+            客の種類をくじで決める。欲張り客2人・ボス客1人の同時の上限に届いた種類は外す（企画書 v8 10章）
+            #57: 時間割を使うときは、そのときの月・解禁・負荷ウェーブで決まったわりあいを使う
+        */
         private CustomerKind PickKind(DeterministicRandom rng)
         {
-            return CustomerKindPicker.Pick(kindWeights, PlaytestRandom.Value(rng),
+            CustomerKindWeights weights = useTimetable ? timetable.WeightsAt(TimetableSeconds) : kindWeights;
+            return CustomerKindPicker.Pick(weights, PlaytestRandom.Value(rng),
                 CountLiveKind(CustomerKind.Greedy), CountLiveKind(CustomerKind.Boss));
         }
 

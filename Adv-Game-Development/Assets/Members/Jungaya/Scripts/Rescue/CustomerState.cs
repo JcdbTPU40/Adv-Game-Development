@@ -43,6 +43,16 @@ namespace Toufuku.Rescue
         [Min(0f)]
         [SerializeField] private float dangerFullSecondsOverride = 0f;
 
+        /*
+            D が満タンになる秒数の上書き（0 なら使わない）。次の Setup から効く
+            #57: 検証シーンの客プレハブに残っている上書きを、時間割で動かすときだけ出す側が外すために使う
+        */
+        public float DangerFullSecondsOverride
+        {
+            get => dangerFullSecondsOverride;
+            set => dangerFullSecondsOverride = Mathf.Max(0f, value);
+        }
+
         [Header("フォールバック（数値表 未設定時のみ使う）")]
         [Tooltip("初期R（残り必要発数）。")]
         [Min(1)]

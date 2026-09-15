@@ -166,7 +166,16 @@ namespace Toufuku.Rescue.Mock
         {
             string targetSource = director.OverrideTargetCount >= 0
                 ? "手動固定"
-                : $"ランク{director.Rank}＋{(director.FestivalMode ? "祭事" : "通常")}";
+                : director.UseTimetable
+                    ? "時間割"
+                    : $"ランク{director.Rank}＋{(director.FestivalMode ? "祭事" : "通常")}";
+
+            // #57: 時間割で動かしているときは、ランク・祭事の行のかわりに時間割の様子を出す（ランク・祭事は人数に使わない）
+            float clock = director.TimetableSeconds;
+            string scheduleLine = director.UseTimetable
+                ? $"時間割 {director.Timetable.Describe(clock)}　大負荷 +{(int)director.Timetable.FinalWaveAdd}　解禁 {director.Timetable.DescribeUnlocked(clock)}" +
+                  (director.SpawningStopped ? "　― 3:00 スポーン停止 ―" : string.Empty)
+                : $"内訳 {targetSource}　祭事 {(director.FestivalMode ? "ON" : "OFF")}　ランク {director.Rank}";
 
             string outline = director.OutlineMode == MockCustomerOutline.OutlineMode.InvertedHull
                 ? "インバートハル"
@@ -191,7 +200,7 @@ namespace Toufuku.Rescue.Mock
 
             return
                 $"体数 {director.AliveCount}/{director.TargetCount}　定位置 {settled}（歩行中 {director.AliveCount - settled}／補充待ち {director.PendingCount}）\n" +
-                $"内訳 {targetSource}　祭事 {(director.FestivalMode ? "ON" : "OFF")}　ランク {director.Rank}\n" +
+                $"{scheduleLine}\n" +
                 $"輪郭 {outline}／太さ {width} {director.OutlineWidth:0.000}　ゲージ {gauge}\n" +
                 $"補充テンポ スポーン遅延 {director.RespawnDelay:0.0}s ／ 歩行 {director.WalkDuration:0.0}s" +
                 (director.FreezeGauges ? "\n― ゲージ凍結中（退場なし）―" : string.Empty) +
