@@ -14,18 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Outline.OutlineRendererFeature
   m_Active: 1
   settings:
-    defaultColor: {r: 1, g: 1, b: 1, a: 1}
-    thicknessPx: 3
+    bandWidthPx: 6
+    ringGapPx: 2
+    dotPeriodPx: 16
+    dashPeriodPx: 28
+    dashDuty: 0.6
+    wavePeriodPx: 20
+    minPatternRepeats: 6
     intensity: 1.4
+    highlightBrightness: 1.6
     layerMask:
       serializedVersion: 2
       m_Bits: 4294967295
     maskResolutionScale: 1
     depthBiasEpsilon: 0.03
-    rainIntensityScale: 0.45
-    nearDistance: 12
-    farDistance: 33
-    farIntensity: 0.55
     stencilShader: {fileID: 4800000, guid: f621b37a21f2e46408f6141212297099, type: 3}
     maskShader: {fileID: 4800000, guid: 3ddfb70def515494288690cf9371d1b7, type: 3}
     composeShader: {fileID: 4800000, guid: 0c4252ae86ecbb347b6ce01dde86e7fd, type: 3}

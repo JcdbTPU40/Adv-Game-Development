@@ -18,6 +18,11 @@ namespace Toufuku.Rescue.Outline
           P: 計測の開始と停止（決めたフレーム数の平均）
           S: 人数ごとにまとめて測る（12条件を4周）
           C: CSV に書き出す
+          G: グレースケールの ON/OFF（#59。色がわからなくても、もようで見分けられるかを見る）
+          T: もようの ON/OFF（#59。OFF で全員実線＝色だけ）
+          H: 照準が乗った客を次の人にする（#59。一段明るくなるのを見る）
+          R: 欲張り客に1発目を当てたことにする／もとにもどす（#59。輪が2本→1本）
+          F の雨は、まわり（ライト・環境光・背景）だけを暗くする。輪郭の明るさが変わらないことを見る（#59）
 
         ビルド版のコマンドライン:
           -outlineSweep[=frames,passes]: 起動したら自動でまとめて測り始める
@@ -64,6 +69,18 @@ namespace Toufuku.Rescue.Outline
 
         FrameTiming[] _timings = new FrameTiming[1];
 
+        // #59: グレースケール表示と、雨のときのまわりの暗さ
+        const float RainLightScale = 0.4f;
+        bool _grayscale;
+        Volume _grayVolume;
+        VolumeProfile _grayProfile;
+        bool? _savedPostProcessing;
+        bool _rainLookApplied;
+        Light _sun;
+        float _sunIntensity;
+        Color _ambient;
+        Color _background;
+
         struct SampleRow
         {
             public int Count;
@@ -91,6 +108,8 @@ namespace Toufuku.Rescue.Outline
 
         void OnDestroy()
         {
+            if (_grayProfile != null) Destroy(_grayProfile);
+
             // エディタで動かすときは QualitySettings がプロジェクトのファイルなので、必ずもとにもどす
             if (_savedVSyncCount < 0) return;
             QualitySettings.vSyncCount = _savedVSyncCount;
@@ -163,6 +182,7 @@ namespace Toufuku.Rescue.Outline
             FrameTimingManager.CaptureFrameTimings();
 
             HandleKeys();
+            SyncRainLook();
             TickAxisSweep();
 
             if (_sampling)
@@ -497,6 +517,84 @@ namespace Toufuku.Rescue.Outline
 
             if (Input.GetKeyDown(KeyCode.C))
                 ExportCsv();
+
+            if (Input.GetKeyDown(KeyCode.G))
+                SetGrayscale(!_grayscale);
+
+            if (Input.GetKeyDown(KeyCode.T))
+                director?.SetPatternsEnabled(!director.PatternsEnabled);
+
+            if (Input.GetKeyDown(KeyCode.H))
+                director?.CycleHighlight();
+
+            if (Input.GetKeyDown(KeyCode.R))
+                director?.AdvanceGreedy();
+        }
+
+        /*
+            #59: グレースケールの ON/OFF。色がわからなくても、もようだけでお守りを見分けられるかを見る（完了条件）
+            URP の Color Adjustments（彩度 -100）をのせた Volume を、はじめて使うときに作る
+            ポストプロセスは輪郭の合成（AfterRenderingOpaques）より後なので、輪郭もいっしょに灰色になる
+        */
+        void SetGrayscale(bool on)
+        {
+            _grayscale = on;
+            if (on && _grayVolume == null)
+            {
+                var go = new GameObject("GrayscaleVolume (#59)");
+                _grayVolume = go.AddComponent<Volume>();
+                _grayVolume.isGlobal = true;
+                _grayVolume.priority = 100f;
+                _grayProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+                var adjustments = _grayProfile.Add<ColorAdjustments>(true);
+                adjustments.saturation.Override(-100f);
+                _grayVolume.sharedProfile = _grayProfile;
+            }
+            if (_grayVolume != null) _grayVolume.enabled = on;
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var data = cam.GetUniversalAdditionalCameraData();
+                if (_savedPostProcessing == null) _savedPostProcessing = data.renderPostProcessing;
+                data.renderPostProcessing = on || _savedPostProcessing.Value;
+            }
+        }
+
+        /*
+            #59: 雨のときは、まわり（ライト・環境光・背景）だけを暗くする。天候オーバーレイのかわり
+            輪郭は発光の合成なので、まわりが暗くなっても輪郭の明るさは変わらない（v8 6章「天候中も輪郭の明度を維持する」）
+            スイープで雨を切りかえたときも同じ見た目になるように、キーではなく毎フレーム RainAmount に合わせる
+        */
+        void SyncRainLook()
+        {
+            bool raining = OutlineWeather.IsRaining;
+            if (raining == _rainLookApplied) return;
+            _rainLookApplied = raining;
+
+            if (_sun == null) _sun = FindFirstObjectByType<Light>();
+            var cam = Camera.main;
+            if (raining)
+            {
+                if (_sun != null)
+                {
+                    _sunIntensity = _sun.intensity;
+                    _sun.intensity *= RainLightScale;
+                }
+                _ambient = RenderSettings.ambientLight;
+                RenderSettings.ambientLight = _ambient * RainLightScale;
+                if (cam != null)
+                {
+                    _background = cam.backgroundColor;
+                    cam.backgroundColor = _background * RainLightScale;
+                }
+            }
+            else
+            {
+                if (_sun != null) _sun.intensity = _sunIntensity;
+                RenderSettings.ambientLight = _ambient;
+                if (cam != null) cam.backgroundColor = _background;
+            }
         }
 
         void ToggleOutline()
@@ -651,23 +749,30 @@ namespace Toufuku.Rescue.Outline
             long setPass = _setPassCalls.Valid ? _setPassCalls.LastValue : 0;
             long batches = _batches.Valid ? _batches.LastValue : 0;
 
-            float thickness = 3f;
+            float band = 0f;
+            float gap = 0f;
             float scale = 1f;
+            int radius1 = 0;
+            int radius2 = 0;
             var feature = OutlineRendererFeature.Instance;
             if (feature != null)
             {
-                thickness = feature.CurrentSettings.thicknessPx;
+                band = feature.CurrentSettings.bandWidthPx;
+                gap = feature.CurrentSettings.ringGapPx;
                 scale = feature.CurrentSettings.maskResolutionScale;
+                radius1 = feature.SearchRadiusMaskTexels(1);
+                radius2 = feature.SearchRadiusMaskTexels(2);
             }
-            float radiusMask = OutlineRendererFeature.EffectiveRadiusMaskTexels(thickness, scale);
-            float thicknessScreen = OutlineRendererFeature.EffectiveThicknessScreenPx(thickness, scale);
 
-            var rect = new Rect(12, 12, 480, 285);
-            GUI.Box(rect, "Outline Perf (#45)");
-            GUILayout.BeginArea(new Rect(20, 36, 460, 255));
+            var rect = new Rect(12, 12, 540, 345);
+            GUI.Box(rect, "Outline Perf (#45 / #59)");
+            GUILayout.BeginArea(new Rect(20, 36, 520, 315));
             GUILayout.Label($"Count: {director?.AliveCount ?? 0} / target {director?.TargetCount ?? 0}");
             GUILayout.Label($"Outline: {(IsOutlineOn() ? "ON" : "OFF")}   Rain: {(OutlineWeather.IsRaining ? "ON" : "OFF")} ({OutlineWeather.RainAmount:F2})");
-            GUILayout.Label($"Mask scale: {scale:F2}   radius(mask px): {radiusMask:F0}   実効太さ(screen px): {thicknessScreen:F1}");
+            GUILayout.Label($"Mask scale: {scale:F2}   輪のはば: {band:F1}px  すきま: {gap:F1}px   さがす半径(mask px): 1本 {radius1} / 2本 {radius2}");
+            string aimLabel = director != null && director.HighlightIndex >= 0 ? director.HighlightIndex.ToString() : "-";
+            GUILayout.Label($"Pattern: {(director != null && director.PatternsEnabled ? "ON" : "OFF(色だけ)")}   Gray: {(_grayscale ? "ON" : "OFF")}   " +
+                            $"照準: {aimLabel}   欲張り R: {(director != null ? director.GreedyRemaining : 0)}（{(director != null ? director.GreedyCount : 0)}人）");
             GUILayout.Label($"FPS avg: {avgFps:F1}   1% low: {low1:F1}");
             GUILayout.Label($"CPU main: {cpu:F2} ms   GPU: {gpu:F2} ms");
             GUILayout.Label($"DrawCalls: {draws}   SetPass: {setPass}   Batches: {batches}");
@@ -675,6 +780,7 @@ namespace Toufuku.Rescue.Outline
                 ? $"Sampling... {_sampleRemaining} frames left"
                 : $"Samples stored: {_samples.Count}" + (_axisSweepActive ? " (sweeping)" : ""));
             GUILayout.Label("1/2/3=count  O=outline  F=rain  P=sample  S=sweep  C=csv");
+            GUILayout.Label("G=grayscale  T=pattern  H=aim  R=greedy hit");
             GUILayout.Label($"vSync={QualitySettings.vSyncCount}  targetFps={Application.targetFrameRate}");
             GUILayout.EndArea();
         }
