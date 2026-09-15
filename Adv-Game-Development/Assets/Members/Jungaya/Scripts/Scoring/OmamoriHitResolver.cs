@@ -139,6 +139,13 @@ public static class OmamoriHitResolver
             if (rescued && zone != HitZone.Miss) snapshot = ScoreManager.Instance.LastRescueSnapshot;
         }
 
+        /*
+            笑顔の伝播（#56）: 救えた客に、この瞬間の倍率を持たせて帰らせる
+            福の連なり倍率は RegisterCorrectHit が +1 したあとの値、ご加護倍率は発射したときの保存値（7章「倍率の保存順」）
+            だれに伝わるかは、帰り道で実際にすれちがったときに SmileCarrier が決める（相手をここで予約はしない）
+        */
+        if (rescued && snapshot.IsValid) SmileCarrier.AttachTo(customer, snapshot);
+
         int combo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
         HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact, priorityRescue, snapshot));
 

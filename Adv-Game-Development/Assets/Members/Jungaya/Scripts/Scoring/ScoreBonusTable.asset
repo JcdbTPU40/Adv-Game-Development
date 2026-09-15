@@ -16,3 +16,4 @@ MonoBehaviour:
   accuracyInnerBonus: 20
   accuracyOuterBonus: 0
   priorityRescueBonus: 50
+  propagationMaxTargets: 4

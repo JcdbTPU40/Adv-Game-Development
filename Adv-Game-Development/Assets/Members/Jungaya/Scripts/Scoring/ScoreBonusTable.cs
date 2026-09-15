@@ -1,4 +1,5 @@
 using UnityEngine;
+using Toufuku.Rescue;
 
 /*
     ボーナスの点数の、プレイ中に使う数値の表（企画書 v8 付録B B-2 を写したもの）（#55 / #61）
@@ -53,9 +54,12 @@ public class ScoreBonusTable : ScriptableObject
     [Tooltip("正しい色をどの客にも当てないまま、この秒数たつと福の連なりが 0 に戻る（既定 5秒）。")]
     [SerializeField] float chainTimeoutSeconds = FukuChain.DefaultTimeoutSeconds;
 
-    [Header("笑顔の伝播（付録B B-2・PROPAGATE／#61）")]
+    [Header("笑顔の伝播（付録B B-2・PROPAGATE／#61・#56）")]
     [Tooltip("伝播1人ぶんの縁（既定 +20）。救済時に保存した福の連なり倍率とご加護倍率を掛ける。")]
     [SerializeField] int propagationPoints = EnFormula.DefaultPropagationPoints;
+    [Tooltip("1回の救済から伝播できる人数の上限（既定 4人）。" +
+             "この2つを掛けた値が、遠方客の「基礎200 ＋ 伝播最大 +80」の +80 にあたる。")]
+    [SerializeField] int propagationMaxTargets = SmilePropagation.DefaultMaxTargets;
 
     // 命中精度のボーナス（中心 / 中 / 外側）
     public int AccuracyCenterBonus => accuracyCenterBonus;
@@ -70,6 +74,10 @@ public class ScoreBonusTable : ScriptableObject
 
     // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
     public int PropagationPoints => propagationPoints;
+    // 1回の救済から伝播できる人数の上限（付録B PROPAGATE。#56）
+    public int PropagationMaxTargets => propagationMaxTargets;
+    // 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。遠方客の「基礎200 ＋ 伝播最大 +80」の後半
+    public int MaxPropagationEnPerRescue => propagationPoints * propagationMaxTargets;
 
     // 命中ゾーンごとの命中精度のボーナス
     public int AccuracyBonusOf(HitZone zone)
@@ -110,9 +118,10 @@ public class ScoreBonusTable : ScriptableObject
             || !Mathf.Approximately(chainStep2Multiplier, FukuChain.Step2Multiplier)
             || !Mathf.Approximately(chainStep3Multiplier, FukuChain.Step3Multiplier)
             || !Mathf.Approximately(chainTimeoutSeconds, FukuChain.DefaultTimeoutSeconds)
-            || propagationPoints != EnFormula.DefaultPropagationPoints)
+            || propagationPoints != EnFormula.DefaultPropagationPoints
+            || propagationMaxTargets != SmilePropagation.DefaultMaxTargets)
             Debug.LogWarning(
-                $"[ScoreBonusTable] {name}: 福の連なりか笑顔の伝播の値が付録B（3/6/10連続 ×1.10/×1.20/×1.30・5秒・伝播+20）と違います。" +
+                $"[ScoreBonusTable] {name}: 福の連なりか笑顔の伝播の値が付録B（3/6/10連続 ×1.10/×1.20/×1.30・5秒・伝播+20・4人）と違います。" +
                 "T3 の結果で変えるなら、先に付録B を直してください。", this);
     }
 #endif

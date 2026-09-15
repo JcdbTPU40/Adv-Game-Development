@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Serialization;
+using Toufuku.Rescue;
 
 /*
     スコア（縁）と福の連なり C をまとめて管理するクラス。シーンに1つだけ置く（#22 / #31 / #55 / #61）
@@ -96,6 +97,11 @@ public class ScoreManager : MonoBehaviour
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
     // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
     public int PropagationPoints => bonusTable != null ? bonusTable.PropagationPoints : EnFormula.DefaultPropagationPoints;
+    // 1回の救済から伝播できる人数の上限（付録B PROPAGATE。#56）
+    public int PropagationMaxTargets =>
+        bonusTable != null ? bonusTable.PropagationMaxTargets : SmilePropagation.DefaultMaxTargets;
+    // 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。遠方客の「基礎200 ＋ 伝播最大 +80」の後ろ半分
+    public int MaxPropagationEnPerRescue => PropagationPoints * PropagationMaxTargets;
     // 正しい色を当てないまま C が 0 にもどるまでの秒数（付録B CHAIN.TIMEOUT）
     public float ChainTimeoutSeconds => bonusTable != null ? bonusTable.ChainTimeoutSeconds : FukuChain.DefaultTimeoutSeconds;
 

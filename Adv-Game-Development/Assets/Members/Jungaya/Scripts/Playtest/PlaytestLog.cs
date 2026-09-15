@@ -14,6 +14,7 @@ namespace Toufuku.Playtest
         ・見ている人（手伝ったときの記録）: T1Intervention
         ・T2 のテスト開始（使いたければ）: T2TrialStart
         ・#55 優先救済: ふつうは PriorityRescue（二重円と同じルール）を使う。入れかえたいときだけ PriorityTargetProvider を入れる
+        ・#56 笑顔の伝播: SmilePropagation（伝播が成立するたびに SmileCarrier が呼ぶ）
     */
     public static class PlaytestLog
     {
@@ -76,6 +77,34 @@ namespace Toufuku.Playtest
         public static void T2TrialStart()
         {
             Record(new PlaytestEvent(0, PlaytestEventType.T2TrialStart));
+        }
+
+        /*
+            笑顔が1件伝わった（#56）。SmileCarrier から呼ぶ
+
+            完了条件「倍率スナップショットの値がログで追える」はこの行で満たす
+            multiplier の列に入るのは、伝わった時点の倍率じゃなくて「救済できたときに保存した」値
+            （福の連なり倍率 × ご加護倍率）
+
+            rescuerId: 笑顔をくばった救済客のID（矢印のはじまり）
+            targetId: 笑顔をうけとった客のID
+            gain: この1回で入った縁
+            snapshotMultiplier: 救済したときに保存した倍率（福の連なり × ご加護）
+            order: その救済で何人目か（1〜4）
+            en: 足したあとの縁の合計。わからなければ null
+        */
+        public static void SmilePropagation(int rescuerId, int targetId, int gain, double snapshotMultiplier,
+            int order, int? en = null)
+        {
+            Record(new PlaytestEvent(0, PlaytestEventType.Propagate)
+            {
+                TargetId = targetId,
+                Gain = gain,
+                En = en,
+                Multiplier = snapshotMultiplier,
+                Value = order,
+                Detail = $"from:{rescuerId}"
+            });
         }
 
         // 好きな目印を残す（event の列 = eventType）
