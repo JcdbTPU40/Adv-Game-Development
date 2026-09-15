@@ -1,4 +1,5 @@
 using UnityEngine;
+using Toufuku.Rescue;
 using Toufuku.Rescue.Mock;
 
 namespace Toufuku.Playtest
@@ -11,7 +12,7 @@ namespace Toufuku.Playtest
     ///
     /// ・目標体数 = 30 ＋ <see cref="extraTarget"/>。退場（怒り → 余韻 → Destroy）と補充の谷で 30 を割らないよう上乗せする。
     /// ・黒客は MockCrowdDirector の blackCustomerCount で常に混ぜる。
-    /// ・退場者: 毎秒 <see cref="forcedExitsPerSecond"/> 体をゲージ満タンにして怒らせる → 余韻の間も描画に残り、
+    /// ・退場者: 毎秒 <see cref="forcedExitsPerSecond"/> 体の危険度Dを最大にして黒客化させる → 余韻の間も描画に残り、
     ///   鳥居から補充の客が歩いて入ってくる。本番の「黒客化して退場」と同じ経路。
     /// ・描画体数・黒客・退場中の数を毎フレーム数え、計測窓の最小と平均を出す（負荷条件を満たしていたかを記録に残す）。
     /// </summary>
@@ -108,9 +109,9 @@ namespace Toufuku.Playtest
             {
                 if (m == null || m.Go == null || !m.Go.activeInHierarchy) continue;
                 rendered++;
-                bool finished = m.Mood != null && m.Mood.IsFinished;
+                bool finished = m.State != null && m.State.IsFinished;
                 if (finished) exiting++;
-                if ((m.Tag != null && m.Tag.IsBlack) || (m.Mood != null && m.Mood.IsAngry)) black++;
+                if ((m.Tag != null && m.Tag.IsBlack) || (m.State != null && m.State.IsBlack)) black++;
             }
 
             Rendered = rendered;
@@ -135,10 +136,10 @@ namespace Toufuku.Playtest
             for (int i = 0; i < count; i++)
             {
                 MockCrowdDirector.Member m = members[(start + i) % count];
-                if (m == null || m.Go == null || m.Mood == null || m.Mood.IsFinished) continue;
+                if (m == null || m.Go == null || m.State == null || m.State.IsFinished) continue;
                 if (m.Tag != null && m.Tag.IsBlack) continue;
                 if (m.Walker != null && m.Walker.IsWalking) continue;
-                m.Mood.AddGauge(float.MaxValue / 4f);
+                m.State.SetDangerForDebug(CustomerStateMachine.MaxDanger);
                 return;
             }
         }
