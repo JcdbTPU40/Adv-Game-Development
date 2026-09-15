@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: OmamoriPalette
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.OmamoriPalette
   colors:
-  - {r: 0.2, g: 0.9, b: 0.35, a: 1}
-  - {r: 0.2, g: 0.5, b: 1, a: 1}
-  - {r: 0.65, g: 0.25, b: 0.95, a: 1}
-  - {r: 1, g: 0.4, b: 0.62, a: 1}
-  - {r: 1, g: 0.78, b: 0.1, a: 1}
+  - {r: 0.24705882, g: 0.7490196, b: 0.37254903, a: 1}
+  - {r: 0.18431373, g: 0.49803922, b: 0.84705883, a: 1}
+  - {r: 0.54509807, g: 0.37254903, b: 0.8156863, a: 1}
+  - {r: 0.9098039, g: 0.37254903, b: 0.56078434, a: 1}
+  - {r: 0.9098039, g: 0.7254902, b: 0.24705882, a: 1}
   blackCustomerColor: {r: 0.04, g: 0.04, b: 0.06, a: 1}
