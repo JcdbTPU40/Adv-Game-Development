@@ -89,6 +89,9 @@ public class ScoreManager : MonoBehaviour
     // スコアを固定したか（3:00 の解決が終わった）。固定したあとは縁も C も動かない
     public bool IsLocked { get; private set; }
 
+    // このプレイで救済を完了した人数（#65 の3:00境界ログ「決着前後の救済数」）
+    public int RescueCount { get; private set; }
+
     // 優先救済（二重円）のボーナス（付録B B-2）。数値の表が入っていればその値
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
     // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
@@ -105,10 +108,10 @@ public class ScoreManager : MonoBehaviour
     // 今の合計の倍率（福の連なり × ご加護）。ランクは入らない
     public float TotalMultiplier => Multiplier * GokagoMultiplier;
 
-    // 時計（テストで差しかえる用）。null なら Time.time
+    // 時計（テストで差しかえる用）。null なら GameSession の時計（#65。ポーズ・通信の復帰中は止まる）、GameSession がなければ Time.time
     public Func<float> Clock { get; set; }
 
-    float Now => Clock != null ? Clock() : Time.time;
+    float Now => Clock != null ? Clock() : (GameSession.Instance != null ? GameSession.Instance.ElapsedSeconds : Time.time);
 
     void Awake()
     {
@@ -177,6 +180,7 @@ public class ScoreManager : MonoBehaviour
 
         // 倍率の保存順（7章）: C を +1 してから、その段の倍率を確定する
         _chain.AddRescue(now);
+        RescueCount++;
         float chainMultiplier = Multiplier;
         float blessing = Mathf.Max(1f, blessingMultiplier ?? GokagoMultiplier);
 
@@ -242,12 +246,22 @@ public class ScoreManager : MonoBehaviour
         3:00 以後の接触では入れない（7章「伝播は接触時刻が180.000秒未満のものだけ有効」）
         返す値: 入った点。入らなかったら 0
     */
-    public int RegisterPropagation(EnMultiplierSnapshot snapshot)
+    public int RegisterPropagation(EnMultiplierSnapshot snapshot) => RegisterPropagation(snapshot, double.NaN);
+
+    /*
+        #65: 接触した時刻を渡す版。contactSessionSeconds は GameSession の時計の秒（NaN なら今）
+        接触が 180.000秒未満なら、判定が次のフレームにずれても入れる。180.000秒以上なら入れない
+    */
+    public int RegisterPropagation(EnMultiplierSnapshot snapshot, double contactSessionSeconds)
     {
         if (IsLocked || !snapshot.IsValid) return 0;
 
         GameSession session = GameSession.Instance;
-        if (session != null && !session.IsPlaying) return 0;
+        if (session != null)
+        {
+            double contact = double.IsNaN(contactSessionSeconds) ? session.ElapsedTime : contactSessionSeconds;
+            if (!session.AcceptsPropagationAt(contact)) return 0;
+        }
 
         int gained = EnFormula.PropagationScore(snapshot.ChainMultiplier, snapshot.BlessingMultiplier, PropagationPoints);
         En += gained;
@@ -286,6 +300,7 @@ public class ScoreManager : MonoBehaviour
     {
         En = 0;
         _chain.Reset();
+        RescueCount = 0;
         LastZone = HitZone.Miss;
         LastGain = 0;
         LastBonus = 0;

@@ -12,8 +12,9 @@ namespace Toufuku.GameInput
 
         ・今のファームウェアはボタンを送ってこないので、その間は数字キー1〜5とAキーで代わりにできる
         ・つながっていないときは、マウスの左クリックを振りのピークとしてあつかえる（机の上で確認する用）
+        ・#65: ボタン付きの行を 100ms 受け取らなかったら、ぜんぶのボタンをはなしたことにする（ButtonLinkWatchdog / 3章）
     */
-    public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime
+    public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime, IButtonLinkState
     {
         [SerializeField] ConecteController con;
 
@@ -26,6 +27,10 @@ namespace Toufuku.GameInput
         [SerializeField] float maxSampleGap = 0.1f;
         [Tooltip("1 フレームにまとめて届いた行へ割り当てるサンプル間隔（ファームウェアの送信周期）")]
         [SerializeField] float nominalSampleInterval = 0.02f;
+
+        [Header("ボタン箱の受信の見張り（#65 / 3章: 100ms 受信がなければ全ボタン解放）")]
+        [Tooltip("ボタン付きの行をこの秒数受け取らなかったら、ぜんぶのボタンをはなしたことにする（押している入力とためをキャンセル）")]
+        [SerializeField, Min(0.01f)] float buttonLinkTimeoutSeconds = (float)ButtonLinkWatchdog.DefaultTimeoutSeconds;
 
         [Header("ボタンを送らないファームウェア向けの代用キー")]
         [SerializeField] bool keyboardFallbackForButtons = true;
@@ -46,6 +51,7 @@ namespace Toufuku.GameInput
 
         readonly SwingPeakDetector _detector = new SwingPeakDetector();
         readonly Queue<(float strength, double time, double deviceTime)> _peaks = new Queue<(float, double, double)>();
+        readonly ButtonLinkWatchdog _buttonWatch = new ButtonLinkWatchdog();
 
         ControllerSample _latest;
         double _detectorTime = double.NegativeInfinity;
@@ -62,8 +68,15 @@ namespace Toufuku.GameInput
         public bool HasHardwareButtons => _latest.HasButtons;
 
         public bool IsFrontHeld => _latest.HasButtons
-            ? _latest.IsFrontHeld
+            ? (ButtonMaskNow & (1 << ControllerSample.FrontButtonBit)) != 0
             : keyboardFallbackForButtons && Input.GetKey(frontKey);
+
+        // #65: 今押していることにするボタンのマスク。ボタン箱の受信が 100ms とぎれていたら 0
+        int ButtonMaskNow => _buttonWatch.EffectiveMask(Time.realtimeSinceStartupAsDouble);
+
+        public bool IsButtonLinkLost(double now) => _buttonWatch.IsLost(now);
+
+        public double ButtonLinkLostTime => _buttonWatch.LostTime;
 
         void OnEnable()
         {
@@ -75,11 +88,17 @@ namespace Toufuku.GameInput
             if (con != null) con.SampleReceived -= OnSample;
             _detector.Reset();
             _peaks.Clear();
+            _buttonWatch.Reset();
         }
 
         void OnSample(ControllerSample sample)
         {
             _latest = sample;
+            if (sample.HasButtons)
+            {
+                _buttonWatch.TimeoutSeconds = buttonLinkTimeoutSeconds;
+                _buttonWatch.Receive(sample.Time, sample.Buttons);
+            }
 
             _detector.TriggerVelocity = triggerVelocity;
             _detector.ReleaseVelocity = releaseVelocity;
@@ -98,7 +117,8 @@ namespace Toufuku.GameInput
 
         public bool IsColorHeld(int index)
         {
-            if (_latest.HasButtons) return _latest.IsColorHeld(index);
+            if (_latest.HasButtons)
+                return index >= 0 && index < ControllerSample.FrontButtonBit && (ButtonMaskNow & (1 << index)) != 0;
             return keyboardFallbackForButtons && colorKeys != null
                 && index >= 0 && index < colorKeys.Length && Input.GetKey(colorKeys[index]);
         }

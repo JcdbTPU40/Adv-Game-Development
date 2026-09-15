@@ -41,4 +41,20 @@ namespace Toufuku.GameInput
     {
         double LastSwingPeakInputTime { get; }
     }
+
+    /*
+        ボタン箱の受信がとぎれたかを返せる入力（#65 / 企画書 v8 3章「100ms受信がなければ全ボタン解放」）
+
+        とぎれている間、IControllerRawSource.IsColorHeld / IsFrontHeld はぜんぶ false を返す
+        ThrowInputController は、そのときの「はなした」時刻を ButtonLinkLostTime（最後に受け取った時刻 + 100ms）にして、
+        フレームがおそくても長押し・ための秒数が延びないようにする
+    */
+    public interface IButtonLinkState
+    {
+        // now の時点でボタン箱の受信がとぎれているか（一度も受け取っていなければ false）
+        bool IsButtonLinkLost(double now);
+
+        // とぎれたとみなす時刻（Unity の時刻・秒）
+        double ButtonLinkLostTime { get; }
+    }
 }

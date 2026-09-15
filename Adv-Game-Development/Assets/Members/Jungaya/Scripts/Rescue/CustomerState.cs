@@ -212,11 +212,13 @@ namespace Toufuku.Rescue
 
         private void Update()
         {
-            // #61: 3:00 で危険度の進行を止める（7章「3:00境界の処理順」）。セッションがないシーンではいつも進める
-            if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
-
-            // active の間だけ D が進む（入ってくる途中や終わりの状態では進まない）。黒客になるのは LateUpdate で決める
-            Machine.TickDanger(Time.deltaTime);
+            /*
+                #61/#65: 危険度 D はセッションの時計で進める（7章「3:00境界の処理順」）
+                足すのは 3:00.000 までに時計が進んだ秒だけ（GameSession.PlayDeltaTime）。3:00 以後・ポーズ・通信の復帰中は 0
+                3:00 をまたいだおそいフレームでも、3:00 のあとのぶんまでは足さない。セッションがないシーンでは Time.deltaTime
+                active の間だけ D が進む（入ってくる途中や終わりの状態では進まない）。黒客になるのは LateUpdate で決める
+            */
+            Machine.TickDanger(GameSession.PlayDeltaTime);
         }
 
         private void LateUpdate()
@@ -266,7 +268,13 @@ namespace Toufuku.Rescue
             笑顔が伝わってきた。対象の条件（active・まだ救われていない・黒客じゃない・R>0）を満たすときだけ D を5減らす
             返す値: 伝わったら true（縁+20 を数えていい）
         */
-        public bool ReceiveSmilePropagation() => Machine.ReceiveSmile();
+        public bool ReceiveSmilePropagation()
+        {
+            // #65: 3:00 以後の接触（退場歩行）では D を減らさない（7章「伝播は接触時刻が180.000秒未満のものだけ有効」）
+            GameSession session = GameSession.Instance;
+            if (session != null && !session.AcceptsPropagationAt(session.ElapsedTime)) return false;
+            return Machine.ReceiveSmile();
+        }
 
         // 危険度 D を直接決める（モックや検証のシーン用。ふつうのゲームの進み方では使わない）
         public void SetDangerForDebug(float danger) => Machine.SetDangerForDebug(danger);
