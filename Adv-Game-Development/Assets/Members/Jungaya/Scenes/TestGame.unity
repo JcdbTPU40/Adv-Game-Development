@@ -858,8 +858,8 @@ MonoBehaviour:
   festivalBonus: 5
   overrideTargetCount: -1
   useShrineRatingIfPresent: 0
-  respawnDelay: 2
-  walkDuration: 3.5
+  respawnDelay: 1.5
+  walkDuration: 3
   minSpawnInterval: 0.3
   walkEase:
     serializedVersion: 2
@@ -927,14 +927,59 @@ MonoBehaviour:
     greedy: 10
     boss: 0
   distantBandIndex: 2
+  useTimetable: 1
+  timetable:
+    baseCap: 10
+    maxTotalCap: 15
+    waveRampSeconds: 5
+    waveNormalBonus: 15
+    smallWave:
+      startSeconds: 40
+      durationSeconds: 15
+      added: 3
+    middleWave:
+      startSeconds: 80
+      durationSeconds: 25
+      added: 5
+    finalWaveStartSeconds: 140
+    finalWaveDurationSeconds: 40
+    finalWaveAdd: 4
+    greedyUnlockSeconds: 38
+    distantUnlockSeconds: 48
+    movingUnlockSeconds: 60
+    bossUnlockSeconds: 120
+    bossEnabled: 0
+    secondsPerMonth: 60
+    juneWeights:
+      normal: 55
+      moving: 0
+      distant: 15
+      greedy: 30
+      boss: 0
+    novemberWeights:
+      normal: 45
+      moving: 30
+      distant: 15
+      greedy: 10
+      boss: 0
+    januaryWeights:
+      normal: 55
+      moving: 10
+      distant: 15
+      greedy: 15
+      boss: 5
+  useKindDangerSeconds: 1
+  measuredCycleMedian: 0
+  measuredCycleP75: 0
   movingSpeed: 1
   movingPatrolWidth: 3
+  movingLaneClearance: 1.2
   exitWalk: 1
   exitPoints:
   - {x: -9, y: 1, z: 37}
   - {x: 9, y: 1, z: 37}
-  startDangerRange: {x: 0.15, y: 0.85}
-  blackCustomerCount: 3
+  startDangerRange: {x: 0, y: 0}
+  blackCustomerCount: 0
   freezeDanger: 0
   outlineMode: 0
   outlineWidthMode: 1

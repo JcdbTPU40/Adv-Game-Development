@@ -7,7 +7,7 @@ namespace Toufuku.Rescue
         客の種類ごとの出てくるわりあい（企画書 v8 10章「出現比率」、付録B SPAWN.TYPE.*）（#62）
 
         わりあいは「補充が必要になった瞬間に、客の種類を決めるくじのわりあい」。合計が100じゃなくても、くじを引くときに残りで100にしなおす
-        解禁スケジュールでわりあいを切りかえる（6月の3段階など）のは #57 の担当で、ここは1組のわりあいを持つだけ
+        解禁スケジュールでわりあいを切りかえる（6月の3段階など）のは SpawnTimetable（#57）の担当で、ここは1組のわりあいを持つだけ
     */
     [Serializable]
     public struct CustomerKindWeights
@@ -23,11 +23,48 @@ namespace Toufuku.Rescue
         [Tooltip("ボス客の比率（追加要素。MVP は 0）。")]
         [Min(0f)] public float boss;
 
+        /*
+            6月（付録B SPAWN.TYPE.06C、0:48〜1:00）: 通常55、移動0、遠方15、欲張り30、ボス0
+            0:30〜0:38（06A）と 0:38〜0:48（06B）は、まだ解禁されていない種類のぶんを通常客に寄せると、この値から出る（SpawnTimetable）
+        */
+        public static CustomerKindWeights June => new CustomerKindWeights
+        {
+            normal = 55f, moving = 0f, distant = 15f, greedy = 30f, boss = 0f
+        };
+
         // 11月（付録B SPAWN.TYPE.11）: 通常45、移動30、遠方15、欲張り10、ボス0。MVP の4種類がぜんぶ出るただ1つの月
         public static CustomerKindWeights November => new CustomerKindWeights
         {
             normal = 45f, moving = 30f, distant = 15f, greedy = 10f, boss = 0f
         };
+
+        // 1月（付録B SPAWN.TYPE.01）: 通常55、移動10、遠方15、欲張り15、ボス5。ボスを出さない MVP では 5 が通常客にもどって 60
+        public static CustomerKindWeights January => new CustomerKindWeights
+        {
+            normal = 55f, moving = 10f, distant = 15f, greedy = 15f, boss = 5f
+        };
+
+        // 5種類のわりあいの合計
+        public float Total => normal + moving + distant + greedy + boss;
+
+        // 「通常60/移動10/遠方15/欲張り15/ボス0」の形で（ログ・算術の表示用）
+        public string Describe() =>
+            $"通常{normal:0.##}/移動{moving:0.##}/遠方{distant:0.##}/欲張り{greedy:0.##}/ボス{boss:0.##}";
+
+        // kind のわりあいだけを value にしたコピー
+        public CustomerKindWeights With(CustomerKind kind, float value)
+        {
+            CustomerKindWeights w = this;
+            switch (kind)
+            {
+                case CustomerKind.Normal:  w.normal = value; break;
+                case CustomerKind.Moving:  w.moving = value; break;
+                case CustomerKind.Distant: w.distant = value; break;
+                case CustomerKind.Greedy:  w.greedy = value; break;
+                case CustomerKind.Boss:    w.boss = value; break;
+            }
+            return w;
+        }
 
         // 客の種類のわりあいを取る
         public float Get(CustomerKind kind)

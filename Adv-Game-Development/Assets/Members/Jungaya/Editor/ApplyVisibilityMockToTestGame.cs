@@ -192,6 +192,21 @@ namespace Toufuku.Rescue.MockEditor
             SetObject(crowdSo, "kindTable", AssetDatabase.LoadAssetAtPath<CustomerKindTable>(KindTablePath));
             SetBool(crowdSo, "exitWalk", true);
 
+            // #57: 180秒の時間割（解禁スケジュール・無演出負荷ウェーブ）で上限と客種を決める。
+            // 時間割は本番の数値（付録B）で動かすので、#44 で見え方を測るために入れていた値を外す:
+            //   ・常に混ぜる黒札 0人 … v8 の黒客は D=100 になって生まれ、同時上限に数えない（8章）
+            //   ・初期の危険度 0     … 付録B STATE.DANGER。#44 は残量差を見せるため 15〜85% にばらけさせていた
+            //   ・D満タン秒数は客種ごとの本番値 … Variant の 66.7秒の上書きは UsbGateTest（#52）と共用なので、
+            //                                     Variant は触らずディレクタが客ごとに外す（useKindDangerSeconds）
+            //   ・退場後の待ち 1.5秒／歩行 3秒 … 付録B SPAWN.TIMING
+            SetBool(crowdSo, "useTimetable", true);
+            SetBool(crowdSo, "useKindDangerSeconds", true);
+            SetBool(crowdSo, "freezeDanger", false);
+            SetInt(crowdSo, "blackCustomerCount", 0);
+            SetVector2(crowdSo, "startDangerRange", Vector2.zero);
+            SetFloat(crowdSo, "respawnDelay", 1.5f);
+            SetFloat(crowdSo, "walkDuration", 3f);
+
             crowdSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ── MockGaugeHud の結線 ─────────────────────────────
@@ -603,6 +618,17 @@ namespace Toufuku.Rescue.MockEditor
                 return;
             }
             p.floatValue = value;
+        }
+
+        private static void SetInt(SerializedObject so, string propertyName, int value)
+        {
+            SerializedProperty p = so.FindProperty(propertyName);
+            if (p == null)
+            {
+                Debug.LogWarning($"[ApplyMock] プロパティ '{propertyName}' が見つかりませんでした。");
+                return;
+            }
+            p.intValue = value;
         }
 
         private static void SetBool(SerializedObject so, string propertyName, bool value)
