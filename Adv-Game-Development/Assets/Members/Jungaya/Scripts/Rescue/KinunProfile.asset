@@ -17,6 +17,6 @@ MonoBehaviour:
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   placeholderSprite: {fileID: 0}
   viewPrefab: {fileID: 0}
-  representativeColor: {r: 1, g: 0.78, b: 0.1, a: 1}
+  representativeColor: {r: 0.9098039, g: 0.7254902, b: 0.24705882, a: 1}
   displayName: "\u91D1\u904B"
   designerNote: 
