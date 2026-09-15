@@ -17,6 +17,10 @@ namespace Toufuku.Playtest
         public const int Profile = 5;
         /// <summary>危険度Dが100になるまでの秒数（客種ごとの幅。通常客 15〜25秒。付録B B-1）。</summary>
         public const int DangerSeconds = 6;
+        /// <summary>客種（通常・移動・遠方・欲張り。#62）。</summary>
+        public const int Kind = 7;
+        /// <summary>移動客の往復で歩き出す向き（#62）。</summary>
+        public const int Motion = 8;
     }
 
     /// <summary>

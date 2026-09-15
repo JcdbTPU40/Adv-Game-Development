@@ -893,22 +893,46 @@ MonoBehaviour:
   - label: "\u8FD1"
     zRange: {x: 27, y: 33}
     xRange: {x: -6, y: 6}
-    slotCount: 6
+    distanceRange: {x: 3, y: 7}
+    occupancyShare: 40
+    slotCount: 7
     gizmoColor: {r: 0.3, g: 1, b: 0.6, a: 0.35}
   - label: "\u4E2D"
     zRange: {x: 19, y: 26}
     xRange: {x: -7.5, y: 7.5}
-    slotCount: 6
+    distanceRange: {x: 7, y: 12}
+    occupancyShare: 40
+    slotCount: 8
     gizmoColor: {r: 0.3, g: 0.8, b: 1, a: 0.35}
   - label: "\u9060"
     zRange: {x: 12, y: 18}
     xRange: {x: -8.5, y: 8.5}
-    slotCount: 6
+    distanceRange: {x: 12, y: 18}
+    occupancyShare: 20
+    slotCount: 8
     gizmoColor: {r: 0.9, g: 0.6, b: 1, a: 0.35}
   minSlotDistance: 2.2
   slotPlacementAttempts: 30
   customerY: 1
   randomSeed: 12345
+  bandSpace: 1
+  distanceOrigin: {fileID: 8491216784668677460}
+  maxLateralAngle: 40
+  assignKinds: 1
+  kindTable: {fileID: 11400000, guid: 123a9d079c3de2f4eafcdadbc530a929, type: 2}
+  kindWeights:
+    normal: 45
+    moving: 30
+    distant: 15
+    greedy: 10
+    boss: 0
+  distantBandIndex: 2
+  movingSpeed: 1
+  movingPatrolWidth: 3
+  exitWalk: 1
+  exitPoints:
+  - {x: -9, y: 1, z: 37}
+  - {x: 9, y: 1, z: 37}
   startDangerRange: {x: 0.15, y: 0.85}
   blackCustomerCount: 3
   freezeDanger: 0

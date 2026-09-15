@@ -25,6 +25,9 @@ namespace Toufuku.Rescue.Mock
         /// <summary>この客の最終的な定位置。</summary>
         public Vector3 Destination => _to;
 
+        /// <summary>歩いて定位置に着いた（<see cref="SnapTo"/> では発火しない）。#62 の移動客はここから往復を始める。</summary>
+        public event System.Action Arrived;
+
         private void Update()
         {
             if (!_walking) return;
@@ -39,6 +42,7 @@ namespace Toufuku.Rescue.Mock
             {
                 transform.position = _to;
                 _walking = false;
+                Arrived?.Invoke();
             }
         }
 

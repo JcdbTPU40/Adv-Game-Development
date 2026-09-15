@@ -57,6 +57,8 @@ namespace Toufuku.Rescue.MockEditor
         private const string VolumeName = "Global Volume (Bloom)";
 
         private const string SpawnerObjectName = "CustomerSpawner";
+        private const string ShootPosName = "ShootPos";   // 照準（#60 OnusaAimController）の origin。距離帯の基準点（#62）
+        private const string KindTablePath = "Assets/Members/Jungaya/Scripts/Rescue/CustomerKindTable.asset";
         private const string GaugeHudObjectName = "ScoreManager";
 
         // Revert でカメラ設定を元に戻すために、Apply 前の値を覚えておく。
@@ -65,8 +67,15 @@ namespace Toufuku.Rescue.MockEditor
         private const string PrefKeyPostFx = "Toufuku.Mock.TestGame.PrevRenderPostProcessing";
 
         // ── 定位置バンド ────────────────────────────────────────
-        // z はモック既定（近27〜33 / 中19〜26 / 遠12〜18）をそのまま使う。
-        // カメラは (0,5.3,39) から -Z を向いているので、いずれもカメラ手前かつ画面内に収まる。
+        // #62: 近／中／遠は照準の基準点 ShootPos (0,1.49,38.73) からの水平距離で置く（企画書 v8 8章：3〜7／7〜12／12〜18m）。
+        // 照準（#60 OnusaAimController）の届く範囲 3〜18m と一致し、カメラ (0,5.3,39)・俯角31.7°・FOV75 で
+        // 3m の足元が画面下から17%、18m が68%の高さに収まる（Unity 上で WorldToViewportPoint を実測）。
+        // 目標占有率は付録B PLACEMENT（40／40／20%）。上限15人なら 6／6／3 人。定位置数は枠より多めに持ち、
+        // 移動客の往復の経路（左右3m）と重ならない候補を選べるようにする。
+        // zRange は bandSpace=WorldZ のとき用の旧値（#44）で、距離モードでは使わない。
+        //
+        // 近い帯（約3.7〜4.7m 正面）は、#35 コインプッシャーの前の見えない壁 Wall/Cube (2)（z=34.0〜35.0）と重なる。
+        // 客は kinematic で transform を直接動かしているので壁に押し戻されることはなく、壁も描画されない。
         //
         // x だけは TestGame に合わせて狭めてある。TestGame には Wall/Cube・Cube(1) の
         // 見えない壁が x=±9.6（内側の面が ±9.1）に立っており、モック既定の ±9 / ±11 だと
@@ -77,15 +86,17 @@ namespace Toufuku.Rescue.MockEditor
             public string Label;
             public Vector2 ZRange;
             public Vector2 XRange;
+            public Vector2 DistanceRange;
+            public float Share;
             public int SlotCount;
             public Color GizmoColor;
         }
 
         private static readonly BandDef[] Bands =
         {
-            new BandDef { Label = "近", ZRange = new Vector2(27f, 33f), XRange = new Vector2(-6f, 6f),     SlotCount = 6, GizmoColor = new Color(0.3f, 1.0f, 0.6f, 0.35f) },
-            new BandDef { Label = "中", ZRange = new Vector2(19f, 26f), XRange = new Vector2(-7.5f, 7.5f), SlotCount = 6, GizmoColor = new Color(0.3f, 0.8f, 1.0f, 0.35f) },
-            new BandDef { Label = "遠", ZRange = new Vector2(12f, 18f), XRange = new Vector2(-8.5f, 8.5f), SlotCount = 6, GizmoColor = new Color(0.9f, 0.6f, 1.0f, 0.35f) },
+            new BandDef { Label = "近", ZRange = new Vector2(27f, 33f), XRange = new Vector2(-6f, 6f),     DistanceRange = new Vector2(3f, 7f),   Share = 40f, SlotCount = 7, GizmoColor = new Color(0.3f, 1.0f, 0.6f, 0.35f) },
+            new BandDef { Label = "中", ZRange = new Vector2(19f, 26f), XRange = new Vector2(-7.5f, 7.5f), DistanceRange = new Vector2(7f, 12f),  Share = 40f, SlotCount = 8, GizmoColor = new Color(0.3f, 0.8f, 1.0f, 0.35f) },
+            new BandDef { Label = "遠", ZRange = new Vector2(12f, 18f), XRange = new Vector2(-8.5f, 8.5f), DistanceRange = new Vector2(12f, 18f), Share = 20f, SlotCount = 8, GizmoColor = new Color(0.9f, 0.6f, 1.0f, 0.35f) },
         };
 
         // ── デバッグHUDのキー割り当て ──────────────────────────
@@ -108,7 +119,11 @@ namespace Toufuku.Rescue.MockEditor
         // 12〜15体を並べた状態を作れない。初期R・基礎点（射撃バランス）は
         // 本番のまま触らず、D の進行と退場秒数だけモック側（VisibilityMockSceneBuilder）に合わせる。
         private const float MockDangerFullSeconds = 66.7f;
-        private const float MockExitSeconds = 0.4f;
+        // #62: 退場は付録B EXIT.TIMING（救済3秒／黒客4秒）どおりに歩かせる。
+        // 以前は 0.4 秒で消して体数を保っていたが、いまは救済・黒客化の瞬間に定位置を空けて補充するので、
+        // 退場を長くしても定位置に立つ体数は減らない。
+        private const float MockRescuedExitSeconds = 3f;
+        private const float MockBlackExitSeconds = 4f;
 
         // ══════════════════════════════════════════════════════════
         //  Apply
@@ -167,6 +182,16 @@ namespace Toufuku.Rescue.MockEditor
             SetBool(crowdSo, "prefillInstant", false);
 
             WriteBands(crowdSo);
+
+            // #62: 距離帯・客種・移動客・退場歩行を ON にする。
+            SetEnum(crowdSo, "bandSpace", (int)MockCrowdDirector.BandSpace.DistanceFromOrigin);
+            Transform shootPos = FindInScene(scene, ShootPosName);
+            if (shootPos != null) SetObject(crowdSo, "distanceOrigin", shootPos);
+            else Debug.LogWarning($"[ApplyMock] '{ShootPosName}' が見つかりません。距離の基準点は Main Camera の位置になります。");
+            SetBool(crowdSo, "assignKinds", true);
+            SetObject(crowdSo, "kindTable", AssetDatabase.LoadAssetAtPath<CustomerKindTable>(KindTablePath));
+            SetBool(crowdSo, "exitWalk", true);
+
             crowdSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ── MockGaugeHud の結線 ─────────────────────────────
@@ -368,8 +393,8 @@ namespace Toufuku.Rescue.MockEditor
             {
                 var stateSo = new SerializedObject(state);
                 SetFloat(stateSo, "dangerFullSecondsOverride", MockDangerFullSeconds);
-                SetFloat(stateSo, "rescuedExitSeconds", MockExitSeconds);
-                SetFloat(stateSo, "blackExitSeconds", MockExitSeconds);
+                SetFloat(stateSo, "rescuedExitSeconds", MockRescuedExitSeconds);
+                SetFloat(stateSo, "blackExitSeconds", MockBlackExitSeconds);
                 stateSo.ApplyModifiedPropertiesWithoutUndo();
             }
         }
@@ -499,6 +524,17 @@ namespace Toufuku.Rescue.MockEditor
             return null;
         }
 
+        /// <summary>シーン内（子階層を含む）から名前で Transform を探す。最初に見つかったもの。</summary>
+        private static Transform FindInScene(Scene scene, string name)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name == name) return t;
+            }
+            return null;
+        }
+
         private static T GetOrAdd<T>(GameObject go) where T : Component
         {
             T c = go.GetComponent<T>();
@@ -540,6 +576,8 @@ namespace Toufuku.Rescue.MockEditor
                 e.FindPropertyRelative("label").stringValue = Bands[i].Label;
                 e.FindPropertyRelative("zRange").vector2Value = Bands[i].ZRange;
                 e.FindPropertyRelative("xRange").vector2Value = Bands[i].XRange;
+                e.FindPropertyRelative("distanceRange").vector2Value = Bands[i].DistanceRange;
+                e.FindPropertyRelative("occupancyShare").floatValue = Bands[i].Share;
                 e.FindPropertyRelative("slotCount").intValue = Bands[i].SlotCount;
                 e.FindPropertyRelative("gizmoColor").colorValue = Bands[i].GizmoColor;
             }
