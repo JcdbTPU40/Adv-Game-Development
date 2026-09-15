@@ -137,6 +137,12 @@ namespace Toufuku.Rescue
         public int RatingGainOnRescue => _entry != null ? _entry.ratingGainOnRescue : 10;
         /// <summary>黒客化時の神社評価の減分（正の値。付録B B-1）。</summary>
         public int RatingLossOnBlack => _entry != null ? _entry.ratingLossOnBlack : 20;
+        /// <summary>
+        /// 終端状態から退場（Destroy）までの秒数（付録B EXIT.TIMING：救済3秒／黒客4秒）。
+        /// 退場歩行（#62 <see cref="CustomerMotion"/>）はこの秒数で出口まで歩き切る。
+        /// </summary>
+        public float ExitSecondsFor(CustomerPhase phase) =>
+            phase == CustomerPhase.Black ? blackExitSeconds : rescuedExitSeconds;
 
         private void Awake()
         {

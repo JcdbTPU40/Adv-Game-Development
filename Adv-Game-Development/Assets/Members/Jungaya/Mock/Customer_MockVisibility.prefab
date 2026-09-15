@@ -61,12 +61,12 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6098341762285286869, guid: 1650199f84c40014ba73a722dd5011bf, type: 3}
-      propertyPath: dangerFullSecondsOverride
-      value: 66.7
+      propertyPath: rescuedExitSeconds
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6098341762285286869, guid: 1650199f84c40014ba73a722dd5011bf, type: 3}
-      propertyPath: rescuedExitSeconds
-      value: 0.4
+      propertyPath: dangerFullSecondsOverride
+      value: 66.7
       objectReference: {fileID: 0}
     - target: {fileID: 6858027800831740336, guid: 1650199f84c40014ba73a722dd5011bf, type: 3}
       propertyPath: m_Name
