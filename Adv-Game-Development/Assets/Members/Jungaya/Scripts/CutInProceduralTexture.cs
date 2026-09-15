@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// カットインUI用のテクスチャを実行時に動的生成してRawImageへ割り当てる。
-/// SpeedLines: 放射状の集中線 / EdgeGradient: 帯の縁用の発光風グラデーション。
-/// </summary>
+/*
+    カットインのUIで使うテクスチャを実行中に作って、RawImage にセットするクラス
+    SpeedLines: 放射状の集中線 / EdgeGradient: 帯のふちに使う光ってるっぽいグラデーション
+*/
 [RequireComponent(typeof(RawImage))]
 public class CutInProceduralTexture : MonoBehaviour
 {
@@ -35,7 +35,7 @@ public class CutInProceduralTexture : MonoBehaviour
         }
     }
 
-    /// <summary>中心が透明で外周へ向かって伸びる放射状の集中線。</summary>
+    // 真ん中が透明で、外に向かってのびる放射状の集中線を作る
     private static Texture2D CreateSpeedLines(int size, int lineCount)
     {
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -59,7 +59,7 @@ public class CutInProceduralTexture : MonoBehaviour
                 float r = Mathf.Sqrt(dx * dx + dy * dy);
                 float angle01 = (Mathf.Atan2(dy, dx) + Mathf.PI) / (2f * Mathf.PI);
                 int sector = Mathf.Min(lineCount - 1, (int)(angle01 * lineCount));
-                // 0=線の中心 1=セクター境界
+                // 0 が線の真ん中、1 が区切りのさかい目
                 float inSector = Mathf.Abs(angle01 * lineCount - sector - 0.5f) * 2f;
                 float lineAlpha = Mathf.Clamp01((widths[sector] - inSector) / 0.15f);
                 float radial = Mathf.Clamp01((r - lengths[sector]) / 0.25f);
@@ -74,7 +74,7 @@ public class CutInProceduralTexture : MonoBehaviour
         return tex;
     }
 
-    /// <summary>中央が白熱して見える横方向グラデーション(帯の縁用)。</summary>
+    // 真ん中が白く光って見える横向きのグラデーション（帯のふち用）
     private Texture2D CreateEdgeGradient(int width)
     {
         var tex = new Texture2D(width, 1, TextureFormat.RGBA32, false);

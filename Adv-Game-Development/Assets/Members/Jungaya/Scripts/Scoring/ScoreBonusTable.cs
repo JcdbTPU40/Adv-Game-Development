@@ -1,21 +1,24 @@
 using UnityEngine;
+using Toufuku.Rescue;
 
-/// <summary>
-/// 加点のランタイム数値表（企画書 v8 付録B B-2 の写し）— Issue #55
-///
-/// 付録B が Phase 1 の唯一の数値マスターなので、コードに数値を直書きせずこの ScriptableObject へ集める
-/// （B-1 の客種数値を <c>CustomerKindTable</c> に集めたのと同じ作り）。
-///
-/// ここに置く理由（優先救済 +50）:
-///   付録B B-2 は優先救済を「+50 ／ T2 で支配的なら +30 へ」と書いている（v8 7章「二重円だけを追う」が
-///   支配戦略になった場合の調整）。値をこの表に出しておけば、<b>コードを直さずアセットの数字だけで</b>
-///   +50 → +30 に下げて T2 を回し直せる。
-///
-/// 使い方:
-///   Project で右クリック → Create → Toufuku → 加点数値表 (ScoreBonusTable)。
-///   シーンの <see cref="ScoreManager"/> に割り当てる。割り当てが無ければ ScoreManager 側の
-///   フォールバック値（付録B と同じ既定値）を使う。
-/// </summary>
+/*
+    ボーナスの点数の、プレイ中に使う数値の表（企画書 v8 付録B B-2 を写したもの）（#55 / #61）
+
+    付録B が Phase 1 でただ1つの数値の元なので、コードに数値を直接書かないでこの ScriptableObject に集める
+    （B-1 の客の種類の数値を CustomerKindTable に集めたのと同じ作り方）
+
+    ここに置く理由（優先救済の +50）:
+      付録B B-2 には優先救済が「+50 ／ T2 で支配的なら +30 へ」と書いてある（v8 7章「二重円だけを追う」が
+      いちばん強い作戦になってしまったときの調整）。値をこの表に出しておけば、コードを直さないでアセットの数字だけで
+      +50 → +30 に下げて T2 をやりなおせる
+
+    #61: 福の連なり（3/6/10連続で ×1.10/×1.20/×1.30、5秒で途切れる）と笑顔の伝播（+20）も、T3 で検証する「MVP 仮説」の値なのでここに置く
+
+    使い方:
+      Project で右クリック → Create → Toufuku → 加点数値表 (ScoreBonusTable)
+      シーンの ScoreManager に入れる。入っていなければ ScoreManager のほうの
+      予備の値（付録B と同じふつうの値）を使う
+*/
 [CreateAssetMenu(
     fileName = "ScoreBonusTable",
     menuName = "Toufuku/加点数値表 (ScoreBonusTable)",
@@ -35,34 +38,48 @@ public class ScoreBonusTable : ScriptableObject
              "既定 +50。T2 で「二重円だけを追う」が支配戦略と判定されたら +30 へ下げる（v8 7章）。")]
     [SerializeField] int priorityRescueBonus = 50;
 
-    [Header("笑顔の伝播（付録B B-2・PROPAGATE／#56）")]
-    [Tooltip("伝播1回ぶんの縁（倍率を掛ける前）。既定 +20。")]
-    [SerializeField] int smilePropagationBonus = 20;
-    [Tooltip("1回の救済から伝播できる人数の上限。既定 4人。" +
-             "この2つの積が、遠方客の「基礎200 ＋ 伝播最大 +80」の +80 にあたる。")]
-    [SerializeField] int smilePropagationMaxTargets = 4;
+    [Header("福の連なり（付録B B-2・CHAIN.TIMEOUT／#61）")]
+    [Tooltip("1段目になる連続救済数（既定 3）。")]
+    [SerializeField] int chainStep1Count = FukuChain.Step1Count;
+    [Tooltip("1段目の倍率（既定 ×1.10）。")]
+    [SerializeField] float chainStep1Multiplier = FukuChain.Step1Multiplier;
+    [Tooltip("2段目になる連続救済数（既定 6）。")]
+    [SerializeField] int chainStep2Count = FukuChain.Step2Count;
+    [Tooltip("2段目の倍率（既定 ×1.20）。")]
+    [SerializeField] float chainStep2Multiplier = FukuChain.Step2Multiplier;
+    [Tooltip("3段目（上限）になる連続救済数（既定 10）。")]
+    [SerializeField] int chainStep3Count = FukuChain.Step3Count;
+    [Tooltip("3段目（上限）の倍率（既定 ×1.30）。")]
+    [SerializeField] float chainStep3Multiplier = FukuChain.Step3Multiplier;
+    [Tooltip("正しい色をどの客にも当てないまま、この秒数たつと福の連なりが 0 に戻る（既定 5秒）。")]
+    [SerializeField] float chainTimeoutSeconds = FukuChain.DefaultTimeoutSeconds;
 
-    /// <summary>命中精度の加点（中心 / 中間 / 外周）。</summary>
+    [Header("笑顔の伝播（付録B B-2・PROPAGATE／#61・#56）")]
+    [Tooltip("伝播1人ぶんの縁（既定 +20）。救済時に保存した福の連なり倍率とご加護倍率を掛ける。")]
+    [SerializeField] int propagationPoints = EnFormula.DefaultPropagationPoints;
+    [Tooltip("1回の救済から伝播できる人数の上限（既定 4人）。" +
+             "この2つを掛けた値が、遠方客の「基礎200 ＋ 伝播最大 +80」の +80 にあたる。")]
+    [SerializeField] int propagationMaxTargets = SmilePropagation.DefaultMaxTargets;
+
+    // 命中精度のボーナス（中心 / 中 / 外側）
     public int AccuracyCenterBonus => accuracyCenterBonus;
     public int AccuracyInnerBonus => accuracyInnerBonus;
     public int AccuracyOuterBonus => accuracyOuterBonus;
 
-    /// <summary>優先救済の加点（付録B B-2）。</summary>
+    // 優先救済のボーナス（付録B B-2）
     public int PriorityRescueBonus => priorityRescueBonus;
 
-    /// <summary>笑顔の伝播1回ぶんの縁（倍率を掛ける前。付録B B-2）。</summary>
-    public int SmilePropagationBonus => smilePropagationBonus;
+    // 福の連なりが途切れる秒数（付録B CHAIN.TIMEOUT）
+    public float ChainTimeoutSeconds => chainTimeoutSeconds;
 
-    /// <summary>1回の救済から伝播できる人数の上限（付録B PROPAGATE）。</summary>
-    public int SmilePropagationMaxTargets => smilePropagationMaxTargets;
+    // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
+    public int PropagationPoints => propagationPoints;
+    // 1回の救済から伝播できる人数の上限（付録B PROPAGATE。#56）
+    public int PropagationMaxTargets => propagationMaxTargets;
+    // 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。遠方客の「基礎200 ＋ 伝播最大 +80」の後半
+    public int MaxPropagationEnPerRescue => propagationPoints * propagationMaxTargets;
 
-    /// <summary>
-    /// 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。
-    /// 遠方客の「基礎200 ＋ 伝播最大 +80」（v8 7章の選択の比較表）の後半をこの表の数字で表す。
-    /// </summary>
-    public int MaxSmilePropagationBonus => smilePropagationBonus * smilePropagationMaxTargets;
-
-    /// <summary>命中ゾーンごとの命中精度の加点。</summary>
+    // 命中ゾーンごとの命中精度のボーナス
     public int AccuracyBonusOf(HitZone zone)
     {
         switch (zone)
@@ -74,8 +91,17 @@ public class ScoreBonusTable : ScriptableObject
         }
     }
 
+    // 福の連なり C から倍率を出す
+    public float ChainMultiplierOf(int chain)
+    {
+        return FukuChain.MultiplierOf(chain,
+            chainStep1Count, chainStep1Multiplier,
+            chainStep2Count, chainStep2Multiplier,
+            chainStep3Count, chainStep3Multiplier);
+    }
+
 #if UNITY_EDITOR
-    /// <summary>付録B に無い値に気づけるようにする（エディタ専用）。</summary>
+    // 付録B にない値に気づけるようにする（エディタだけ）
     void OnValidate()
     {
         if (priorityRescueBonus != 50 && priorityRescueBonus != 30)
@@ -84,16 +110,19 @@ public class ScoreBonusTable : ScriptableObject
                 "付録B B-2 にあるのは +50（既定）と +30（T2 で支配的だった場合）だけです。" +
                 "別の値にするなら先に付録B を直してください。", this);
 
-        if (smilePropagationBonus != 20)
-            Debug.LogWarning(
-                $"[ScoreBonusTable] {name}: 笑顔の伝播の縁が {smilePropagationBonus} です。" +
-                "付録B B-2・PROPAGATE は +20 です。別の値にするなら先に付録B を直してください。", this);
+        if (!(chainStep1Count < chainStep2Count && chainStep2Count < chainStep3Count))
+            Debug.LogWarning($"[ScoreBonusTable] {name}: 福の連なりの段の数が 1段目 < 2段目 < 3段目 になっていません。", this);
 
-        if (smilePropagationMaxTargets != 4)
+        if (chainStep1Count != FukuChain.Step1Count || chainStep2Count != FukuChain.Step2Count || chainStep3Count != FukuChain.Step3Count
+            || !Mathf.Approximately(chainStep1Multiplier, FukuChain.Step1Multiplier)
+            || !Mathf.Approximately(chainStep2Multiplier, FukuChain.Step2Multiplier)
+            || !Mathf.Approximately(chainStep3Multiplier, FukuChain.Step3Multiplier)
+            || !Mathf.Approximately(chainTimeoutSeconds, FukuChain.DefaultTimeoutSeconds)
+            || propagationPoints != EnFormula.DefaultPropagationPoints
+            || propagationMaxTargets != SmilePropagation.DefaultMaxTargets)
             Debug.LogWarning(
-                $"[ScoreBonusTable] {name}: 伝播の上限人数が {smilePropagationMaxTargets} 人です。" +
-                "付録B PROPAGATE は 4 人（＝遠方客の伝播最大 +80）です。" +
-                "別の値にするなら先に付録B を直してください。", this);
+                $"[ScoreBonusTable] {name}: 福の連なりか笑顔の伝播の値が付録B（3/6/10連続 ×1.10/×1.20/×1.30・5秒・伝播+20・4人）と違います。" +
+                "T3 の結果で変えるなら、先に付録B を直してください。", this);
     }
 #endif
 }

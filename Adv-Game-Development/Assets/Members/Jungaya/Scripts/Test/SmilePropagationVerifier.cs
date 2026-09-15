@@ -4,74 +4,70 @@ using Toufuku.Aim;
 using Toufuku.Playtest;
 using Toufuku.Rescue;
 
-/// <summary>
-/// 笑顔の伝播の確認シーン進行 — Issue #56（完了条件「PlayMode で密集配置・遠方配置の両方を再現確認できる」）
-///
-/// 見たいのは次の 4 つ。どれもキー 1 つで再現できるようにする。
-///   ・密集配置（F5）… 対象のまわりに 6 人を接触半径の内側へ置く。1 人救うと<b>4 人で打ち止め</b>になり、
-///                      伝播の縁が +80 で止まること、同じ相手に二度入らないことを見る。
-///   ・遠方配置（F6）… 奥の参道沿いに列で並べ、<b>一番奥</b>を救う。救済客が手前へ帰るあいだに
-///                      次々とすれ違い、4 人まで伝播が伸びることを見る（「奥から救うほど得」の土台）。
-///   ・黒客混在（F7）… 対象の隣を黒客にする。黒客とすれ違っても<b>縁が増えず、4 人枠も減らない</b>ことを見る。
-///   ・作り直し（F8）
-/// 投げずに確かめたいときは F9（対象へ正色を 1 発当てたことにする。本番と同じ OmamoriHitResolver を通る）。
-///
-/// 退場歩行（参道を歩いて帰る演出）は別 Issue なので、<b>この確認シーンの中だけ</b>救済客を手前へ歩かせる
-/// （<see cref="simulateExitWalk"/>）。本番でも歩行が入れば同じ経路で伝播が起きる。
-///
-/// 客はこのコンポーネントが実行時に作る。シーンには地面・カメラ・入力・スコアだけを置く。
-/// 操作: 1 キーで色（健康）を選び、クリック（＝振り）で投げる。
-/// </summary>
+/*
+    笑顔の伝播をたしかめるシーンの進行（#56 / 完了条件「PlayMode で密集配置・遠方配置の両方を再現確認できる」）
+
+    見たいのは次の4つ。どれもキー1つで出せるようにする
+    ・密集配置（F5）… 相手のまわりに6人を接触の半径の中に置く。1人救うと「4人で打ち止め」になって、
+                      伝播の縁が +80 で止まること、同じ相手に2回入らないこと
+    ・遠方配置（F6）… 参道ぞいの列のいちばん奥を救う。帰り道で次々にすれちがって、4人まで伸びること
+                      （「奥から救うほど得」のもと）
+    ・黒客混在（F7）… 相手のとなりの半分を黒客にする。黒客とすれちがっても縁が増えず、4人の枠も減らないこと
+    ・作り直し（F8）
+    投げずにためしたいときは F9（相手に正しい色を1発当てたことにする。本番と同じ OmamoriHitResolver を通る）
+
+    帰り道の歩きは #62 の CustomerMotion にまかせる（救済3秒・黒客4秒で出口まで歩く）。
+    このスクリプトは出口の位置を渡すだけで、歩きそのものは本番と同じものを使う
+
+    客はこのスクリプトが実行中に作る。シーンには地面・カメラ・入力・スコアだけを置く
+    投げ方: 1 キーで色（健康）をえらんで、クリックで振る
+*/
 [DisallowMultipleComponent]
 public class SmilePropagationVerifier : MonoBehaviour
 {
     public enum Layout
     {
-        /// <summary>密集配置。対象のまわりに接触半径の内側で 6 人。</summary>
+        // 密集配置。相手のまわりに接触の半径の中で6人
         Dense,
-        /// <summary>遠方配置。奥の参道沿いに間隔を空けて並べる。</summary>
+        // 遠方配置。参道ぞいに列で並べて、いちばん奥を救う
         Distant,
-        /// <summary>黒客混在。密集配置のうち何人かを最初から黒客にする。</summary>
+        // 黒客混在。密集配置のうち何人かを最初から黒客にする
         BlackMixed
     }
 
     [Header("配置")]
-    [Tooltip("客を並べる中心（未設定なら照準の基準点 → 原点の順で決める）。")]
+    [Tooltip("客を並べる中心（入れなければ照準の基準点 → 原点の順できめる）。")]
     [SerializeField] Transform arcCenter;
-    [Tooltip("基準点から対象までの距離（m）。密集配置で使う。")]
+    [Tooltip("基準点から相手までの距離（m）。密集配置で使う。")]
     [SerializeField, Min(2f)] float denseDistance = 12f;
-    [Tooltip("密集配置で対象のまわりに置く人数。")]
+    [Tooltip("密集配置で相手のまわりに置く人数。")]
     [SerializeField, Range(1, 8)] int denseNeighbors = 6;
-    [Tooltip("密集配置の対象と周囲の間隔（m）。接触半径より内側にすること。")]
+    [Tooltip("密集配置の相手とまわりのあいだ（m）。接触の半径より内側にすること。")]
     [SerializeField, Min(0.5f)] float denseSpacing = 1.8f;
 
     [Tooltip("遠方配置で並べる人数（手前から奥へ）。")]
     [SerializeField, Range(2, 8)] int distantCount = 5;
-    [Tooltip("遠方配置の一番手前までの距離（m）。")]
+    [Tooltip("遠方配置のいちばん手前までの距離（m）。")]
     [SerializeField, Min(2f)] float distantNear = 10f;
-    [Tooltip("遠方配置の間隔（m）。救済客はこの列の横を通って帰るので、接触半径より少し広くても順に伝播する。")]
+    [Tooltip("遠方配置のあいだ（m）。救済客は列の横を通って帰るので、接触の半径より少し広くても順に伝わる。")]
     [SerializeField, Min(0.5f)] float distantSpacing = 3.2f;
     [Tooltip("遠方配置で列を参道の左右どちらへ寄せるか（m）。0 だと救済客が列の上を通る。")]
     [SerializeField] float distantSideOffset = 1.2f;
 
     [Header("伝播")]
-    [Tooltip("交差とみなす水平距離（m）。SmileCarrier へ渡す。")]
+    [Tooltip("すれちがいとみなす水平の距離（m）。SmileCarrier へ渡す。")]
     [SerializeField, Min(0.1f)] float contactRadius = SmileCarrier.DefaultContactRadius;
-    [Tooltip("ON なら救済客を手前（参道の出口）へ歩かせる。退場歩行は別 Issue なので、この確認シーン限定の仮実装。")]
-    [SerializeField] bool simulateExitWalk = true;
-    [Tooltip("仮の退場歩行の速さ（m/s）。救済の退場は 3 秒なので、この速さ×3秒ぶんだけ参道を戻る。")]
-    [SerializeField, Min(0.5f)] float exitWalkSpeed = 4.5f;
 
     [Header("客の中身")]
     [Tooltip("当たり判定の半径（m）。")]
     [SerializeField, Min(0.2f)] float hitRadius = 0.9f;
-    [Tooltip("客種の数値表（付録B B-1）。未設定ならフォールバック値で動く。")]
+    [Tooltip("客の種類ごとの数値表（付録B B-1）。入れなければ予備の値で動く。")]
     [SerializeField] CustomerKindTable kindTable;
-    [Tooltip("全員が求める色。この色を選んで当てれば救済される。")]
+    [Tooltip("全員がほしがる色。この色をえらんで当てれば救える。")]
     [SerializeField] OmamoriType correctOmamori = OmamoriType.Kenkou;
-    [Tooltip("全員に固定する危険度 D。伝播で 5 減るのが見えるように中くらいにしておく。")]
+    [Tooltip("全員に固定する危険度 D。伝播で5減るのが見えるように、まんなかくらいにしておく。")]
     [SerializeField, Range(0f, 99f)] float fixedDanger = 60f;
-    [Tooltip("黒客の退場秒数。確認中に消えないよう長めにする（本番は 4 秒）。")]
+    [Tooltip("黒客が出ていくまでの秒数。たしかめている間に消えないよう長くする（本番は4秒）。")]
     [SerializeField, Min(1f)] float blackExitSeconds = 600f;
 
     [Header("キー")]
@@ -82,20 +78,18 @@ public class SmilePropagationVerifier : MonoBehaviour
     [SerializeField] KeyCode forceRescueKey = KeyCode.F9;
 
     readonly List<CustomerState> _customers = new List<CustomerState>();
-    // 客ごとの「戻す先の D」。伝播を受けたら 5 下げるので、D−5 が時間で埋まって見えなくなることがない。
+    // 客ごとの「もどす先の D」。伝わったら5下げるので、D−5 が時間でうまって見えなくなることがない
     readonly List<float> _targetDanger = new List<float>();
-    // 仮の退場歩行をさせている救済客（笑顔を運んでいる間だけ）。
-    readonly List<SmileCarrier> _walkers = new List<SmileCarrier>();
     readonly List<string> _log = new List<string>();
 
     Layout _layout = Layout.Dense;
     Material _bodyMaterial;
     Transform _origin;
 
-    // 直近の 1 救済の記録（HUD 用）
+    // いちばん新しい1救済の記録（HUD 用）
     int _rescuedId;
     bool _hasRescue;
-    SmileMultiplierSnapshot _snapshot;
+    EnMultiplierSnapshot _snapshot;
     int _propagatedCount;
     int _propagatedEn;
     int _rescueGain;
@@ -126,47 +120,19 @@ public class SmilePropagationVerifier : MonoBehaviour
         if (Input.GetKeyDown(blackKey)) SetLayout(Layout.BlackMixed);
         if (Input.GetKeyDown(rebuildKey)) Rebuild();
         if (Input.GetKeyDown(forceRescueKey)) ForceRescueTarget();
-
-        WalkRescuedCustomersHome();
-    }
-
-    /// <summary>
-    /// 救済客を参道の出口（＝振る人の側）へ歩かせる。退場歩行の本実装が入るまでの仮置き。
-    /// SmileCarrier は毎フレーム交差を見るので、歩かせるだけで「すれ違った人へ伝播する」動きになる。
-    /// </summary>
-    void WalkRescuedCustomersHome()
-    {
-        if (!simulateExitWalk || _walkers.Count == 0) return;
-
-        Vector3 home = _origin != null ? _origin.position : Vector3.zero;
-        float step = exitWalkSpeed * Time.deltaTime;
-
-        for (int i = _walkers.Count - 1; i >= 0; i--)
-        {
-            SmileCarrier carrier = _walkers[i];
-            if (carrier == null) { _walkers.RemoveAt(i); continue; }
-
-            Transform t = carrier.transform;
-            Vector3 to = home - t.position;
-            to.y = 0f;
-            if (to.sqrMagnitude < 0.04f) { _walkers.RemoveAt(i); continue; }
-
-            t.position += to.normalized * step;
-        }
     }
 
     void LateUpdate()
     {
-        // CustomerState.Update が D を進めたあとに固定値へ戻す。
-        // 伝播を受けた客だけは D が 5 下がったまま見えるよう、下がっている側は戻さない。
+        // CustomerState.Update が D を進めたあとに、決めた値へもどす
         for (int i = 0; i < _customers.Count; i++)
         {
             CustomerState c = _customers[i];
             if (c == null || !c.IsActive) continue;
-            // 黒客にするつもりで D=100 にした客は触らない（CustomerState の LateUpdate で黒客化が確定する）。
+            // 黒客にするつもりで D=100 にした客はさわらない（CustomerState の LateUpdate で黒客が決まる）
             if (c.Danger >= CustomerStateMachine.MaxDanger) continue;
 
-            // 伝播を受けた客は目標値そのものが 5 下がっているので、D−5 が時間で埋まらずに見える。
+            // 伝わった客はもどす先そのものが5下がっているので、D−5 が時間でうまらずに見える
             float target = i < _targetDanger.Count ? _targetDanger[i] : fixedDanger;
             if (c.Danger > target) c.SetDangerForDebug(target);
         }
@@ -182,15 +148,15 @@ public class SmilePropagationVerifier : MonoBehaviour
     {
         switch (layout)
         {
-            case Layout.Distant: return "遠方配置（参道沿いの列。一番奥を救って帰路で伝播）";
-            case Layout.BlackMixed: return "黒客混在（隣が黒客）";
-            default: return "密集配置（対象のまわりに近接で並べる）";
+            case Layout.Distant: return "遠方配置（参道ぞいの列。いちばん奥を救って帰り道で伝える）";
+            case Layout.BlackMixed: return "黒客混在（となりが黒客）";
+            default: return "密集配置（相手のまわりに近くで並べる）";
         }
     }
 
     // ---- 客を作る ----
 
-    /// <summary>客を作り直す（F8）。</summary>
+    // 客を作り直す（F8）
     public void Rebuild()
     {
         for (int i = 0; i < _customers.Count; i++)
@@ -199,7 +165,6 @@ public class SmilePropagationVerifier : MonoBehaviour
         }
         _customers.Clear();
         _targetDanger.Clear();
-        _walkers.Clear();
         _log.Clear();
         _hasRescue = false;
         _propagatedCount = 0;
@@ -213,7 +178,7 @@ public class SmilePropagationVerifier : MonoBehaviour
         switch (_layout)
         {
             case Layout.Distant:
-                // 参道沿いに 1 列（手前 → 奥）。列を少し横へ寄せて、奥の客が帰るときに列の横を通るようにする。
+                // 参道ぞいに1列（手前 → 奥）。列を少し横へ寄せて、奥の客が帰るときに列の横を通るようにする
                 for (int i = 0; i < distantCount; i++)
                 {
                     Vector3 position = center
@@ -224,7 +189,7 @@ public class SmilePropagationVerifier : MonoBehaviour
                 break;
 
             default:
-                // 対象（0 番）を真ん中に置き、そのまわりへ均等に並べる。
+                // 相手（0番）をまんなかに置いて、そのまわりへ均等に並べる
                 Vector3 targetPos = center + forward * denseDistance;
                 BuildCustomer(0, targetPos, black: false);
 
@@ -232,7 +197,7 @@ public class SmilePropagationVerifier : MonoBehaviour
                 {
                     float angle = 360f * i / denseNeighbors;
                     Vector3 offset = Quaternion.AngleAxis(angle, Vector3.up) * right * denseSpacing;
-                    // 黒客混在では 1 人おきに黒客にする（対象のまわりの半数が黒客）。
+                    // 黒客混在では1人おきに黒客にする（相手のまわりの半分が黒客）
                     bool black = _layout == Layout.BlackMixed && i % 2 == 0;
                     BuildCustomer(i + 1, targetPos + offset, black);
                 }
@@ -240,7 +205,7 @@ public class SmilePropagationVerifier : MonoBehaviour
         }
 
         SmileCarrier.ContactRadiusForNewCarriers = contactRadius;
-        Debug.Log($"[#56確認] {LayoutLabel(_layout)}：客を {_customers.Count} 人作り直しました（接触半径 {contactRadius:0.0}m）", this);
+        Debug.Log($"[#56確認] {LayoutLabel(_layout)}：客を {_customers.Count} 人作り直しました（接触の半径 {contactRadius:0.0}m）", this);
     }
 
     CustomerState BuildCustomer(int index, Vector3 position, bool black)
@@ -266,16 +231,20 @@ public class SmilePropagationVerifier : MonoBehaviour
         SetPrivateField(zone, "outerRadius", hitRadius);
 
         var state = go.AddComponent<CustomerState>();
-        // 黒客は確認のあいだ残ってほしいので、退場までを長くしておく（本番は 4 秒）。
+        // 黒客はたしかめている間ずっと残ってほしいので、出ていくまでを長くしておく（本番は4秒）
         SetPrivateField(state, "blackExitSeconds", blackExitSeconds);
         state.Setup(CustomerKind.Normal, kindTable);
 
         var rescue = go.AddComponent<CustomerRescue>();
         SetPrivateField(rescue, "correctOmamori", correctOmamori);
 
+        // 帰り道は本番と同じ #62 の CustomerMotion にまかせる。出口は振る人のところ（参道の出口）
+        var motion = go.AddComponent<CustomerMotion>();
+        motion.SetExitPoints(new[] { ExitPoint() });
+
         CustomerSpawnId.Assign(go);
 
-        // D=100 にすると、このフレームの LateUpdate（CustomerState 側）で黒客が確定する。
+        // D=100 にすると、このフレームの LateUpdate（CustomerState 側）で黒客が決まる
         state.SetDangerForDebug(black ? CustomerStateMachine.MaxDanger : fixedDanger);
 
         _customers.Add(state);
@@ -283,23 +252,31 @@ public class SmilePropagationVerifier : MonoBehaviour
         return state;
     }
 
-    /// <summary>対象へ正色を 1 発当てたことにする（F9）。本番と同じ OmamoriHitResolver を通る。</summary>
+    // 帰り道の出口（振る人のところ）
+    Vector3 ExitPoint()
+    {
+        Vector3 exit = _origin != null ? _origin.position : Vector3.zero;
+        exit.y = 0f;
+        return exit;
+    }
+
+    // 相手に正しい色を1発当てたことにする（F9）。本番と同じ OmamoriHitResolver を通る
     void ForceRescueTarget()
     {
         CustomerState target = ResolveTarget();
         if (target == null)
         {
-            Debug.Log("[#56確認] 救済できる客がいません（F8 で作り直してください）", this);
+            Debug.Log("[#56確認] 救える客がいません（F8 で作り直してください）", this);
             return;
         }
 
         OmamoriHitResolver.ApplyHit(target.gameObject, correctOmamori, HitZone.Center);
     }
 
-    /// <summary>
-    /// この配置で救済させたい客。密集・黒客混在は真ん中（0 番）、
-    /// 遠方配置は<b>一番奥</b>（帰路が一番長い客）を選ぶ。
-    /// </summary>
+    /*
+        この配置で救わせたい客
+        密集・黒客混在はまんなか（0番）、遠方配置は「いちばん奥」（帰り道がいちばん長い客）
+    */
     CustomerState ResolveTarget()
     {
         if (_layout == Layout.Distant)
@@ -318,7 +295,7 @@ public class SmilePropagationVerifier : MonoBehaviour
         return null;
     }
 
-    /// <summary>検証シーン限定：インスペクタ用の private 値を実行時に差し込む。</summary>
+    // たしかめるシーン限定: インスペクタ用の private の値を実行中に入れる
     static void SetPrivateField(Object target, string field, object value)
     {
         if (target == null) return;
@@ -344,15 +321,10 @@ public class SmilePropagationVerifier : MonoBehaviour
         _propagatedCount = 0;
         _propagatedEn = 0;
         _rescueGain = ScoreManager.Instance != null ? ScoreManager.Instance.LastGain : 0;
+        _snapshot = info.RescueSnapshot;
         _log.Clear();
 
-        var carrier = info.Customer != null ? info.Customer.GetComponent<SmileCarrier>() : null;
-        _snapshot = carrier != null ? carrier.Snapshot : SmileMultiplierSnapshot.Purification;
-
-        // 退場歩行の仮実装：笑顔を持ったまま参道を手前へ帰らせる（本実装が入るまでの確認用）。
-        if (carrier != null && simulateExitWalk) _walkers.Add(carrier);
-
-        Debug.Log($"[#56確認] 救済 ID {_rescuedId}：縁 +{_rescueGain}／伝播用スナップショット {_snapshot}", this);
+        Debug.Log($"[#56確認] 救済 ID {_rescuedId}：縁 +{_rescueGain}／伝播に使う倍率 {_snapshot}", this);
     }
 
     void HandlePropagated(SmilePropagationInfo info)
@@ -363,7 +335,7 @@ public class SmilePropagationVerifier : MonoBehaviour
         _propagatedEn += info.Gain;
         _log.Add($"{info.Order}人目: ID {info.TargetId} へ  D−{CustomerStateMachine.SmileDangerRelief:0} / 縁 +{info.Gain}");
 
-        // 受け取った客の「戻す先の D」も下げる（D−5 が時間経過で埋まって見えなくなるのを防ぐ）。
+        // うけとった客の「もどす先の D」も下げる（D−5 が時間でうまって見えなくなるのをふせぐ）
         int index = _customers.IndexOf(info.Target != null ? info.Target.GetComponent<CustomerState>() : null);
         if (index >= 0 && index < _targetDanger.Count)
             _targetDanger[index] = Mathf.Max(0f, _targetDanger[index] - CustomerStateMachine.SmileDangerRelief);
@@ -398,22 +370,22 @@ public class SmilePropagationVerifier : MonoBehaviour
         const float width = 470f;
         GUILayout.BeginArea(new Rect(12f, 12f, width, 520f), GUI.skin.box);
 
-        GUILayout.Label($"#56 笑顔の伝播の確認  —  {LayoutLabel(_layout)}");
-        GUILayout.Label($"{denseKey}=密集  {distantKey}=遠方  {blackKey}=黒客混在  {rebuildKey}=作り直し  {forceRescueKey}=対象を強制救済");
+        GUILayout.Label($"#56 笑顔の伝播のたしかめ  —  {LayoutLabel(_layout)}");
+        GUILayout.Label($"{denseKey}=密集  {distantKey}=遠方  {blackKey}=黒客混在  {rebuildKey}=作り直し  {forceRescueKey}=相手を強制救済");
         GUILayout.Label($"投げ方: 1 キーで色（{correctOmamori}）→ クリックで振る");
 
         ScoreManager score = ScoreManager.Instance;
         if (score != null)
         {
-            GUILayout.Label($"伝播 1回 +{score.SmilePropagationBonus} ／ 上限 {score.SmilePropagationMaxTargets}人" +
-                            $"（1救済の伝播は最大 +{score.MaxSmilePropagationBonusPerRescue}）  接触半径 {contactRadius:0.0}m");
+            GUILayout.Label($"伝播 1回 +{score.PropagationPoints} ／ 上限 {score.PropagationMaxTargets}人" +
+                            $"（1救済の伝播は最大 +{score.MaxPropagationEnPerRescue}）  接触の半径 {contactRadius:0.0}m");
         }
         GUILayout.Space(6f);
 
         for (int i = 0; i < _customers.Count; i++)
         {
             CustomerState c = _customers[i];
-            if (c == null) { GUILayout.Label($"  [{i}] 退場済み"); continue; }
+            if (c == null) { GUILayout.Label($"  [{i}] 退場ずみ"); continue; }
 
             int id = CustomerSpawnId.Of(c.gameObject);
             var carrier = c.GetComponent<SmileCarrier>();
@@ -424,18 +396,17 @@ public class SmilePropagationVerifier : MonoBehaviour
         GUILayout.Space(6f);
         if (!_hasRescue)
         {
-            GUILayout.Label($"まだ救済していません（{forceRescueKey} で対象を強制救済できます）。");
+            GUILayout.Label($"まだ救えていません（{forceRescueKey} で相手を強制救済できます）。");
         }
         else
         {
-            GUILayout.Label("直近の1救済:");
-            GUILayout.Label($"  救済した客: ID {_rescuedId}（救済の縁 +{_rescueGain}）");
-            GUILayout.Label($"  伝播用の倍率スナップショット: {_snapshot}");
-            GUILayout.Label($"  伝播した人数: {_propagatedCount} 人 ／ 伝播で入った縁: +{_propagatedEn}");
+            GUILayout.Label("いちばん新しい1救済:");
+            GUILayout.Label($"  救えた客: ID {_rescuedId}（救済の縁 +{_rescueGain}）");
+            GUILayout.Label($"  伝播に使う倍率（救済時に保存）: {_snapshot}");
+            GUILayout.Label($"  伝わった人数: {_propagatedCount} 人 ／ 伝播で入った縁: +{_propagatedEn}");
             for (int i = 0; i < _log.Count; i++) GUILayout.Label($"    {_log[i]}");
 
-            if (score != null)
-                GUILayout.Label($"  このプレイの伝播: {score.PropagationCount}回 / +{score.PropagationEn}（縁 {score.En}）");
+            if (score != null) GUILayout.Label($"  縁の合計: {score.En}");
         }
 
         GUILayout.EndArea();

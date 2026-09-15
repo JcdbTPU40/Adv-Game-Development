@@ -4,29 +4,29 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>クールダウン値 1 つ分の集計。</summary>
+    // クールダウンの値1つぶんの集計
     public sealed class CooldownValueResult
     {
         public CooldownPreset Preset { get; internal set; }
         public float Seconds { get; internal set; }
 
-        /// <summary>集計に入れた行数（参加者 × この条件）。</summary>
+        // 集計に入れた行の数（参加者 × この条件）
         public int Rows { get; internal set; }
-        /// <summary>動画側が未入力で数えなかった行数。</summary>
+        // 動画側がまだ入っていなくて数えなかった行の数
         public int Incomplete { get; internal set; }
 
-        /// <summary>意図した振りの合計（誤発射率の母数）。</summary>
+        // 振ろうとした回数の合計（まちがい発射のわりあいのわる数）
         public int IntendedSwings { get; internal set; }
-        /// <summary>余分な発射（動画の振りに対応しない発射）。</summary>
+        // よけいな発射（動画の振りに合わない発射）
         public int ExtraFires { get; internal set; }
-        /// <summary>意図的連投の組数（欠落率の母数）。</summary>
+        // わざと連投した組の数（抜けのわりあいのわる数）
         public int PairSets { get; internal set; }
-        /// <summary>2 発目が出なかった組数。</summary>
+        // 2発目が出なかった組の数
         public int MissedSecond { get; internal set; }
 
         public int SafetyIncidents { get; internal set; }
 
-        /// <summary>実連投間隔のうち最も短かったもの（秒）。0 は記録なし。</summary>
+        // 実際の連投の間かくのうち、いちばん短かったもの（秒）。0 は記録なし
         public float FastestInterval { get; internal set; }
 
         public RateWithInterval Misfire { get; internal set; }
@@ -34,20 +34,20 @@ namespace Toufuku.Playtest
 
         public bool HasEnoughSwings => IntendedSwings >= CooldownTestPlan.IntendedSwingsPerCondition;
         public bool HasEnoughPairs => PairSets >= CooldownTestPlan.PairsPerCondition;
-        /// <summary>投数がそろっているか（母数の完了条件）。</summary>
+        // 投げた数がそろっているか（わる数の完了条件）
         public bool HasEnoughData => HasEnoughSwings && HasEnoughPairs;
 
         public bool MisfireOk => Misfire.HasData && Misfire.Rate <= CooldownTestPlan.MaxMisfireRate;
         public bool MissedOk => MissedRate.HasData && MissedRate.Rate <= CooldownTestPlan.MaxMissedSecondRate;
-        /// <summary>誤発射・欠落の両方が 2% 以下か（採用の条件）。</summary>
+        // まちがい発射と抜けの両方が 2% 以下か（選ぶ条件）
         public bool BothOk => MisfireOk && MissedOk;
 
-        /// <summary>採用候補として数えられるか（投数がそろっていて両方 2% 以下）。</summary>
+        // 選ぶ候補として数えていいか（投げた数がそろっていて、両方 2% 以下）
         public bool Adoptable => HasEnoughData && BothOk;
 
         public string Label => CooldownTestPlan.LabelOf(Preset);
 
-        /// <summary>実施者パネルの 1 行。</summary>
+        // やる人のパネルに出す1行
         public string Describe()
         {
             string mark = Adoptable ? "○" : BothOk ? "△" : "×";
@@ -56,43 +56,43 @@ namespace Toufuku.Playtest
         }
     }
 
-    /// <summary>
-    /// T0-CD の合否 — Issue #50（仕様書 v8 17章）
-    ///
-    /// | 完了条件 | 判定 |
-    /// |---|---|
-    /// | 誤発射 ≤2% かつ 意図的連投の欠落 ≤2% を両方満たす最小値を採用 | 4 値を秒の小さい順に見て最初に両方満たした値 |
-    /// | 全値でストラップ逸脱・筐体接触 0 件 | 1 件でも出たら不合格 |
-    /// | 母数と 95% 信頼区間を記録 | 各値 単発 100 回・連投 50 組に達しているか |
-    /// | 両方を満たす値が無ければ閾値・ピーク検出・ヒステリシスを変更 | <see cref="NeedsDetectorChange"/> |
-    ///
-    /// 合否は<b>点推定</b>（件数 ÷ 母数）で見る。信頼区間は記録用で、合否には使わない。
-    /// 連投 50 組では 0 件でも 95% 上限が約 7% までしか下がらず、区間で 2% 以下を言い切れないため
-    /// （誤発射側は母数 200 なので 0 件なら上限 1.9%）。
-    ///
-    /// 「別日・同じ投数で再現できる」は 1 回分では判定できないので、19章のテスト記録に 2 回並べて確認する。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T0-CD の合格・不合格を出すクラス（#50 / 企画書 v8 17章）
+
+        完了条件と判定のしかた:
+        ・まちがい発射 2%以下 と わざと連投したときの抜け 2%以下 を両方満たす、いちばん小さい値を選ぶ
+          → 4つの値を秒が小さい順に見て、最初に両方満たした値
+        ・ぜんぶの値でストラップが外れた・本体にぶつかったが0件 → 1件でも出たら不合格
+        ・わる数と 95% 信頼区間を記録する → どの値も1回振り100回・連投50組に届いているか
+        ・両方を満たす値がなければ、しきい値・ピークの見つけ方・ヒステリシスを変える → NeedsDetectorChange
+
+        合格かどうかは「件数 ÷ わる数」の値そのもので見る。信頼区間は記録用で、合格かどうかには使わない
+        連投50組だと0件でも 95% の上限が 7% くらいまでしか下がらなくて、区間で「2%以下」と言いきれないから
+        （まちがい発射のほうはわる数が200なので、0件なら上限は 1.9%）
+
+        「別の日に同じ投げた数で同じ結果になる」は1回ぶんでは判定できないので、19章のテスト記録に2回ならべて確認する
+        MonoBehaviour は使っていない
+    */
     public sealed class CooldownTestSummary
     {
         public IReadOnlyList<CooldownValueResult> Values { get; private set; } = new CooldownValueResult[0];
         public IReadOnlyList<AbCriterion> Criteria { get; private set; } = new AbCriterion[0];
 
-        /// <summary>集計に入れた行数。</summary>
+        // 集計に入れた行の数
         public int Rows { get; private set; }
-        /// <summary>動画側が未入力で数えなかった行数。</summary>
+        // 動画側がまだ入っていなくて数えなかった行の数
         public int Incomplete { get; private set; }
         public int SafetyIncidents { get; private set; }
 
-        /// <summary>採用値（両方 2% 以下を満たす最小値）。無ければ <see cref="CooldownPreset.Custom"/>。</summary>
+        // 選んだ値（両方 2% 以下を満たす、いちばん小さい値）。なければ CooldownPreset.Custom
         public CooldownPreset Adopted { get; private set; } = CooldownPreset.Custom;
         public bool HasAdopted { get; private set; }
         public float AdoptedSeconds => HasAdopted ? CooldownTestPlan.SecondsOf(Adopted) : 0f;
 
-        /// <summary>
-        /// どの値も両方を満たさなかった。片方だけを優先して値を決めず、
-        /// 角度閾値・ピーク検出・ヒステリシス（<see cref="SwingPeakDetector"/>）を変えてやり直す。
-        /// </summary>
+        /*
+            どの値も両方を満たさなかった。片方だけ優先して値を決めたりしないで、
+            角度のしきい値・ピークの見つけ方・ヒステリシス（SwingPeakDetector）を変えてやりなおす
+        */
         public bool NeedsDetectorChange { get; private set; }
 
         public bool Passed { get; private set; }
@@ -106,7 +106,7 @@ namespace Toufuku.Playtest
             return null;
         }
 
-        /// <summary>不合格の項目だけを並べた 1 行（"-" なら合格）。</summary>
+        // 不合格の項目だけをならべた1行（"-" なら合格）
         public string FailureSummary()
         {
             var parts = new List<string>();
@@ -140,9 +140,9 @@ namespace Toufuku.Playtest
                     if (r == null) continue;
 
                     CooldownValueResult v = Find(values, r.preset);
-                    if (v == null) continue; // 候補外の秒数（Custom）は集計しない
+                    if (v == null) continue; // 候補にない秒数（Custom）は集計しない
 
-                    // 安全事象は動画側の入力を待たずに数える（1 件でも出たらその場で止めるため）
+                    // 安全のことは動画側が入るのを待たずに数える（1件でも出たらその場で止めるため）
                     int incidents = r.strapDeviation + r.caseContact;
                     v.SafetyIncidents += incidents;
                     summary.SafetyIncidents += incidents;
@@ -173,7 +173,7 @@ namespace Toufuku.Playtest
                 values[i].MissedRate = WilsonInterval.Of(values[i].MissedSecond, values[i].PairSets);
             }
 
-            // 秒の小さい順に見て、最初に両方を満たした値が採用値
+            // 秒が小さい順に見て、最初に両方を満たした値を選ぶ
             for (int i = 0; i < values.Length; i++)
             {
                 if (!values[i].Adoptable) continue;

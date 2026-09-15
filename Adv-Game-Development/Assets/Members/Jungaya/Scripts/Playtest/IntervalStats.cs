@@ -2,14 +2,14 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 実連投間隔の要約 — Issue #50
-    ///
-    /// 「自分の最速で 2 回振る」の 1 発目と 2 発目の間隔（秒）を集めて、件数・最小・中央値・p75 を出す。
-    /// クールダウン値がこの分布のどこに来るかが、欠落が起きる／起きないの直接の理由になる
-    /// （最小値よりクールダウンが長ければ、その組は必ず欠落する）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        実際の連投の間かくをまとめるクラス（#50）
+
+        「自分の最速で2回振る」の1発目と2発目の間かく（秒）を集めて、数・最小・中央値・p75 を出す
+        クールダウンの値がこの分布のどこに来るかが、抜けが起きる・起きないの直接の理由になる
+        （最小の値よりクールダウンが長ければ、その組は必ず抜ける）
+        MonoBehaviour は使っていない
+    */
     public sealed class IntervalStats
     {
         readonly List<double> _values = new List<double>();
@@ -34,7 +34,7 @@ namespace Toufuku.Playtest
         public double Median => Percentile(0.5);
         public double P75 => Percentile(0.75);
 
-        /// <summary>0〜1 の位置の値（線形補間）。値が無ければ 0。</summary>
+        // 0〜1 の位置の値（あいだは直線でうめる）。値がなければ 0
         public double Percentile(double fraction)
         {
             if (_values.Count == 0) return 0.0;
@@ -52,7 +52,7 @@ namespace Toufuku.Playtest
             return _values[low] + (_values[high] - _values[low]) * t;
         }
 
-        /// <summary>この間隔のうち、クールダウン秒数以上だった割合（＝欠落しなかったはずの割合）。</summary>
+        // この間かくのうち、クールダウンの秒数以上だったわりあい（＝抜けなかったはずのわりあい）
         public int CountAtLeast(double seconds)
         {
             int count = 0;

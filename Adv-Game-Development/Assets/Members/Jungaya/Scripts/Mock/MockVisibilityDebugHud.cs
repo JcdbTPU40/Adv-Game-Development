@@ -2,17 +2,17 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Mock
 {
-    /// <summary>
-    /// 視認性モック(#44)のテスト運用補助。実行中にキーで条件を切り替え、現在の状態を画面隅に出す。
-    ///
-    /// 目的は「被験者に見せながら、その場で条件を振れる」こと。
-    /// 体数・祭事・輪郭の表現方式・ゲージの距離スケールを実行中に切り替えて、
-    /// どの条件なら一瞬で識別できるかを比較する。静止画で見せたいときは一時停止する。
-    ///
-    /// キー割り当てはすべて Inspector から変更できる（他のテスト用スクリプトと衝突したとき用）。
-    ///
-    /// ※ 検証用の使い捨て。Mock/ ごと削除できる。
-    /// </summary>
+    /*
+        視認性モック（#44）のテストを進めやすくするためのクラス。プレイ中にキーで条件を切りかえて、今の状態を画面のすみに出す
+
+        目的は「見てもらっている人に見せながら、その場で条件を変えられる」こと
+        人数・お祭り・輪郭の表し方・ゲージの距離スケールをプレイ中に切りかえて、
+        どの条件ならぱっと見て見分けられるかをくらべる。静止画で見せたいときは一時停止する
+
+        キーの割り当ては全部 Inspector から変えられる（ほかのテスト用スクリプトとキーがかぶったとき用）
+
+        ※ 検証用の使い捨て。Mock/ フォルダごと消せる
+    */
     public class MockVisibilityDebugHud : MonoBehaviour
     {
         [Header("参照（未設定ならシーンから自動取得）")]
@@ -81,7 +81,7 @@ namespace Toufuku.Rescue.Mock
 
         private void OnDisable()
         {
-            // 一時停止したままシーンを抜けると次の再生が止まって見えるので必ず戻す。
+            // 一時停止したままシーンをぬけると、次に再生したときに止まって見えるので、必ずもどす
             if (_paused)
             {
                 Time.timeScale = _timeScaleBeforePause;
@@ -93,13 +93,13 @@ namespace Toufuku.Rescue.Mock
         {
             if (director == null) return;
 
-            // 体数プリセット（Time.timeScale=0 でも Update は回るので一時停止中も効く）
+            // 人数のプリセット（Time.timeScale=0 でも Update は動くので、一時停止中でも効く）
             if (Input.GetKeyDown(key8)) director.SetOverrideTarget(preset8);
             if (Input.GetKeyDown(key12)) director.SetOverrideTarget(preset12);
             if (Input.GetKeyDown(key15)) director.SetOverrideTarget(preset15);
             if (Input.GetKeyDown(keyClearOverride)) director.ClearOverrideTarget();
 
-            // 条件切替
+            // 条件の切りかえ
             if (Input.GetKeyDown(keyFestival)) director.ToggleFestival();
             if (Input.GetKeyDown(keyRank)) director.CycleRank();
             if (Input.GetKeyDown(keyOutlineMode)) director.ToggleOutlineMode();
@@ -166,7 +166,16 @@ namespace Toufuku.Rescue.Mock
         {
             string targetSource = director.OverrideTargetCount >= 0
                 ? "手動固定"
-                : $"ランク{director.Rank}＋{(director.FestivalMode ? "祭事" : "通常")}";
+                : director.UseTimetable
+                    ? "時間割"
+                    : $"ランク{director.Rank}＋{(director.FestivalMode ? "祭事" : "通常")}";
+
+            // #57: 時間割で動かしているときは、ランク・祭事の行のかわりに時間割の様子を出す（ランク・祭事は人数に使わない）
+            float clock = director.TimetableSeconds;
+            string scheduleLine = director.UseTimetable
+                ? $"時間割 {director.Timetable.Describe(clock)}　大負荷 +{(int)director.Timetable.FinalWaveAdd}　解禁 {director.Timetable.DescribeUnlocked(clock)}" +
+                  (director.SpawningStopped ? "　― 3:00 スポーン停止 ―" : string.Empty)
+                : $"内訳 {targetSource}　祭事 {(director.FestivalMode ? "ON" : "OFF")}　ランク {director.Rank}";
 
             string outline = director.OutlineMode == MockCustomerOutline.OutlineMode.InvertedHull
                 ? "インバートハル"
@@ -180,7 +189,7 @@ namespace Toufuku.Rescue.Mock
                 ? (gaugeHud.ScaleWithDistance ? "距離スケール" : "固定幅")
                 : "—";
 
-            // 「定位置に立っている数」は識別テストで実際に並んでいる体数。補充中は目標より少なくなる。
+            // 「定位置に立っている数」は、見分けるテストで実際にならんでいる人数。補充している間は目標より少なくなる
             int settled = 0;
             for (int i = 0; i < director.Members.Count; i++)
             {
@@ -191,7 +200,7 @@ namespace Toufuku.Rescue.Mock
 
             return
                 $"体数 {director.AliveCount}/{director.TargetCount}　定位置 {settled}（歩行中 {director.AliveCount - settled}／補充待ち {director.PendingCount}）\n" +
-                $"内訳 {targetSource}　祭事 {(director.FestivalMode ? "ON" : "OFF")}　ランク {director.Rank}\n" +
+                $"{scheduleLine}\n" +
                 $"輪郭 {outline}／太さ {width} {director.OutlineWidth:0.000}　ゲージ {gauge}\n" +
                 $"補充テンポ スポーン遅延 {director.RespawnDelay:0.0}s ／ 歩行 {director.WalkDuration:0.0}s" +
                 (director.FreezeGauges ? "\n― ゲージ凍結中（退場なし）―" : string.Empty) +

@@ -6,21 +6,21 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T0-3M 標準耐久テストの進行と記録 — Issue #53（仕様書 v8 17章）
-    ///
-    /// 1 人分の流れ: 準備 → 3 分振り続ける → 着弾待ち 1 秒 → 直後の聞き取り → 保存。
-    ///
-    /// ・クールダウンは T0-CD の採用値（<see cref="adoptedCooldown"/>）、フィードバックは T0-A/B の採用案
-    ///   （同じ GameObject の <see cref="FeedbackTimingShifter"/>）で固定する。テスト中は変えない。
-    /// ・1 分ごとの投数・命中率と実操作周期はゲームが自動で数える。
-    /// ・持ち替え・腕の下がり・終了希望は、実施者が見ながらキーで入れる（G / D / E）。
-    /// ・疲労・痛み・恐怖・ストラップ逸脱・実際の再挑戦選択は、終わった直後の記録画面で入れる。
-    /// ・記録は 1 人 1 行の CSV（<see cref="EnduranceCsvFile"/>）。
-    ///
-    /// 操作: Space = 開始 / 保存 / 次の参加者、E = 終了希望（途中終了）、G = 持ち替え、D = 腕の下がり、
-    /// Tab = 実施者パネル、L = CSV を読み直して集計。
-    /// </summary>
+    /*
+        T0-3M のふつうの耐久テストを進めて記録するクラス（#53 / 企画書 v8 17章）
+
+        1人ぶんの流れ: 準備 → 3分振りつづける → 弾が落ちるのを1秒待つ → 直後の聞き取り → 保存
+
+        ・クールダウンは T0-CD で選んだ値（adoptedCooldown）、フィードバックは T0-A/B で選んだ案
+          （同じ GameObject の FeedbackTimingShifter）で固定する。テスト中は変えない
+        ・1分ごとの投げた数・命中率と、実際に振った間かくはゲームが自動で数える
+        ・持ちかえ・腕が下がった・やめたいは、やる人が見ながらキーで入れる（G / D / E）
+        ・疲れ・痛い・こわい・ストラップが外れた・本当にもう一回を選んだかは、終わった直後の記録画面で入れる
+        ・記録は1人1行の CSV（EnduranceCsvFile）
+
+        操作: Space = スタート / 保存 / 次の参加者、E = やめたい（とちゅうで終わる）、G = 持ちかえ、D = 腕が下がった、
+        Tab = やる人のパネル、L = CSV を読みなおして集計
+    */
     [DefaultExecutionOrder(-80)]
     public class EnduranceTestDirector : MonoBehaviour
     {
@@ -65,7 +65,7 @@ namespace Toufuku.Playtest
         string _csvPath = "";
         string _message = "";
         bool _subscribed;
-        /// <summary>この試技の自動の値を記録へ写したか（記録フェーズに入ったとき 1 回だけ写す）。</summary>
+        // このテストの自動の値を記録にうつしたか（記録のフェーズに入ったときに1回だけうつす）
         bool _trialCopied;
 
         GUIStyle _bannerStyle;
@@ -119,14 +119,14 @@ namespace Toufuku.Playtest
             if (Input.GetKeyDown(KeyCode.Tab)) showOperatorPanel = !showOperatorPanel;
             if (Input.GetKeyDown(KeyCode.L)) { Reload(); _message = $"{_saved.Count} 行を読み直しました"; }
 
-            // 記録画面では文字入力（所見）があるので、1 文字キーは試技中だけ受け付ける
+            // 記録画面では文字を入力する（気づいたこと）ので、1文字のキーはテスト中だけ受け付ける
             if (_clock.IsTrial)
             {
                 if (Input.GetKeyDown(KeyCode.E)) RequestStop();
                 if (Input.GetKeyDown(KeyCode.G)) MarkGripChange();
                 if (Input.GetKeyDown(KeyCode.D)) MarkArmDrop();
             }
-            // 記録画面では所見の入力中に空白を打てるよう、Space で保存するのは入力欄にフォーカスが無いときだけ
+            // 記録画面で気づいたことを入力している間に空白を打てるように、Space で保存するのは入力欄を選んでいないときだけ
             if (Input.GetKeyDown(KeyCode.Space) &&
                 (_clock.Phase != EndurancePhase.Record || GUIUtility.keyboardControl == 0))
                 HandleSpace();
@@ -144,9 +144,9 @@ namespace Toufuku.Playtest
             }
         }
 
-        // ---- 進行 ----
+        // ---- 進める ----
 
-        /// <summary>3 分を始める。</summary>
+        // 3分を始める
         public void Begin()
         {
             if (_clock.Phase != EndurancePhase.Ready) return;
@@ -159,7 +159,7 @@ namespace Toufuku.Playtest
             Debug.Log($"[T0-3M] 参加者 {participantNo} 開始（クールダウン {CurrentCooldownSeconds:0.00}s / {feedbackLabel}）", this);
         }
 
-        /// <summary>終了希望（または安全のための中止）。完走していない記録になる。</summary>
+        // やめたい（または安全のための中止）。最後までやっていない記録になる
         public void RequestStop()
         {
             if (!_clock.StopEarly(Now)) return;
@@ -188,7 +188,7 @@ namespace Toufuku.Playtest
                 _trialCopied = true;
             }
 
-            // 3 分のあいだだけ投擲を受け付ける（着弾待ち・記録中は振っても何も起きない）
+            // 3分の間だけ投げるのを受け付ける（弾が落ちるのを待っている間や記録中は、振っても何も起きない）
             if (input != null) input.enabled = _clock.IsTrial;
         }
 
@@ -198,7 +198,7 @@ namespace Toufuku.Playtest
         {
             if (input == null) return;
             input.Preset = adoptedCooldown;
-            // 入力（-100）のほうが先に動くので、状態機械へも直接入れて最初のフレームから採用値で判定させる
+            // 入力（-100）のほうが先に動くので、状態機械にも直接入れて、最初のフレームから選んだ値で判定させる
             if (input.Machine != null) input.Machine.CooldownSeconds = input.CooldownSeconds;
         }
 
@@ -252,7 +252,7 @@ namespace Toufuku.Playtest
             OnPhaseChanged();
         }
 
-        /// <summary>CSV を読み直して集計しなおす（聞き取りの列を Excel で埋めたあと）。</summary>
+        // CSV を読みなおして集計しなおす（聞き取りの列を Excel でうめたあと）
         public void Reload()
         {
             _saved.Clear();
@@ -299,7 +299,7 @@ namespace Toufuku.Playtest
         void HandleSwingAccepted(SwingAcceptedArgs e)
         {
             if (!_clock.IsTrial) return;
-            // 発射確定を配ったこのフレームの時刻を、試技開始からの秒で持つ
+            // 発射が決まって配られたこのフレームの時刻を、テストが始まってからの秒で持っておく
             _log.AddFire(_clock.SinceTrialStart(Now));
         }
 
@@ -342,7 +342,7 @@ namespace Toufuku.Playtest
 
         void DrawBanner()
         {
-            // 参加者には投数・命中率を見せない（数字を追うと振り方が変わる）。見せるのは残り時間だけ
+            // 参加者には投げた数や命中率を見せない（数字を気にすると振り方が変わる）。見せるのは残り時間だけ
             string title;
             string sub;
             switch (_clock.Phase)

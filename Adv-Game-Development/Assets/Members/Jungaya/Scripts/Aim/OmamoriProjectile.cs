@@ -5,25 +5,25 @@ using Toufuku.Rescue;
 
 namespace Toufuku.Aim
 {
-    /// <summary>着弾の結果（確認・HUD 用）。</summary>
+    // 着弾の結果（確認とHUD用）
     public readonly struct LandingResult
     {
-        /// <summary>SwingAccepted 時に固定した着弾目標点。</summary>
+        // SwingAccepted のときに決めた着弾目標点
         public readonly Vector3 TargetPoint;
-        /// <summary>実際に着いた位置。</summary>
+        // 実際に落ちた場所
         public readonly Vector3 LandedPoint;
-        /// <summary>当たった客。外しなら null。</summary>
+        // 当たった客。外れたら null
         public readonly HitZoneTarget Hit;
-        /// <summary>判定半径に対する中心からの距離の割合。外しなら +∞。</summary>
+        // 中心からの距離が判定半径の何割か。外れたら +∞
         public readonly float NormalizedDistance;
-        /// <summary>スコアへ渡したゾーン（相性✗・外しは Miss）。</summary>
+        // スコアに渡したゾーン（相性✗と外れは Miss）
         public readonly HitZone Zone;
         public readonly OmamoriType Type;
-        /// <summary>発射時に決めた飛翔時間（秒）。</summary>
+        // 発射したときに決めた飛ぶ時間（秒）
         public readonly float PlannedSeconds;
-        /// <summary>実際にかかった時間（秒）。フレーム単位で進むので最大 1 フレーム分長い。</summary>
+        // 実際にかかった時間（秒）。フレームごとに進むので、最大1フレームぶん長くなる
         public readonly float ElapsedSeconds;
-        /// <summary>スコアへ計上したか（セッション外の着弾は計上しない）。</summary>
+        // スコアに入れたかどうか（ゲームの時間外に落ちた弾は入れない）
         public readonly bool Scored;
 
         public LandingResult(Vector3 targetPoint, Vector3 landedPoint, HitZoneTarget hit, float normalizedDistance,
@@ -41,27 +41,27 @@ namespace Toufuku.Aim
         }
     }
 
-    /// <summary>
-    /// 飛んでいるお守り 1 発 — Issue #60（仕様書 v8 4章・5章）
-    ///
-    /// ・開始点 → 着弾目標点を <see cref="ThrowFlight"/> のスプラインで結び、飛翔時間ちょうどで目標点に着く。物理は使わない。
-    /// ・着いた瞬間に <see cref="LandingJudge"/> で対象を決め、救済判定と命中精度をスコアへ渡す。
-    ///   当たり判定が消えている客（救済演出中）は候補に入らないので、弾は通過して後方の客で判定される。
-    /// ・OnusaThrower が実行時に AddComponent して <see cref="Launch"/> する。
-    /// </summary>
+    /*
+        飛んでいるお守り1発ぶんのクラス（#60 / 企画書 v8 4章・5章）
+
+        ・スタート地点から着弾目標点までを ThrowFlight のカーブでつないで、飛ぶ時間ぴったりで目標点に着く。物理は使っていない
+        ・着いた瞬間に LandingJudge で相手を決めて、救済の判定と命中精度をスコアに渡す
+          当たり判定が消えている客（救済の演出中）は候補に入らないので、弾は通りぬけてうしろの客で判定される
+        ・OnusaThrower が実行中に AddComponent して Launch を呼ぶ
+    */
     public class OmamoriProjectile : MonoBehaviour
     {
-        /// <summary>どの弾でも着弾したら発火する（確認用 HUD・ログ用）。</summary>
+        // どの弾でも、落ちたら呼ばれる（確認用HUDとログ用）
         public static event Action<LandingResult> AnyLanded;
-        /// <summary>どの弾でも飛ばし始めたら発火する（#63 計測ログが発射と着弾を結び付ける）。</summary>
+        // どの弾でも、飛び始めたら呼ばれる（#63 の計測ログが発射と着弾をつなげるのに使う）
         public static event Action<OmamoriProjectile> AnyLaunched;
-        /// <summary>この弾が着弾した。</summary>
+        // この弾が落ちたときに呼ばれる
         public event Action<LandingResult> Landed;
 
         static readonly List<LandingCandidate> s_candidates = new List<LandingCandidate>();
         static readonly List<HitZoneTarget> s_targets = new List<HitZoneTarget>();
 
-        // #49: 軌跡出現を遅らせている間、こちらで消した見た目（元から消えていたものは触らない）
+        // #49: 軌跡を遅らせて出している間に、こっちで消した見た目のリスト（最初から消えていたものはさわらない）
         readonly List<Renderer> _hiddenRenderers = new List<Renderer>();
 
         Vector3 _start;
@@ -75,36 +75,50 @@ namespace Toufuku.Aim
         OmamoriType _type;
         bool _flying;
         int _priorityTargetId;
-        float _gokagoMultiplier = 1f;
+        float _blessingMultiplier = 1f;
+        bool _launchedWhilePlaying;
+        bool _pendingForSession;
+
+        static int s_pendingSessionShots;
+
+        /*
+            3:00 より前に受理して、まだ落ちていない弾の数（#61）
+            GameSession は 3:00 のあと、これが 0 になったらスコアを固定する（7章「全受理済み弾の解決後」）
+        */
+        public static int PendingSessionShots => s_pendingSessionShots;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            s_pendingSessionShots = 0;
+        }
 
         public Vector3 TargetPoint => _target;
         public float FlightSeconds => _seconds;
         public OmamoriType Type => _type;
         public bool IsFlying => _flying;
 
-        /// <summary>
-        /// 発射（SwingAccepted）の瞬間の優先対象（二重円の客）の生成ID — Issue #55。
-        /// 飛翔中に二重円が別の客へ移っても<b>ここは変えない</b>。着弾時にこの ID と救済した客の ID が
-        /// 一致したときだけ +50 が入る（仕様書 v8 4章「通常弾」／7章 得点表）。
-        /// </summary>
+        /*
+            発射（SwingAccepted）した瞬間の優先対象（二重円の客）の生成ID（#55）
+            飛んでいる間に二重円が別の客に移っても、ここは変えない
+            落ちたときにこのIDと救済した客のIDが同じだったときだけ +50 が入る（企画書 v8 4章「通常弾」、7章 得点表）
+        */
         public int PriorityTargetId => _priorityTargetId;
 
-        /// <summary>
-        /// 発射（SwingAccepted）の瞬間のご加護倍率 — Issue #56。
-        /// この弾が救済を完了させたとき、救済客が持ち回る<b>伝播用の倍率スナップショット</b>の片方になる
-        /// （仕様書 v8 7章「倍率の保存順：ご加護倍率は通常弾の発射時に確定する」）。
-        /// ご加護中でなければ 1。
-        /// </summary>
-        public float GokagoMultiplier => _gokagoMultiplier;
+        /*
+            発射（SwingAccepted）した瞬間のご加護倍率（#61 / 7章「ご加護倍率は通常弾の発射時に確定する」）
+            飛んでいる間にご加護タイムが始まっても終わっても、ここは変えない
+        */
+        public float BlessingMultiplier => _blessingMultiplier;
 
-        /// <summary>飛ばし始める。</summary>
-        /// <param name="lingerSeconds">着弾後に軌跡を残してから消えるまでの秒数</param>
-        /// <param name="visualDelaySeconds">#49 T0-A/B: 見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時</param>
-        /// <param name="priorityTargetId">#55: この瞬間の優先対象（二重円の客）の生成ID。0 なら優先救済の加点なし</param>
-        /// <param name="gokagoMultiplier">#56: この瞬間のご加護倍率。救済させたときの伝播用スナップショットに使う</param>
+        /*
+            弾を飛ばし始める
+            lingerSeconds: 落ちたあと軌跡を残しておいて、消えるまでの秒数
+            visualDelaySeconds: #49 T0-A/B 用。見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時
+            priorityTargetId: #55 用。この瞬間の優先対象（二重円の客）の生成ID。0 なら優先救済のボーナスはなし
+        */
         public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type,
-            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget,
-            float gokagoMultiplier = 1f)
+            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget)
         {
             _start = start;
             _target = target;
@@ -113,11 +127,19 @@ namespace Toufuku.Aim
             _type = type;
             _lingerSeconds = Mathf.Max(0f, lingerSeconds);
             _elapsed = 0f;
-            // 色・着弾点と同じく、優先対象もこの瞬間に固定する（v8 4章）。以後は誰が二重円でも変えない。
+            // 色や着弾点と同じで、優先対象もこの瞬間に決めてしまう（v8 4章）。このあと二重円がだれになっても変えない
             _priorityTargetId = priorityTargetId;
-            // #56: ご加護倍率も同じ瞬間に固定する。3秒後に起きる伝播の得点はこの値で計算する（v8 7章）。
-            _gokagoMultiplier = gokagoMultiplier > 1f ? gokagoMultiplier : 1f;
-            // #64: 命中音・救済音の遅延はこの「着弾予定時刻」から測る（フレーム単位で着くぶんの遅れも含める）
+            // #61: ご加護倍率も色・優先対象と同じこの瞬間に決める
+            _blessingMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.GokagoMultiplier : 1f;
+            // #61: 3:00 より前に受理した弾だけ、3:00 のあとも着弾をスコアに入れる。落ちるまで GameSession に待ってもらう
+            GameSession session = GameSession.Instance;
+            _launchedWhilePlaying = session == null || session.IsPlaying;
+            if (session != null && session.IsPlaying && !_pendingForSession)
+            {
+                _pendingForSession = true;
+                s_pendingSessionShots++;
+            }
+            // #64: 命中音と救済音の遅れは、この「落ちる予定の時刻」から測る（フレーム単位で着くぶんの遅れも入れる）
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
             transform.position = start;
@@ -128,7 +150,20 @@ namespace Toufuku.Aim
             AnyLaunched?.Invoke(this);
         }
 
-        /// <summary>軌跡出現を遅らせる間だけ見た目を消す。</summary>
+        // 落ちる前にこわされたときも、GameSession が待ちつづけないように数から外す
+        void OnDestroy()
+        {
+            ReleasePending();
+        }
+
+        void ReleasePending()
+        {
+            if (!_pendingForSession) return;
+            _pendingForSession = false;
+            s_pendingSessionShots = Mathf.Max(0, s_pendingSessionShots - 1);
+        }
+
+        // 軌跡を遅らせて出す間だけ、見た目を消しておく
         void HideVisuals()
         {
             foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
@@ -140,7 +175,7 @@ namespace Toufuku.Aim
             }
         }
 
-        /// <summary>今いる位置から見た目を出す（軌跡も発射点からではなくここから引き始める）。</summary>
+        // 今いる場所から見た目を出す（軌跡も発射地点からじゃなくて、ここから引き始める）
         void ShowVisuals()
         {
             foreach (Renderer r in _hiddenRenderers)
@@ -184,22 +219,28 @@ namespace Toufuku.Aim
             float normalized = float.PositiveInfinity;
             HitZone zone = HitZone.Miss;
 
-            // セッション終了後（リザルト中）に着いた弾は計上しない（#32）
-            bool scored = GameSession.Instance == null || GameSession.Instance.IsPlaying;
+            /*
+                ゲームが終わったあと（リザルト中）に落ちた弾はスコアに入れない（#32）
+                #61: 3:00 より前に受理した弾は、3:00 のあとの解決中（最長 3:00.65）に落ちてもスコアに入れる
+            */
+            GameSession session = GameSession.Instance;
+            bool scored = session == null || session.IsPlaying || (session.IsResolving && _launchedWhilePlaying);
             if (scored)
             {
                 hit = FindTarget(_target, out normalized);
                 if (hit != null)
-                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime, _priorityTargetId, _gokagoMultiplier);
+                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime,
+                        _priorityTargetId, _blessingMultiplier);
                 else
                     OmamoriHitResolver.ApplyMiss();
             }
+            ReleasePending();
 
             var result = new LandingResult(_target, transform.position, hit, normalized, zone, _type, _seconds, _elapsed, scored);
             Landed?.Invoke(result);
             AnyLanded?.Invoke(result);
 
-            // 本体は消し、軌跡が消えるのを待ってから破棄する
+            // 本体は消して、軌跡が消えるのを待ってから削除する
             foreach (Renderer r in GetComponentsInChildren<Renderer>())
             {
                 if (!(r is TrailRenderer)) r.enabled = false;
@@ -207,7 +248,7 @@ namespace Toufuku.Aim
             Destroy(gameObject, _lingerSeconds);
         }
 
-        /// <summary>地面上の点で当たる客を探す。誰にも当たらなければ null。</summary>
+        // 地面の上の点で当たる客をさがす。だれにも当たらなかったら null
         public static HitZoneTarget FindTarget(Vector3 point, out float normalizedDistance)
         {
             s_targets.Clear();

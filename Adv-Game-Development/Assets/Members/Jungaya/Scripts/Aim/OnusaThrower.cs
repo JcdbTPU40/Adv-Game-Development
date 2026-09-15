@@ -5,17 +5,17 @@ using Toufuku.Rescue;
 
 namespace Toufuku.Aim
 {
-    /// <summary>
-    /// 有効スイング確定（SwingAccepted）でお守りを 1 発飛ばす — Issue #60（仕様書 v8 4章）
-    ///
-    /// ・着弾目標点 = SwingAccepted 時点の照準（<see cref="OnusaAimController.GetLockedTarget"/>）。発射後は動かさない。
-    /// ・優先救済の対象ID（二重円の客）も同じ瞬間に弾へ保存する（#55）。飛翔 0.65 秒の間に二重円が
-    ///   別の客へ移っても、その弾の +50 の判定は発射時の対象のまま変わらない（v8 4章「通常弾」）。
-    /// ・振りの強さ → 飛翔時間（0.25〜0.65 秒、強いほど短い）と軌跡の太さ。着弾点には使わない。
-    /// ・弾は無限。クールダウン中の有効スイング（SwingRejected: Cooldown）は弾を作らず、照準を 80ms 灰色にする
-    ///   （短い低音は ThrowInputController が鳴らす）。得点イベントも作られない。
-    /// ・TestShooter と同時に有効だと二重発射になるので、TestShooter は無効にしておく。
-    /// </summary>
+    /*
+        有効スイングが決まったら（SwingAccepted）お守りを1発飛ばすクラス（#60 / 企画書 v8 4章）
+
+        ・着弾目標点は SwingAccepted のときの照準（OnusaAimController.GetLockedTarget）。発射したあとは動かさない
+        ・優先救済の相手のID（二重円の客）も同じ瞬間に弾に保存する（#55）
+          飛んでいる 0.65 秒の間に二重円が別の客に移っても、その弾の +50 の判定は発射したときの相手のまま（v8 4章「通常弾」）
+        ・振りの強さは、飛ぶ時間（0.25〜0.65秒、強いほど短い）と軌跡の太さに使う。落ちる場所には使わない
+        ・弾は無限。クールダウン中に振ったとき（SwingRejected: Cooldown）は弾を出さずに、照準を 80ms 灰色にする
+          （短い低い音は ThrowInputController が鳴らす）。スコアのイベントも出ない
+        ・TestShooter といっしょに有効になっていると2発出てしまうので、TestShooter は切っておく
+    */
     public class OnusaThrower : MonoBehaviour
     {
         [Header("参照（未設定ならシーン内から探す）")]
@@ -59,12 +59,12 @@ namespace Toufuku.Aim
         Material _trailMaterial;
         bool _subscribed;
 
-        /// <summary>発射した弾の数（確認用）。</summary>
+        // 発射した弾の数（確認用）
         public int ThrowCount { get; private set; }
-        /// <summary>最後に発射した弾（着弾後は破棄されて null になる）。</summary>
+        // 最後に発射した弾（落ちたあとは消えるので null になる）
         public OmamoriProjectile LastProjectile { get; private set; }
 
-        /// <summary>#49: 次に発射する弾が見え始めるまでの秒数。</summary>
+        // #49: 次に発射する弾が見え始めるまでの秒数
         public float VisualDelaySeconds
         {
             get => visualDelaySeconds;
@@ -124,23 +124,19 @@ namespace Toufuku.Aim
 
         void HandleSwingAccepted(SwingAcceptedArgs e)
         {
-            if (e.Kind != ThrowKind.Normal) return; // 大祓は T5 通過後に実装
+            if (e.Kind != ThrowKind.Normal) return; // 大祓は T5 を通ったあとに作る
             if (aim == null || !aim.HasAim)
             {
                 Debug.LogWarning("[OnusaThrower] 照準（OnusaAimController）が無いので発射できません", this);
                 return;
             }
 
-            // 着弾目標点はこの瞬間に固定する。以後の照準の動きや振りの強さでは変わらない
+            // 着弾目標点はこの瞬間に決める。このあと照準が動いても、振りの強さがどうでも変わらない
             Vector3 target = aim.GetLockedTarget(e.Time);
             Vector3 start = spawnPoint != null ? spawnPoint.position : aim.Origin;
 
-            // 優先救済の対象（二重円の客）も、色・着弾点と同じ「発射受理の瞬間」に固定する（#55 / v8 4章）
+            // 優先救済の相手（二重円の客）も、色や着弾点と同じ「発射が決まった瞬間」に決める（#55 / v8 4章）
             int priorityTargetId = PriorityRescue.CurrentTargetIdOrNone;
-
-            // ご加護倍率も同じ瞬間に固定する（#56 / v8 7章「倍率の保存順」）。
-            // この弾が救済を完了させたら、救済客がこの値を持って退場し、3秒後の伝播得点に使う。
-            float gokagoMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.GokagoMultiplier : 1f;
 
             float strength01 = ThrowFlight.Strength01(e.Strength, slowStrength, fastStrength);
             float seconds = ThrowFlight.FlightSeconds(strength01, slowestSeconds, fastestSeconds);
@@ -155,16 +151,14 @@ namespace Toufuku.Aim
             AttachTrail(go, width);
 
             var projectile = go.AddComponent<OmamoriProjectile>();
-            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId,
-                gokagoMultiplier);
+            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId);
 
             ThrowCount++;
             LastProjectile = projectile;
 
             if (logThrows)
                 Debug.Log($"[Throw] 発射 {type} 目標=({target.x:0.00}, {target.z:0.00}) 距離={flat.magnitude:0.0}m 強さ={e.Strength:0} → 飛翔 {seconds:0.00}s 太さ {width:0.00}" +
-                          $" 優先対象ID={(priorityTargetId > 0 ? priorityTargetId.ToString() : "なし")}" +
-                          $" ご加護倍率={gokagoMultiplier:0.00}", this);
+                          $" 優先対象ID={(priorityTargetId > 0 ? priorityTargetId.ToString() : "なし")}", this);
         }
 
         void HandleSwingRejected(SwingRejectedArgs e)
@@ -191,7 +185,7 @@ namespace Toufuku.Aim
             return go;
         }
 
-        /// <summary>見た目だけ使うため、物理で当たる仕組み（Rigidbody / Collider / OmamoriBullet）を外す。</summary>
+        // 見た目だけ使いたいので、物理で当たるしくみ（Rigidbody / Collider / OmamoriBullet）を外す
         static void StripPhysics(GameObject go)
         {
             foreach (OmamoriBullet bullet in go.GetComponentsInChildren<OmamoriBullet>(true))
@@ -199,7 +193,7 @@ namespace Toufuku.Aim
                 bullet.enabled = false;
                 Destroy(bullet);
             }
-            // Destroy は フレーム末なので、それまでに衝突しないよう先に無効化しておく
+            // Destroy はフレームの最後に実行されるので、それまでにぶつからないように先に無効にしておく
             foreach (Collider col in go.GetComponentsInChildren<Collider>(true))
             {
                 col.enabled = false;

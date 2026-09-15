@@ -4,16 +4,16 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 参加者 1 人 = 1 行の CSV — Issue #53（19章のテスト記録へそのまま貼れる形）
-    ///
-    /// ・到達していない分（途中終了）の投数・着弾・命中・命中率は<b>空欄</b>（欠測）で書く。0 投とは区別する。
-    /// ・疲労・再挑戦の未回答も空欄。あとから Excel で埋めて L で読み直せる。
-    /// ・命中率・投数低下率・周期の中央値と p75 は見やすさのための派生列。読み戻すときは元の列から計算し直す。
-    /// ・最後の「周期列」は発射間隔（秒）を空白区切りで並べたもの。全員分を束ねて中央値・p75 を出すのに使う。
-    /// ・区切りと引用の扱いは #49 と同じ（<see cref="AbTestCsv.Escape"/> / <see cref="AbTestCsv.SplitRow"/>）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        参加者1人を1行にした CSV（#53。19章のテスト記録にそのまま貼れる形）
+
+        ・届いていない分（とちゅうで終わった）の投げた数・着弾・命中・命中率は空欄（データなし）で書く。0回とは分ける
+        ・疲れと、もう一回やるかの答えがないときも空欄。あとで Excel でうめて L で読みなおせる
+        ・命中率・投げた数の下がり方・間かくの中央値と p75 は、見やすくするために計算して足した列。読みもどすときは元の列から計算しなおす
+        ・最後の「間かくの列」は発射の間かく（秒）を空白で区切ってならべたもの。全員ぶんをまとめて中央値と p75 を出すのに使う
+        ・区切りと引用符のあつかいは #49 と同じ（AbTestCsv.Escape / AbTestCsv.SplitRow）
+        MonoBehaviour は使っていない
+    */
     public static class EnduranceCsv
     {
         public const string Header =
@@ -79,7 +79,7 @@ namespace Toufuku.Playtest
         {
             record = null;
             if (string.IsNullOrWhiteSpace(line)) return false;
-            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出し行
+            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出しの行
 
             string[] f = AbTestCsv.SplitRow(line);
             if (f.Length < ColumnCount) return false;

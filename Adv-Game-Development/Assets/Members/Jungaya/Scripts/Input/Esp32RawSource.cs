@@ -3,17 +3,18 @@ using UnityEngine;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// 実機（ESP32＋BNO055）の生入力 — Issue #51
-    ///
-    /// ConecteController が 1 行受信するたびに <see cref="ConecteController.SampleReceived"/> で受け取り、
-    /// ピッチ角速度から振りピークを検出してキューに積む。ボタンは 4 項目目のビットマスクを読む
-    /// （形式は <see cref="ControllerSample"/>）。
-    ///
-    /// ・現行ファームウェアはボタンを送らないので、その間は数字キー 1〜5／A キーで代用できる。
-    /// ・未接続時はマウス左クリックを振りピークとして扱える（机上での確認用）。
-    /// </summary>
-    public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime
+    /*
+        実機（ESP32＋BNO055）からの入力そのままを受け取るクラス（#51）
+
+        ConecteController が1行受け取るたびに ConecteController.SampleReceived でもらって、
+        ピッチの角速度から振りのピークを見つけて順番に貯めておく。ボタンは4つ目のビットの集まりを読む
+        （形は ControllerSample を見る）
+
+        ・今のファームウェアはボタンを送ってこないので、その間は数字キー1〜5とAキーで代わりにできる
+        ・つながっていないときは、マウスの左クリックを振りのピークとしてあつかえる（机の上で確認する用）
+        ・#65: ボタン付きの行を 100ms 受け取らなかったら、ぜんぶのボタンをはなしたことにする（ButtonLinkWatchdog / 3章）
+    */
+    public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime, IButtonLinkState
     {
         [SerializeField] ConecteController con;
 
@@ -26,6 +27,10 @@ namespace Toufuku.GameInput
         [SerializeField] float maxSampleGap = 0.1f;
         [Tooltip("1 フレームにまとめて届いた行へ割り当てるサンプル間隔（ファームウェアの送信周期）")]
         [SerializeField] float nominalSampleInterval = 0.02f;
+
+        [Header("ボタン箱の受信の見張り（#65 / 3章: 100ms 受信がなければ全ボタン解放）")]
+        [Tooltip("ボタン付きの行をこの秒数受け取らなかったら、ぜんぶのボタンをはなしたことにする（押している入力とためをキャンセル）")]
+        [SerializeField, Min(0.01f)] float buttonLinkTimeoutSeconds = (float)ButtonLinkWatchdog.DefaultTimeoutSeconds;
 
         [Header("ボタンを送らないファームウェア向けの代用キー")]
         [SerializeField] bool keyboardFallbackForButtons = true;
@@ -41,29 +46,37 @@ namespace Toufuku.GameInput
         [SerializeField] KeyCode strongSwingKey = KeyCode.LeftShift;
         [SerializeField] float strongSwingStrength = 720f;
 
-        // 同一フレームにまとめて届いた行の受信時刻はほぼ同じになるため、間隔が詰まりすぎたら名目間隔で補う
+        // 同じフレームにまとめて届いた行は受け取った時刻がほとんど同じになるので、間かくがつまりすぎたら決まった間かくでおぎなう
         const double MinSampleInterval = 0.005;
 
         readonly SwingPeakDetector _detector = new SwingPeakDetector();
         readonly Queue<(float strength, double time, double deviceTime)> _peaks = new Queue<(float, double, double)>();
+        readonly ButtonLinkWatchdog _buttonWatch = new ButtonLinkWatchdog();
 
         ControllerSample _latest;
         double _detectorTime = double.NegativeInfinity;
         int _mouseConsumedFrame = -1;
 
-        /// <summary>#63: 直前に取り出した振りピークのコントローラ側時刻（秒）。ファームウェアが送らない・マウス代用なら NaN。</summary>
+        // #63: さっき取り出した振りピークの、コントローラー側の時刻（秒）。ファームウェアが送ってこないときやマウスのときは NaN
         public double LastSwingPeakInputTime { get; private set; } = double.NaN;
 
         public bool IsConnected => con != null && con.isConnected;
         public float Yaw => con != null ? con.yaw : 0f;
         public float Pitch => con != null ? con.pitch : 0f;
 
-        /// <summary>ファームウェアがボタンを送ってきているか。</summary>
+        // ファームウェアがボタンの情報を送ってきているかどうか
         public bool HasHardwareButtons => _latest.HasButtons;
 
         public bool IsFrontHeld => _latest.HasButtons
-            ? _latest.IsFrontHeld
+            ? (ButtonMaskNow & (1 << ControllerSample.FrontButtonBit)) != 0
             : keyboardFallbackForButtons && Input.GetKey(frontKey);
+
+        // #65: 今押していることにするボタンのマスク。ボタン箱の受信が 100ms とぎれていたら 0
+        int ButtonMaskNow => _buttonWatch.EffectiveMask(Time.realtimeSinceStartupAsDouble);
+
+        public bool IsButtonLinkLost(double now) => _buttonWatch.IsLost(now);
+
+        public double ButtonLinkLostTime => _buttonWatch.LostTime;
 
         void OnEnable()
         {
@@ -75,11 +88,17 @@ namespace Toufuku.GameInput
             if (con != null) con.SampleReceived -= OnSample;
             _detector.Reset();
             _peaks.Clear();
+            _buttonWatch.Reset();
         }
 
         void OnSample(ControllerSample sample)
         {
             _latest = sample;
+            if (sample.HasButtons)
+            {
+                _buttonWatch.TimeoutSeconds = buttonLinkTimeoutSeconds;
+                _buttonWatch.Receive(sample.Time, sample.Buttons);
+            }
 
             _detector.TriggerVelocity = triggerVelocity;
             _detector.ReleaseVelocity = releaseVelocity;
@@ -91,14 +110,15 @@ namespace Toufuku.GameInput
                 t = _detectorTime + nominalSampleInterval;
             _detectorTime = t;
 
-            // ピーク時刻は受信時刻で返す（遅延計測 #52 と揃える）
+            // ピークの時刻は受け取った時刻で返す（#52 の遅れの計測とそろえるため）
             if (_detector.AddSample(sample.Pitch, t, out float peakVelocity))
                 _peaks.Enqueue((peakVelocity, sample.Time, sample.DeviceTime));
         }
 
         public bool IsColorHeld(int index)
         {
-            if (_latest.HasButtons) return _latest.IsColorHeld(index);
+            if (_latest.HasButtons)
+                return index >= 0 && index < ControllerSample.FrontButtonBit && (ButtonMaskNow & (1 << index)) != 0;
             return keyboardFallbackForButtons && colorKeys != null
                 && index >= 0 && index < colorKeys.Length && Input.GetKey(colorKeys[index]);
         }

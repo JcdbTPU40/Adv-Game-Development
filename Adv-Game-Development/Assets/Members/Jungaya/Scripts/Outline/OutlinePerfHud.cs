@@ -8,21 +8,26 @@ using UnityEngine.Rendering.Universal;
 
 namespace Toufuku.Rescue.Outline
 {
-    /// <summary>
-    /// #45 負荷検証 HUD。ProfilerRecorder / FrameTimingManager で fps・CPU/GPU・DrawCalls 等を出す。
-    ///
-    /// キー:
-    ///   1/2/3 … 体数 8/12/16
-    ///   O … アウトライン ON/OFF（Feature の純コスト差分）
-    ///   F … 雨天 ON/OFF
-    ///   P … 計測開始/停止（一定フレーム平均）
-    ///   S … 体数軸スイープ（12条件×4巡）を開始
-    ///   C … CSV 書き出し
-    ///
-    /// ビルド版のコマンドライン:
-    ///   -outlineSweep[=frames,passes] … 起動後に自動でスイープを開始する
-    ///   -outlineQuit                  … スイープ完了後に自動終了する
-    /// </summary>
+    /*
+        #45 の重さを調べるための HUD。ProfilerRecorder と FrameTimingManager で fps・CPU/GPU・DrawCalls などを出す
+
+        キー:
+          1/2/3: 人数を 8/12/16 にする
+          O: アウトラインの ON/OFF（Feature だけの重さの差を見る）
+          F: 雨の ON/OFF
+          P: 計測の開始と停止（決めたフレーム数の平均）
+          S: 人数ごとにまとめて測る（12条件を4周）
+          C: CSV に書き出す
+          G: グレースケールの ON/OFF（#59。色がわからなくても、もようで見分けられるかを見る）
+          T: もようの ON/OFF（#59。OFF で全員実線＝色だけ）
+          H: 照準が乗った客を次の人にする（#59。一段明るくなるのを見る）
+          R: 欲張り客に1発目を当てたことにする／もとにもどす（#59。輪が2本→1本）
+          F の雨は、まわり（ライト・環境光・背景）だけを暗くする。輪郭の明るさが変わらないことを見る（#59）
+
+        ビルド版のコマンドライン:
+          -outlineSweep[=frames,passes]: 起動したら自動でまとめて測り始める
+          -outlineQuit: まとめて測り終わったら自動で終わる
+    */
     public class OutlinePerfHud : MonoBehaviour
     {
         const int FrameBufferSize = 180;
@@ -52,7 +57,7 @@ namespace Toufuku.Rescue.Outline
         int _sampleRemaining;
         readonly List<SampleRow> _samples = new List<SampleRow>(64);
 
-        // 直近サンプルの累積
+        // 最近のデータを足していったもの
         double _accFps;
         double _accCpu;
         double _accGpu;
@@ -64,12 +69,24 @@ namespace Toufuku.Rescue.Outline
 
         FrameTiming[] _timings = new FrameTiming[1];
 
+        // #59: グレースケール表示と、雨のときのまわりの暗さ
+        const float RainLightScale = 0.4f;
+        bool _grayscale;
+        Volume _grayVolume;
+        VolumeProfile _grayProfile;
+        bool? _savedPostProcessing;
+        bool _rainLookApplied;
+        Light _sun;
+        float _sunIntensity;
+        Color _ambient;
+        Color _background;
+
         struct SampleRow
         {
             public int Count;
             public bool OutlineOn;
             public bool Rain;
-            public int Pass; // スイープ巡番号。手動計測は -1
+            public int Pass; // 何周目か。手で測ったときは -1
             public float AvgFps;
             public float Low1Fps;
             public float CpuMs;
@@ -82,7 +99,7 @@ namespace Toufuku.Rescue.Outline
         void Awake()
         {
             if (!uncapFrameRate) return;
-            // vSync が効いていると fps がディスプレイ refresh に張り付き、60fps に対する余裕が読めない。
+            // vSync が効いていると fps が画面のリフレッシュレートにくっついてしまって、60fps に対してどれくらい余裕があるかわからない
             _savedVSyncCount = QualitySettings.vSyncCount;
             _savedTargetFrameRate = Application.targetFrameRate;
             QualitySettings.vSyncCount = 0;
@@ -91,7 +108,9 @@ namespace Toufuku.Rescue.Outline
 
         void OnDestroy()
         {
-            // Editor 実行では QualitySettings がプロジェクト資産なので必ず戻す。
+            if (_grayProfile != null) Destroy(_grayProfile);
+
+            // エディタで動かすときは QualitySettings がプロジェクトのファイルなので、必ずもとにもどす
             if (_savedVSyncCount < 0) return;
             QualitySettings.vSyncCount = _savedVSyncCount;
             Application.targetFrameRate = _savedTargetFrameRate;
@@ -103,10 +122,10 @@ namespace Toufuku.Rescue.Outline
             ParseCommandLine();
         }
 
-        /// <summary>
-        /// ビルド版でキー入力なしにスイープを回すためのコマンドライン解釈。
-        /// 例: OutlinePerf.exe -outlineSweep=60,4 -outlineQuit
-        /// </summary>
+        /*
+            ビルド版でキーを押さずにまとめて測るための、コマンドラインの読み取り
+            例: OutlinePerf.exe -outlineSweep=60,4 -outlineQuit
+        */
         void ParseCommandLine()
         {
             string[] args;
@@ -163,6 +182,7 @@ namespace Toufuku.Rescue.Outline
             FrameTimingManager.CaptureFrameTimings();
 
             HandleKeys();
+            SyncRainLook();
             TickAxisSweep();
 
             if (_sampling)
@@ -174,13 +194,13 @@ namespace Toufuku.Rescue.Outline
             }
         }
 
-        /// <summary>計測中か（自動バッチ用）。</summary>
+        // 測っている最中かどうか（自動でまとめて測る用）
         public bool IsSampling => _sampling;
 
-        /// <summary>蓄積済みサンプル数。</summary>
+        // たまっているデータの数
         public int StoredSampleCount => _samples.Count;
 
-        /// <summary>コードから計測を開始する（P キー相当）。</summary>
+        // コードから計測を始める（Pキーと同じ）
         public void BeginSample(int frames = -1)
         {
             if (frames > 0) sampleFrames = frames;
@@ -188,10 +208,10 @@ namespace Toufuku.Rescue.Outline
             StartSampling();
         }
 
-        /// <summary>サンプル履歴をクリアする。</summary>
+        // データの記録を消す
         public void ClearSamples() => _samples.Clear();
 
-        /// <summary>直近サンプルを1行テキストで返す（無ければ空文字）。</summary>
+        // いちばん新しいデータを1行の文字にして返す（なければ空の文字）
         public string FormatLastSample()
         {
             if (_samples.Count == 0) return string.Empty;
@@ -201,12 +221,12 @@ namespace Toufuku.Rescue.Outline
                    $"draws={r.DrawCalls:F0} setPass={r.SetPassCalls:F0} batches={r.Batches:F0}";
         }
 
-        /// <summary>
-        /// 体数×Outline×天候の12条件を自動計測する（#45 H）。
-        /// 順序をシャッフルしたうえで複数巡し、ON−OFF 差分とノイズ幅で体数軸を判定する。
-        /// </summary>
-        /// <param name="framesPerSample">1条件あたりの平均フレーム数（60以上推奨）。</param>
-        /// <param name="passCount">巡回数（4以上推奨）。</param>
+        /*
+            人数×アウトライン×天気の12条件を自動で測る（#45 H）
+            順番をシャッフルしてから何周かして、ONとOFFの差とノイズのはばで人数による差を判断する
+            framesPerSample: 1条件で平均をとるフレーム数（60以上がおすすめ）
+            passCount: 何周するか（4以上がおすすめ）
+        */
         public void RunAxisSweep(int framesPerSample = 60, int passCount = 4)
         {
             if (_axisSweepActive) return;
@@ -313,10 +333,10 @@ namespace Toufuku.Rescue.Outline
             }
         }
 
-        /// <summary>
-        /// ON−OFF の Δ を体数×天候ごとに集計し、巡間の標準偏差でノイズ幅を出す。
-        /// 判定は「Δ がノイズより明確に大きいか」「Δ が体数に対して平坦か」の両面で行う。
-        /// </summary>
+        /*
+            ONとOFFの差を人数×天気ごとにまとめて、周ごとのばらつき（標準偏差）でノイズのはばを出す
+            判断は「差がノイズよりはっきり大きいか」と「差が人数で変わらないか」の2つで見る
+        */
         void LogBodyCountAxisSummary()
         {
             var sb = new StringBuilder();
@@ -341,7 +361,7 @@ namespace Toufuku.Rescue.Outline
                 var pairDeltasFps = new List<float>();
                 var pairDeltasDraws = new List<float>();
 
-                // 巡ごとに ON/OFF をペアにする（シャッフル順でも Pass タグで対応）。
+                // 周ごとに ON と OFF をペアにする（シャッフルした順番でも Pass の番号で合わせる）
                 int maxPass = -1;
                 for (int i = 0; i < _samples.Count; i++)
                     if (_samples[i].Pass > maxPass) maxPass = _samples[i].Pass;
@@ -375,7 +395,7 @@ namespace Toufuku.Rescue.Outline
                 if (!rain) sunnyDeltas.Add(gMean);
             }
 
-            // 判定: 晴天の ΔGPU が体数でどう動くか + ノイズ幅との比較
+            // 判断: 晴れのときの GPU の差が人数でどう変わるか＋ノイズのはばとくらべる
             sb.AppendLine();
             if (sunnyDeltas.Count >= 2)
             {
@@ -389,7 +409,7 @@ namespace Toufuku.Rescue.Outline
                     if (a.count == 16) { d16 = a.mean; s16 = a.std; }
                 }
                 float bodyDelta = d16 - d8;
-                // ノイズ幅の目安: 両側 std の合成（粗い）
+                // ノイズのはばの目安: 両方の標準偏差を合わせたもの（ざっくり）
                 float noise = Mathf.Sqrt(s8 * s8 + s16 * s16);
                 sb.AppendLine($"  晴天 ΔGPU: 8体={d8:F3}±{s8:F3} / 16体={d16:F3}±{s16:F3} / 体数差={bodyDelta:F3} / ノイズ幅≈{noise:F3}");
 
@@ -420,7 +440,7 @@ namespace Toufuku.Rescue.Outline
 
             Debug.Log(sb.ToString());
 
-            // Δ CSV も persistentDataPath に書く
+            // 差の CSV も persistentDataPath に書く
             string dir = Application.persistentDataPath;
             string path = Path.Combine(dir, $"outline_perf_delta_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv");
             File.WriteAllText(path, deltaCsv.ToString(), Encoding.UTF8);
@@ -487,7 +507,7 @@ namespace Toufuku.Rescue.Outline
                 if (_sampling) StopSampling(store: true);
                 else
                 {
-                    _samplePassTag = -1; // 手動計測
+                    _samplePassTag = -1; // 手で測った
                     StartSampling();
                 }
             }
@@ -497,6 +517,84 @@ namespace Toufuku.Rescue.Outline
 
             if (Input.GetKeyDown(KeyCode.C))
                 ExportCsv();
+
+            if (Input.GetKeyDown(KeyCode.G))
+                SetGrayscale(!_grayscale);
+
+            if (Input.GetKeyDown(KeyCode.T))
+                director?.SetPatternsEnabled(!director.PatternsEnabled);
+
+            if (Input.GetKeyDown(KeyCode.H))
+                director?.CycleHighlight();
+
+            if (Input.GetKeyDown(KeyCode.R))
+                director?.AdvanceGreedy();
+        }
+
+        /*
+            #59: グレースケールの ON/OFF。色がわからなくても、もようだけでお守りを見分けられるかを見る（完了条件）
+            URP の Color Adjustments（彩度 -100）をのせた Volume を、はじめて使うときに作る
+            ポストプロセスは輪郭の合成（AfterRenderingOpaques）より後なので、輪郭もいっしょに灰色になる
+        */
+        void SetGrayscale(bool on)
+        {
+            _grayscale = on;
+            if (on && _grayVolume == null)
+            {
+                var go = new GameObject("GrayscaleVolume (#59)");
+                _grayVolume = go.AddComponent<Volume>();
+                _grayVolume.isGlobal = true;
+                _grayVolume.priority = 100f;
+                _grayProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+                var adjustments = _grayProfile.Add<ColorAdjustments>(true);
+                adjustments.saturation.Override(-100f);
+                _grayVolume.sharedProfile = _grayProfile;
+            }
+            if (_grayVolume != null) _grayVolume.enabled = on;
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var data = cam.GetUniversalAdditionalCameraData();
+                if (_savedPostProcessing == null) _savedPostProcessing = data.renderPostProcessing;
+                data.renderPostProcessing = on || _savedPostProcessing.Value;
+            }
+        }
+
+        /*
+            #59: 雨のときは、まわり（ライト・環境光・背景）だけを暗くする。天候オーバーレイのかわり
+            輪郭は発光の合成なので、まわりが暗くなっても輪郭の明るさは変わらない（v8 6章「天候中も輪郭の明度を維持する」）
+            スイープで雨を切りかえたときも同じ見た目になるように、キーではなく毎フレーム RainAmount に合わせる
+        */
+        void SyncRainLook()
+        {
+            bool raining = OutlineWeather.IsRaining;
+            if (raining == _rainLookApplied) return;
+            _rainLookApplied = raining;
+
+            if (_sun == null) _sun = FindFirstObjectByType<Light>();
+            var cam = Camera.main;
+            if (raining)
+            {
+                if (_sun != null)
+                {
+                    _sunIntensity = _sun.intensity;
+                    _sun.intensity *= RainLightScale;
+                }
+                _ambient = RenderSettings.ambientLight;
+                RenderSettings.ambientLight = _ambient * RainLightScale;
+                if (cam != null)
+                {
+                    _background = cam.backgroundColor;
+                    cam.backgroundColor = _background * RainLightScale;
+                }
+            }
+            else
+            {
+                if (_sun != null) _sun.intensity = _sunIntensity;
+                RenderSettings.ambientLight = _ambient;
+                if (cam != null) cam.backgroundColor = _background;
+            }
         }
 
         void ToggleOutline()
@@ -508,11 +606,13 @@ namespace Toufuku.Rescue.Outline
                 return;
             }
 
-            // Feature 参照が無い場合は RendererData から探す。
+            // Feature の参照がないときは RendererData からさがす
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset asset)
             {
-                // 反射で defaultRenderer を取得するのはバージョン差があるため、
-                // 計測シーン側で Feature が登録されていれば Instance が立つ。
+                /*
+                    defaultRenderer をリフレクションで取るのはバージョンによってちがうので、
+                    計測シーンで Feature が登録されていれば Instance が入る、というやり方にしている
+                */
                 Debug.LogWarning("[OutlinePerf] OutlineRendererFeature.Instance が null です。PC_Renderer に Feature を追加してください。");
             }
         }
@@ -562,7 +662,7 @@ namespace Toufuku.Rescue.Outline
         void AccumulateSample(float dt)
         {
             float ms = dt * 1000f;
-            // Editor のドメインリロード直後やツール呼び出しによる一時ヒッチは計測から除外。
+            // エディタのドメインリロードの直後や、ツールを呼んだときの一時的なカクつきは計測に入れない
             if (ms > 100f) return;
 
             _sampleFrameMs.Add(ms);
@@ -582,15 +682,15 @@ namespace Toufuku.Rescue.Outline
             _accN++;
         }
 
-        /// <summary>
-        /// 1% low = 最悪 1% フレームの平均 fps。
-        /// サンプルが少ないときは少なくとも最悪1フレームを使う。
-        /// </summary>
+        /*
+            1% low = いちばん悪い 1% のフレームの平均の fps
+            データが少ないときは、少なくともいちばん悪い1フレームは使う
+        */
         static float ComputeOnePercentLow(List<float> frameMs)
         {
             if (frameMs == null || frameMs.Count == 0) return 0f;
             var sorted = new List<float>(frameMs);
-            sorted.Sort(); // 昇順＝速い→遅い。末尾が最悪。
+            sorted.Sort(); // 小さい順＝速い順。最後がいちばん遅い
             int worstCount = Mathf.Max(1, Mathf.CeilToInt(sorted.Count * 0.01f));
             double sumMs = 0;
             for (int i = sorted.Count - worstCount; i < sorted.Count; i++)
@@ -649,23 +749,30 @@ namespace Toufuku.Rescue.Outline
             long setPass = _setPassCalls.Valid ? _setPassCalls.LastValue : 0;
             long batches = _batches.Valid ? _batches.LastValue : 0;
 
-            float thickness = 3f;
+            float band = 0f;
+            float gap = 0f;
             float scale = 1f;
+            int radius1 = 0;
+            int radius2 = 0;
             var feature = OutlineRendererFeature.Instance;
             if (feature != null)
             {
-                thickness = feature.CurrentSettings.thicknessPx;
+                band = feature.CurrentSettings.bandWidthPx;
+                gap = feature.CurrentSettings.ringGapPx;
                 scale = feature.CurrentSettings.maskResolutionScale;
+                radius1 = feature.SearchRadiusMaskTexels(1);
+                radius2 = feature.SearchRadiusMaskTexels(2);
             }
-            float radiusMask = OutlineRendererFeature.EffectiveRadiusMaskTexels(thickness, scale);
-            float thicknessScreen = OutlineRendererFeature.EffectiveThicknessScreenPx(thickness, scale);
 
-            var rect = new Rect(12, 12, 480, 285);
-            GUI.Box(rect, "Outline Perf (#45)");
-            GUILayout.BeginArea(new Rect(20, 36, 460, 255));
+            var rect = new Rect(12, 12, 540, 345);
+            GUI.Box(rect, "Outline Perf (#45 / #59)");
+            GUILayout.BeginArea(new Rect(20, 36, 520, 315));
             GUILayout.Label($"Count: {director?.AliveCount ?? 0} / target {director?.TargetCount ?? 0}");
             GUILayout.Label($"Outline: {(IsOutlineOn() ? "ON" : "OFF")}   Rain: {(OutlineWeather.IsRaining ? "ON" : "OFF")} ({OutlineWeather.RainAmount:F2})");
-            GUILayout.Label($"Mask scale: {scale:F2}   radius(mask px): {radiusMask:F0}   実効太さ(screen px): {thicknessScreen:F1}");
+            GUILayout.Label($"Mask scale: {scale:F2}   輪のはば: {band:F1}px  すきま: {gap:F1}px   さがす半径(mask px): 1本 {radius1} / 2本 {radius2}");
+            string aimLabel = director != null && director.HighlightIndex >= 0 ? director.HighlightIndex.ToString() : "-";
+            GUILayout.Label($"Pattern: {(director != null && director.PatternsEnabled ? "ON" : "OFF(色だけ)")}   Gray: {(_grayscale ? "ON" : "OFF")}   " +
+                            $"照準: {aimLabel}   欲張り R: {(director != null ? director.GreedyRemaining : 0)}（{(director != null ? director.GreedyCount : 0)}人）");
             GUILayout.Label($"FPS avg: {avgFps:F1}   1% low: {low1:F1}");
             GUILayout.Label($"CPU main: {cpu:F2} ms   GPU: {gpu:F2} ms");
             GUILayout.Label($"DrawCalls: {draws}   SetPass: {setPass}   Batches: {batches}");
@@ -673,6 +780,7 @@ namespace Toufuku.Rescue.Outline
                 ? $"Sampling... {_sampleRemaining} frames left"
                 : $"Samples stored: {_samples.Count}" + (_axisSweepActive ? " (sweeping)" : ""));
             GUILayout.Label("1/2/3=count  O=outline  F=rain  P=sample  S=sweep  C=csv");
+            GUILayout.Label("G=grayscale  T=pattern  H=aim  R=greedy hit");
             GUILayout.Label($"vSync={QualitySettings.vSyncCount}  targetFps={Application.targetFrameRate}");
             GUILayout.EndArea();
         }

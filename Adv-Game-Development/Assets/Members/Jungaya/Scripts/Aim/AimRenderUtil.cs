@@ -2,10 +2,13 @@ using UnityEngine;
 
 namespace Toufuku.Aim
 {
-    /// <summary>照準・軌跡の仮表示に使うマテリアルを実行時に作る（素材が届くまでの代用）— Issue #60</summary>
+    /*
+        照準と軌跡を仮で表示するためのマテリアルを、実行中に作るクラス（#60）
+        ちゃんとした素材が来るまでの代わり
+    */
     public static class AimRenderUtil
     {
-        /// <summary>頂点カラーの透明度がそのまま効く、両面描画の半透明マテリアル。作れなければ null。</summary>
+        // 頂点カラーの透明度がそのまま使える、両面描画の半透明マテリアルを作る。作れなかったら null を返す
         public static Material CreateTransparentMaterial(string name)
         {
             Shader shader = Shader.Find("Sprites/Default");

@@ -6,12 +6,12 @@ using UnityEngine;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 記録 CSV の読み書き — Issue #49
-    ///
-    /// 保存先は Editor ならプロジェクト直下の PlaytestLogs/、ビルドなら persistentDataPath/PlaytestLogs/。
-    /// 1 人分を 1 行ずつ追記するので、途中で落ちてもそこまでは残る。Excel 用に UTF-8 BOM を付ける。
-    /// </summary>
+    /*
+        記録の CSV を読んだり書いたりするクラス（#49）
+
+        保存する場所は、エディタならプロジェクトのすぐ下の PlaytestLogs/、ビルドなら persistentDataPath/PlaytestLogs/
+        1人ぶんずつ1行足していくので、とちゅうで落ちてもそこまでは残る。Excel 用に UTF-8 BOM を付ける
+    */
     public static class AbTestCsvFile
     {
         public const string FolderName = "PlaytestLogs";
@@ -27,14 +27,14 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>テストID と日付からファイル名を作る。</summary>
+        // テストIDと日付からファイル名を作る
         public static string PathOf(string folder, string testId, string date)
         {
             string name = $"{Sanitize(testId, "T0-AB")}_{Sanitize(date, "no-date")}.csv";
             return Path.Combine(string.IsNullOrEmpty(folder) ? DefaultFolder : folder, name);
         }
 
-        /// <summary>1 人分を追記する。ファイルが無ければ見出し行から作る。</summary>
+        // 1人ぶんを足す。ファイルがなければ見出しの行から作る
         public static bool Append(string path, AbParticipantRecord record, out string error)
         {
             error = null;
@@ -60,7 +60,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>既に書かれている行を読み戻す（同じ日の続きから再開したときの集計用）。</summary>
+        // もう書いてある行を読みもどす（同じ日の続きから始めたときの集計用）
         public static List<AbParticipantRecord> Load(string path)
         {
             var records = new List<AbParticipantRecord>();

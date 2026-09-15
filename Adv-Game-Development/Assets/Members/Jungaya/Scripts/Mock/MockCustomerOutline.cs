@@ -2,50 +2,50 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Mock
 {
-    /// <summary>
-    /// 視認性モック(#44)の「輪郭発光」表現。★本番アウトラインへの差し替え点はこのクラス1つ。
-    ///
-    /// ── 実装案の比較（#44 で 2 案を検討し A を採用）──────────────────────
-    ///   案A インバートハル … 同じメッシュを法線方向に押し出し、裏面だけ(Cull Front)描いて縁取りにする。
-    ///        ○ “輪郭”そのものを検証できる／太さを独立変数として振れる
-    ///        ○ 密集時に隣の客と輪郭が分離して見えるかを正しく測れる
-    ///        ○ 本番(#45 ステンシルアウトライン)と見え方が近く、検証結果を転用できる
-    ///        △ 自作シェーダ1本が必要／ドローコール2倍（15体=30。この規模では無問題）
-    ///
-    ///   案B Emission/リム発光 … URP/Lit の _EmissionColor を塗って Bloom で光らせる。
-    ///        ○ シェーダ不要・追加描画なし
-    ///        ✗ 面全体が光るだけで“輪郭”の検証にならない
-    ///        ✗ 密集時に隣の客と発光が溶け合う
-    ///        ✗ Bloom 設定に結果が左右され、検証の変数が増える
-    ///
-    ///   → 案A を採用。理由は「#44 のお題が *輪郭* 発光の識別性であり、面発光では答えにならず、
-    ///     #45 の本番実装と見え方が乖離して結果を転用できないため」。
-    ///     ただし案B も捨てず <see cref="OutlineMode"/> として同居させ、実行中にキーで
-    ///     切り替えて直接比較できるようにしてある（この比較自体が #44 の成果物になる）。
-    ///
-    /// 本番(#45)へ差し替えるときは、このクラスの Apply 系メソッドの中身を
-    /// 本番アウトラインの呼び出しに置き換えるだけでよい（外から見た API は変えない）。
-    ///
-    /// ※ 検証用の使い捨て。Mock/ ごと削除できる。
-    /// </summary>
+    /*
+        視認性モック（#44）の「輪郭が光る」見た目を担当するクラス。本番のアウトラインに入れかえるときは、このクラス1つだけさわればいい
+
+        ---- 作り方の案をくらべた（#44 で2つの案を考えて、Aにした） ----
+          案A インバートハル: 同じメッシュを法線の向きに少しふくらませて、裏側だけ（Cull Front）描いてふちどりにする
+               ○ 「輪郭」そのものを検証できる。太さを変えてためせる
+               ○ 客がごちゃっと集まったときに、となりの客と輪郭が分かれて見えるかをちゃんと測れる
+               ○ 本番（#45 のステンシルアウトライン）と見え方が近いので、検証の結果をそのまま使える
+               △ シェーダーを1本自分で作らないといけない。ドローコールが2倍（15人で30。これくらいなら問題ない）
+
+          案B Emission で光らせる: URP/Lit の _EmissionColor に色を入れて Bloom で光らせる
+               ○ シェーダーがいらない。描く回数も増えない
+               ✗ 面全体が光るだけで「輪郭」の検証にならない
+               ✗ 集まったときに、となりの客と光がまざってしまう
+               ✗ Bloom の設定で結果が変わるので、検証で気にすることが増える
+
+          → 案Aにした。理由は「#44 のお題は『輪郭』が光ったときに見分けられるかなので、面が光るのでは答えにならないし、
+            #45 の本番と見え方がちがって結果を使えないから」
+            でも案Bもすてずに OutlineMode として残してあって、プレイ中にキーで
+            切りかえてくらべられるようにしてある（このくらべること自体が #44 の成果になる）
+
+        本番（#45）に入れかえるときは、このクラスの Apply 系のメソッドの中身を
+        本番のアウトラインを呼ぶ処理にかえるだけでいい（外から使うメソッドは変えない）
+
+        ※ 検証用の使い捨て。Mock/ フォルダごと消せる
+    */
     [DisallowMultipleComponent]
     public class MockCustomerOutline : MonoBehaviour
     {
-        /// <summary>輪郭の表現方式。</summary>
+        // 輪郭の表し方
         public enum OutlineMode
         {
-            /// <summary>案A: インバートハル（既定）。</summary>
+            // 案A: インバートハル（ふつうはこっち）
             InvertedHull,
-            /// <summary>案B: 本体の Emission を光らせる（比較用）。</summary>
+            // 案B: 本体の Emission を光らせる（くらべる用）
             Emission
         }
 
-        /// <summary>輪郭の太さの決め方。遠くの客の輪郭が潰れるかどうかの検証用。</summary>
+        // 輪郭の太さの決め方。遠くの客の輪郭がつぶれるかどうかを調べる用
         public enum WidthMode
         {
-            /// <summary>ワールド固定。遠い客ほど画面上では細くなる。</summary>
+            // ワールドで固定。遠くの客ほど画面の上では細くなる
             World,
-            /// <summary>カメラ距離に比例。画面上の太さがほぼ一定になる。</summary>
+            // カメラからの距離に比例させる。画面の上での太さがだいたい同じになる
             ScreenConstant
         }
 
@@ -56,19 +56,21 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("太さの決め方。ScreenConstant は距離に比例させて画面上の太さを一定に保つ。")]
         [SerializeField] private WidthMode widthMode = WidthMode.ScreenConstant;
 
-        // ── 太さの既定値について（実測で調整済み）────────────────────────
-        // 初期値は outlineWidth=0.035 / referenceDistance=20 / widthClamp=(0.015, 0.35) だったが、
-        // TestGame の実配置では輪郭が細すぎて見えなかった。原因は referenceDistance の較正ずれ:
-        //
-        //   カメラ (0, 5.3, 39) に対し、客の定位置バンドは z=12〜33。実距離は約 7〜27m で、
-        //   最も客が多い「近」バンド(z 27〜33)は 7.4〜12.8m しかない。
-        //   ScreenConstant は width = outlineWidth × (距離 / referenceDistance) なので、
-        //   基準 20m に対し近バンドの係数は 0.37〜0.64 まで落ち、さらに下限 0.015 でクランプされる。
-        //   → 1080p 換算で約 1.3px。ほぼ視認できない太さになっていた。
-        //
-        // そこで基準距離を実際の代表距離(近バンド中央 ≒ 12m)に合わせ、幅も引き上げた。
-        // 現在の値は 1080p 換算で全バンドおよそ 5px 相当（ScreenConstant なので距離によらず一定）。
-        // 実行中に [ / ] キーで増減できるので、実測しながら詰めること。
+        /*
+            ---- 太さの初期値について（実際に測って調整した） ----
+            最初は outlineWidth=0.035 / referenceDistance=20 / widthClamp=(0.015, 0.35) だったけど、
+            TestGame の実際のならびだと輪郭が細すぎて見えなかった。原因は referenceDistance の合わせ方がずれていたから:
+
+              カメラが (0, 5.3, 39) にあって、客の定位置の帯は z=12〜33。実際の距離は 7〜27m くらいで、
+              いちばん客が多い「近い」帯（z 27〜33）は 7.4〜12.8m しかない
+              ScreenConstant は 太さ = outlineWidth × (距離 / referenceDistance) なので、
+              基準の 20m に対して近い帯は 0.37〜0.64 倍まで下がって、さらに下限の 0.015 で止められる
+              → 1080p にすると 1.3px くらい。ほとんど見えない太さになっていた
+
+            なので基準の距離を実際の代表的な距離（近い帯の真ん中の 12m くらい）に合わせて、太さも上げた
+            今の値は 1080p で、どの帯もだいたい 5px（ScreenConstant なので距離に関係なく同じ）
+            プレイ中に [ / ] キーで増やしたり減らしたりできるので、測りながら決めること
+        */
         [Header("インバートハル（案A）")]
         [Tooltip("押し出し幅（ワールド単位）。ScreenConstant のときは referenceDistance での幅になる。")]
         [SerializeField] private float outlineWidth = 0.09f;
@@ -76,8 +78,10 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("ScreenConstant の基準距離(m)。この距離で outlineWidth ちょうどになる。客の代表距離に合わせること。")]
         [SerializeField] private float referenceDistance = 12f;
 
-        // 下限はあくまで「破綻よけの安全弁」。ここを上げすぎると、実行中に [ ] で細くしても
-        // 効かなくなり（HUD の表示と実際の見た目がずれる）、較正ミスに気づけなくなる。
+        /*
+            下限はあくまで「こわれないようにするための安全装置」。ここを上げすぎると、プレイ中に [ ] で細くしても
+            効かなくなって（HUD の表示と実際の見た目がずれる）、合わせ方のミスに気づけなくなる
+        */
         [Tooltip("押し出し幅の下限・上限（ワールド単位）。極端な近接/遠方での破綻よけ。下限は安全弁なので低めに置くこと。")]
         [SerializeField] private Vector2 widthClamp = new Vector2(0.02f, 0.6f);
 
@@ -95,7 +99,7 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("輪郭用の複製レンダラ。未設定なら実行時に子として自動生成する。")]
         [SerializeField] private MeshRenderer outlineRenderer;
 
-        // 色プロパティ名。Built-in(_Color) / URP(_BaseColor) の両方に書いてパイプライン非依存にする。
+        // 色のプロパティ名。Built-in（_Color）と URP（_BaseColor）の両方に書いて、どっちのパイプラインでも動くようにする
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -108,10 +112,10 @@ namespace Toufuku.Rescue.Mock
         private Color _bodyColor = Color.gray;
         private Camera _camera;
 
-        /// <summary>現在の表現方式。</summary>
+        // 今の表し方
         public OutlineMode Mode => mode;
 
-        /// <summary>現在の太さモード。</summary>
+        // 今の太さのモード
         public WidthMode Width => widthMode;
 
         private void Awake()
@@ -123,17 +127,17 @@ namespace Toufuku.Rescue.Mock
 
         private void LateUpdate()
         {
-            // ScreenConstant のときだけ毎フレーム太さを追従させる（歩行中も距離が変わるため）。
+            // ScreenConstant のときだけ、毎フレーム太さを合わせなおす（歩いている間も距離が変わるから）
             if (mode == OutlineMode.InvertedHull && widthMode == WidthMode.ScreenConstant)
                 ApplyOutline();
         }
 
-        /// <summary>
-        /// スポーン時に <see cref="MockCrowdDirector"/> から呼ばれる初期化。
-        /// </summary>
-        /// <param name="outlineColor">この客の輪郭色（お守り5色 or 黒）。</param>
-        /// <param name="bodyColor">本体の色。輪郭を主役にするため通常はニュートラルな灰色。</param>
-        /// <param name="material">輪郭マテリアル。null なら Inspector 側の設定を使う。</param>
+        /*
+            出てきたときに MockCrowdDirector から呼ばれる初期化
+            outlineColor: この客の輪郭の色（お守り5色か黒）
+            bodyColor: 本体の色。輪郭を目立たせたいので、ふつうはグレー
+            material: 輪郭のマテリアル。null なら Inspector 側の設定を使う
+        */
         public void Setup(Color outlineColor, Color bodyColor, Material material)
         {
             if (material != null) outlineMaterial = material;
@@ -145,7 +149,7 @@ namespace Toufuku.Rescue.Mock
             ApplyMode();
         }
 
-        /// <summary>表現方式を切り替える（デバッグ操作から呼ばれる）。</summary>
+        // 表し方を切りかえる（デバッグ操作から呼ばれる）
         public void SetMode(OutlineMode next)
         {
             if (mode == next) return;
@@ -153,7 +157,7 @@ namespace Toufuku.Rescue.Mock
             ApplyMode();
         }
 
-        /// <summary>太さモードを切り替える（デバッグ操作から呼ばれる）。</summary>
+        // 太さのモードを切りかえる（デバッグ操作から呼ばれる）
         public void SetWidthMode(WidthMode next)
         {
             if (widthMode == next) return;
@@ -161,22 +165,22 @@ namespace Toufuku.Rescue.Mock
             ApplyOutline();
         }
 
-        /// <summary>太さの基準値を変える（Inspector 実測調整の反映用）。</summary>
+        // 太さの基準の値を変える（Inspector で測りながら調整したのを反映する用）
         public void SetOutlineWidth(float world)
         {
             outlineWidth = world;
             ApplyOutline();
         }
 
-        /// <summary>現在の太さの基準値（ワールド単位）。実行中の調整結果を読むため。</summary>
+        // 今の太さの基準の値（ワールド単位）。プレイ中に調整した結果を読むため
         public float OutlineWidth => outlineWidth;
 
-        // ── 内部 ────────────────────────────────────────────────
+        // ---- 中の処理 ----
 
-        /// <summary>
-        /// 輪郭用の複製レンダラ（インバートハル）を用意する。
-        /// 本体と同じメッシュを共有するだけなのでメモリコストは無い。
-        /// </summary>
+        /*
+            輪郭用のコピーのレンダラー（インバートハル）を用意する
+            本体と同じメッシュを使いまわすだけなので、メモリは増えない
+        */
         private void EnsureHull()
         {
             if (outlineRenderer != null) return;
@@ -195,14 +199,14 @@ namespace Toufuku.Rescue.Mock
 
             outlineRenderer = hull.AddComponent<MeshRenderer>();
             outlineRenderer.sharedMaterial = outlineMaterial;
-            // 輪郭は影を落とさない/受けない（本体の影と二重にならないように）。
+            // 輪郭は影を落とさないし受けない（本体の影と2重にならないように）
             outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             outlineRenderer.receiveShadows = false;
             outlineRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
             outlineRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         }
 
-        /// <summary>現在のモードに応じて、ハルと Emission の有効・無効を切り替える。</summary>
+        // 今のモードに合わせて、ハルと Emission のオンオフを切りかえる
         private void ApplyMode()
         {
             bool useHull = mode == OutlineMode.InvertedHull;
@@ -221,7 +225,7 @@ namespace Toufuku.Rescue.Mock
             }
         }
 
-        /// <summary>ハルの色と押し出し幅を MPB で書き込む。</summary>
+        // ハルの色とふくらませる幅を MPB で書きこむ
         private void ApplyOutline()
         {
             if (outlineRenderer == null) return;
@@ -234,7 +238,7 @@ namespace Toufuku.Rescue.Mock
                 if (_camera == null) _camera = Camera.main;
                 if (_camera != null)
                 {
-                    // 距離に比例させる＝画面上の見かけの太さが一定になる。
+                    // 距離に比例させる＝画面で見たときの太さが同じになる
                     float dist = Vector3.Distance(_camera.transform.position, transform.position);
                     width = outlineWidth * (dist / referenceDistance);
                 }
@@ -248,7 +252,7 @@ namespace Toufuku.Rescue.Mock
             outlineRenderer.SetPropertyBlock(_outlineMpb);
         }
 
-        /// <summary>本体の Emission（案B）を MPB で書き込む。</summary>
+        // 本体の Emission（案B）を MPB で書きこむ
         private void ApplyEmission(Color emission)
         {
             if (bodyRenderer == null) return;
@@ -259,7 +263,7 @@ namespace Toufuku.Rescue.Mock
             bodyRenderer.SetPropertyBlock(_bodyMpb);
         }
 
-        /// <summary>本体のベース色（ニュートラル灰）を MPB で書き込む。</summary>
+        // 本体のもとの色（グレー）を MPB で書きこむ
         private void ApplyBodyColor()
         {
             if (bodyRenderer == null) return;

@@ -1,19 +1,19 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-/// <summary>
-/// ご加護タイム（フィーバー）— Issue #29
-///
-/// 企画書7章。専用ゲージは増やさず「連続救済コンボが一定数たまったら発動」。
-/// 一時的な高得点チャンス。発動中は天候を強制晴朗化（フック呼び出しのみ）。
-///
-/// ・ScoreManager.onComboChanged(#31) を購読し、コンボが閾値に達したら発動。
-/// ・発動中は一定時間、既存 Multiplier とは別係数（scoreMultiplier）を乗算。
-/// ・onGokagoStart / onGokagoEnd を公開（HUD/SE/天候フック用）。
-/// ・再発動は「一度コンボが閾値未満に落ちてから再び到達」で行う（発動しっぱなし防止）。
-///
-/// ScoreManager と同じ GameObject（または任意の場所）に1つ置く。
-/// </summary>
+/*
+    ご加護タイム（フィーバー）（#29）
+
+    企画書7章。専用のゲージは増やさないで「連続で救ったコンボが決まった数たまったら発動」する
+    いっときの高得点のチャンス。発動中は天気をむりやり晴れにする（フックを呼ぶだけ）
+
+    ・ScoreManager.onComboChanged（#31）を受け取って、コンボがしきい値に届いたら発動する
+    ・発動中はしばらくの間、もとからある Multiplier とは別の倍率（scoreMultiplier）をかける
+    ・onGokagoStart / onGokagoEnd を外から使えるようにしている（HUD・効果音・天気のフック用）
+    ・もう一回発動するのは「一度コンボがしきい値より下がってから、また届いたとき」にする（発動しっぱなしにならないように）
+
+    ScoreManager と同じ GameObject（またはどこでもいい）に1つ置く
+*/
 public class GokagoTime : MonoBehaviour
 {
     [Header("発動条件")]
@@ -32,13 +32,13 @@ public class GokagoTime : MonoBehaviour
     [Tooltip("天候の強制晴朗化フック。天候システム実装後にここへ繋ぐ（現状はログのみ）。")]
     public UnityEvent onWeatherClearRequest;
 
-    /// <summary>発動中かどうか（HUD用）。</summary>
+    // 発動中かどうか（HUD 用）
     public bool IsActive { get; private set; }
-    /// <summary>残り時間（秒、HUD用）。非発動中は0。</summary>
+    // 残り時間（秒、HUD 用）。発動していないときは0
     public float Remaining { get; private set; }
 
     bool _subscribed;
-    bool _armed = true; // 閾値未満に落ちると再武装される
+    bool _armed = true; // しきい値より下がると、また発動できるようになる
 
     void Start()
     {
@@ -57,12 +57,13 @@ public class GokagoTime : MonoBehaviour
 
     void Update()
     {
-        // 実行順の都合で Start 時に ScoreManager が未生成だった場合の保険
+        // 動く順番のせいで、Start のときに ScoreManager がまだ作られていなかったときのための予備
         if (!_subscribed) TrySubscribe();
 
         if (!IsActive) return;
 
-        Remaining -= Time.deltaTime;
+        // #65: 残り時間はセッションの時計で減らす（3:00 以後・ポーズ・通信の復帰中は止まる。7章「3:00で天候・ご加護の時計を停止」）
+        Remaining -= GameSession.PlayDeltaTime;
         if (Remaining <= 0f)
             Deactivate();
     }
@@ -79,9 +80,12 @@ public class GokagoTime : MonoBehaviour
     {
         if (combo < comboThreshold)
         {
-            _armed = true; // 一度落ちたら次の到達で再発動できる
+            _armed = true; // 一度下がったら、次に届いたときにまた発動できる
             return;
         }
+
+        // #61: 3:00 以後の救済から新しいご加護タイムを始めない（7章「3:00境界の処理順」）
+        if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
 
         if (_armed && !IsActive)
             Activate();
@@ -99,7 +103,7 @@ public class GokagoTime : MonoBehaviour
         Debug.Log($"[Gokago] ご加護タイム発動！ {duration}秒間 スコア x{scoreMultiplier}");
         onGokagoStart?.Invoke();
 
-        // 天候の強制晴朗化（フックを呼ぶだけ。天候本体は未実装でOK）
+        // 天気をむりやり晴れにする（フックを呼ぶだけ。天気の本体はまだなくてOK）
         Debug.Log("[Gokago] 天候フック: 強制晴朗化を要求");
         onWeatherClearRequest?.Invoke();
     }
@@ -119,7 +123,7 @@ public class GokagoTime : MonoBehaviour
 
     void OnScoreReset()
     {
-        // リトライ時（#32）は即時解除
+        // リトライのとき（#32）はすぐにやめる
         Deactivate();
         _armed = true;
     }

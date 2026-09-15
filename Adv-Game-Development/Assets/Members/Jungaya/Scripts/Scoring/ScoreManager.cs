@@ -3,23 +3,25 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Toufuku.Rescue;
 
-/// <summary>
-/// スコア（縁）とコンボの一元管理。シーンに1つだけ置く。— Issue #22 / #31
-/// ・命中精度ボーナス … #60: 判定半径の中心 40% 以内 +50 / 40〜70% +20 / 70〜100% +0
-/// ・連続コンボ倍率   … 連続命中で倍率上昇／1ミスで途切れる
-///
-/// #31: スコア変化を C# イベントで配信する。HUD/SE/ご加護(#29)/評価(#30)は
-///      ポーリングせず、これらのイベントを購読して結線する。
-///
-/// #55: 優先救済（二重円）の加点を足す。加点の数値は付録B B-2 の写しである
-///      <see cref="ScoreBonusTable"/>（未割り当てなら下のフォールバック値）から引く。
-///
-/// #56: 笑顔の伝播の縁（<see cref="RegisterSmilePropagation"/>）を足す。伝播は救済ではないので
-///      福の連なり C を伸ばさず、途切れさせもしない。得点は救済時の倍率スナップショットで計算する。
-///
-/// 獲得縁の計算式:
-///   獲得 = (基礎点 + 命中精度ボーナス + 優先救済ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
-/// </summary>
+/*
+    スコア（縁）と福の連なり C をまとめて管理するクラス。シーンに1つだけ置く（#22 / #31 / #55 / #61）
+
+    #31: スコアの変化を C# のイベントで配る。HUD・効果音・ご加護（#29）は
+         毎フレーム見に行かないで、これらのイベントを受け取ってつなぐ
+
+    #55: 優先救済（二重円）のボーナスを足す。ボーナスの数値は付録B B-2 を写した
+         ScoreBonusTable（入っていなければ下の予備の値）から取る
+
+    #61: 企画書 v8 7章「縁の計算式（通常弾）」にそろえた
+      救済得点 = round((基礎点 + 最終弾の命中精度加点 + 優先救済加点) × 救済時の福の連なり倍率 × 発射時のご加護倍率)
+      伝播得点 = round(20 × 救済時に保存した福の連なり倍率 × 救済時に保存したご加護倍率)
+      ・計算は EnFormula。小数をぜんぶ掛けた最後に1回だけ四捨五入する
+      ・福の連なり C は救済完了でだけ +1 して、+1 したあとの C の倍率（3/6/10 で ×1.10/×1.20/×1.30）を使う（FukuChain）
+      ・とちゅうの当たり（欲張り客の1発目）は C を保って 5秒タイマーだけもどす。縁は 0 点
+      ・誤投擲（色ちがい）・黒客への通常弾・正しい色を5秒当てない、で C を 0 にもどす。地面への外れでは切らない
+      ・ランク（神社の評価）は倍率に入れない（付録B「ランク すべて×1.0」）。前にあった「評価による縁の倍率」はなくした
+      ・3:00 のあと受理済みの弾がぜんぶ落ちたら、GameSession が LockScore() を呼ぶ。固定したあとは何も足さない
+*/
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
@@ -31,7 +33,7 @@ public class ScoreManager : MonoBehaviour
     [SerializeField] int hitScore = 100;
 
     [Header("加点の数値表（付録B B-2）")]
-    [Tooltip("加点の数値表（付録B B-2 の写し）。割り当てるとこの表の値が下のフォールバックより優先される。" +
+    [Tooltip("加点・福の連なり・伝播の数値表（付録B B-2 の写し）。割り当てるとこの表の値が下のフォールバックより優先される。" +
              "T2 で優先救済を +50 → +30 へ下げるときは、この表の数字だけを直す。")]
     [SerializeField] ScoreBonusTable bonusTable;
 
@@ -47,83 +49,75 @@ public class ScoreManager : MonoBehaviour
     [Tooltip("発射時に保存した二重円の客を、その弾で救済完了させたときの加点。数値表が未割り当てのときだけ使う。")]
     [SerializeField] int priorityRescueBonus = 50;
 
-    [Header("フォールバック：笑顔の伝播（#56 / 付録B B-2・PROPAGATE）")]
-    [Tooltip("伝播1回ぶんの縁（倍率を掛ける前）。数値表が未割り当てのときだけ使う。")]
-    [SerializeField] int smilePropagationBonus = 20;
-    [Tooltip("1回の救済から伝播できる人数の上限。数値表が未割り当てのときだけ使う。")]
-    [SerializeField] int smilePropagationMaxTargets = 4;
-
-    [Header("コンボ倍率")]
-    [Tooltip("コンボ1つごとに倍率へ加算する量（例:0.1 → x1.0, x1.1, x1.2...）")]
-    [SerializeField] float comboStep = 0.1f;
-    [Tooltip("倍率の上限")]
-    [SerializeField] float maxMultiplier = 3.0f;
-
-    // ---------- 公開イベント（#31） ----------
-    /// <summary>縁が変化した（引数: 現在の累計縁）。</summary>
+    /*
+        ---------- 外に配るイベント（#31） ----------
+        縁が変わった（引数: 今の縁の合計）
+    */
     public event Action<int> onEnChanged;
-    /// <summary>コンボ数が変化した（引数: 現在のコンボ）。</summary>
+    // 福の連なり C が変わった（引数: 今の C）
     public event Action<int> onComboChanged;
-    /// <summary>合計倍率が変化した（引数: コンボ×ご加護×評価 の合計倍率）。</summary>
+    // 合計の倍率が変わった（引数: 福の連なり × ご加護 の合計の倍率）
     public event Action<float> onMultiplierChanged;
-    /// <summary>ミス（外し／相性✗）が起きた。コンボ途切れ演出・SE用。</summary>
+    // 誤投擲（相性✗）か黒客への通常弾で、福の連なりが切れた。コンボが切れる演出や効果音用
     public event Action onMiss;
-    /// <summary>ResetAll が呼ばれた（リトライ用。#32 のセッションが購読）。</summary>
+    // ResetAll が呼ばれた（リトライ用。#32 のゲーム管理が受け取る）
     public event Action onReset;
+    // 笑顔の伝播で縁が入った（引数: 入った点）（#61 / #56）
+    public event Action<int> onPropagationScored;
+    // スコアを固定した（引数: 固定した縁）。3:00 のあと受理済みの弾がぜんぶ落ちたとき（#61）
+    public event Action<int> onScoreLocked;
 
-    /// <summary>累計スコア（縁）。減らずに増え続ける。</summary>
+    readonly FukuChainCounter _chain = new FukuChainCounter();
+
+    // 合計のスコア（縁）。減らないで増えつづける
     public int En { get; private set; }
-    /// <summary>現在の連続コンボ数。1ミスで0に戻る。</summary>
-    public int Combo { get; private set; }
-    /// <summary>このプレイ中の最大コンボ（リザルト用）。</summary>
-    public int MaxCombo { get; private set; }
+    // 今の福の連なり C
+    public int Combo => _chain.Count;
+    // このプレイ中のいちばん大きい福の連なり（リザルト用）
+    public int MaxCombo => _chain.Max;
 
-    /// <summary>直近の命中ゾーン（HUD表示・確認用）。</summary>
+    // いちばん新しい命中ゾーン（HUD の表示・確認用）
     public HitZone LastZone { get; private set; }
-    /// <summary>直近の獲得点（HUD表示・確認用）。</summary>
+    // いちばん新しくもらった点（救済得点か伝播得点。HUD の表示・確認用）
     public int LastGain { get; private set; }
-    /// <summary>直近の命中精度ボーナス（倍率を掛ける前。HUD表示・確認用）。</summary>
+    // いちばん新しい命中精度のボーナス（倍率をかける前。HUD の表示・確認用）
     public int LastBonus { get; private set; }
-    /// <summary>直近の優先救済ボーナス（倍率を掛ける前。0 なら二重円の客ではなかった。HUD表示・確認用）。</summary>
+    // いちばん新しい優先救済のボーナス（倍率をかける前。0 なら二重円の客じゃなかった。HUD の表示・確認用）
     public int LastPriorityBonus { get; private set; }
+    // いちばん新しい救済で確定した2つの倍率（7章「倍率の保存順」）。救済客からの伝播得点に使う
+    public EnMultiplierSnapshot LastRescueSnapshot { get; private set; }
 
-    /// <summary>直近の伝播1回で入った縁（#56。HUD表示・確認用）。</summary>
-    public int LastPropagationGain { get; private set; }
-    /// <summary>このプレイで成立した伝播の回数（#56。リザルト・確認用）。</summary>
-    public int PropagationCount { get; private set; }
-    /// <summary>このプレイで伝播から入った縁の合計（#56。リザルト・確認用）。</summary>
-    public int PropagationEn { get; private set; }
+    // スコアを固定したか（3:00 の解決が終わった）。固定したあとは縁も C も動かない
+    public bool IsLocked { get; private set; }
 
-    /// <summary>優先救済（二重円）の加点（付録B B-2）。数値表が割り当てられていればその値。</summary>
+    // このプレイで救済を完了した人数（#65 の3:00境界ログ「決着前後の救済数」）
+    public int RescueCount { get; private set; }
+
+    // 優先救済（二重円）のボーナス（付録B B-2）。数値の表が入っていればその値
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
+    // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
+    public int PropagationPoints => bonusTable != null ? bonusTable.PropagationPoints : EnFormula.DefaultPropagationPoints;
+    // 1回の救済から伝播できる人数の上限（付録B PROPAGATE。#56）
+    public int PropagationMaxTargets =>
+        bonusTable != null ? bonusTable.PropagationMaxTargets : SmilePropagation.DefaultMaxTargets;
+    // 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。遠方客の「基礎200 ＋ 伝播最大 +80」の後ろ半分
+    public int MaxPropagationEnPerRescue => PropagationPoints * PropagationMaxTargets;
+    // 正しい色を当てないまま C が 0 にもどるまでの秒数（付録B CHAIN.TIMEOUT）
+    public float ChainTimeoutSeconds => bonusTable != null ? bonusTable.ChainTimeoutSeconds : FukuChain.DefaultTimeoutSeconds;
 
-    /// <summary>笑顔の伝播1回ぶんの縁（倍率を掛ける前。付録B B-2）。数値表が割り当てられていればその値。</summary>
-    public int SmilePropagationBonus =>
-        bonusTable != null ? bonusTable.SmilePropagationBonus : smilePropagationBonus;
+    // 今の福の連なり倍率（C の段で決まる）
+    public float Multiplier => ChainMultiplierOf(Combo);
 
-    /// <summary>1回の救済から伝播できる人数の上限（付録B PROPAGATE）。数値表が割り当てられていればその値。</summary>
-    public int SmilePropagationMaxTargets =>
-        bonusTable != null ? bonusTable.SmilePropagationMaxTargets : smilePropagationMaxTargets;
-
-    /// <summary>
-    /// 1回の救済で伝播から入りうる縁の上限（＝ +20 × 4人 = +80）。
-    /// 遠方客の「基礎200 ＋ 伝播最大 +80」（付録B B-2 / v8 7章の選択の比較表）の後半はこの値。
-    /// </summary>
-    public int MaxSmilePropagationBonusPerRescue => SmilePropagationBonus * SmilePropagationMaxTargets;
-
-    /// <summary>現在のコンボ倍率。コンボ1で x1.0、以降 comboStep ずつ上昇。</summary>
-    public float Multiplier =>
-        Mathf.Min(1f + Mathf.Max(0, Combo - 1) * comboStep, maxMultiplier);
-
-    /// <summary>ご加護タイム(#29)の上乗せ倍率。GokagoTime が設定する。通常は1。</summary>
+    // ご加護タイム（#29）の倍率。GokagoTime が設定する。ふつうは1。弾は発射したときにこの値を保存する
     public float GokagoMultiplier { get; private set; } = 1f;
 
-    /// <summary>神社評価(#30)による縁倍率。ShrineRating 未配置なら1。</summary>
-    public float RatingMultiplier =>
-        ShrineRating.Instance != null ? ShrineRating.Instance.EnMultiplier : 1f;
+    // 今の合計の倍率（福の連なり × ご加護）。ランクは入らない
+    public float TotalMultiplier => Multiplier * GokagoMultiplier;
 
-    /// <summary>獲得計算に使う合計倍率（コンボ×ご加護×評価）。</summary>
-    public float TotalMultiplier => Multiplier * GokagoMultiplier * RatingMultiplier;
+    // 時計（テストで差しかえる用）。null なら GameSession の時計（#65。ポーズ・通信の復帰中は止まる）、GameSession がなければ Time.time
+    public Func<float> Clock { get; set; }
+
+    float Now => Clock != null ? Clock() : (GameSession.Instance != null ? GameSession.Instance.ElapsedSeconds : Time.time);
 
     void Awake()
     {
@@ -131,123 +125,195 @@ public class ScoreManager : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>
-    /// 正色命中を記録する（#54）。福の連なり C は正色命中のたびに伸びるが、
-    /// <b>縁は救済完了（R=0）のときだけ</b> (基礎点 + 命中精度ボーナス) × 合計倍率で入る。
-    ///
-    /// 企画書 v8 変更点5／付録B B-2：欲張り客の途中命中は 0 点、救済完了時に 300 点を1回で確定する。
-    /// 途中点を先払いしないので、複数発客の得点は「最終弾の精度・倍率が1回だけ乗った値」に一意に決まる。
-    /// </summary>
-    /// <param name="zone">命中精度のゾーン（Miss ならミス扱い）。</param>
-    /// <param name="rescued">この命中で救済が完了したか（R=0 になったか）。</param>
-    /// <param name="rescueBaseScore">救済完了時の基礎点（客種ごと。付録B B-1）。</param>
-    /// <param name="priorityRescue">
-    /// 優先救済か（#55）。発射（SwingAccepted）時に弾へ保存した二重円の客を、その弾で救済完了させたときだけ true。
-    /// 飛翔中に二重円が別の客へ移っても、この値は発射時の判断のまま変わらない。
-    /// </param>
-    public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore, bool priorityRescue = false)
+    void OnDestroy()
     {
-        // Miss が渡されたら命中扱いにしない（コンボ途切れへ）
+        if (Instance == this) Instance = null;
+    }
+
+    void Update()
+    {
+        TickChainTimeout(Now);
+    }
+
+    /*
+        正しい色の5秒タイマーを進める（ふつうは Update から自動。テストからわざと呼ぶこともできる）
+        C を 0 にもどしたら true
+    */
+    public bool TickChainTimeout(float now)
+    {
+        if (IsLocked) return false;
+
+        int before = _chain.Count;
+        if (!_chain.TickTimeout(now, ChainTimeoutSeconds)) return false;
+
+        Debug.Log($"[Score] 福の連なり {before} → 0（正しい色を {ChainTimeoutSeconds:0.#}秒当てなかった）");
+        NotifyChainChanged();
+        return true;
+    }
+
+    /*
+        正しい色で当たったのを記録する（#54 / #61）
+
+        企画書 v8 7章、付録B B-2: 欲張り客のとちゅうの当たりは 0 点で、C も増やさない（5秒タイマーだけもどす）
+        救えた（R=0）ときだけ C を +1 して、救済得点を1回で決める
+        zone: 命中精度のゾーン（Miss ならミスあつかい）
+        rescued: この当たりで救えたか（R=0 になったか）
+        rescueBaseScore: 救えたときの基礎点（客の種類ごと。付録B B-1）
+        priorityRescue: 優先救済か（#55）。発射（SwingAccepted）したときに弾に保存した二重円の客を、その弾で救えたときだけ true
+        blessingMultiplier: 発射したときに弾に保存したご加護倍率（#61）。null なら今のご加護倍率
+    */
+    public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore, bool priorityRescue = false,
+        float? blessingMultiplier = null)
+    {
+        if (IsLocked) return;
+
+        // Miss が来たら当たりにしない（連なりが切れるほうへ）
         if (zone == HitZone.Miss) { RegisterMiss(); return; }
 
-        Combo++;
-        if (Combo > MaxCombo) MaxCombo = Combo;
+        float now = Now;
+        LastZone = zone;
 
-        int bonus = rescued ? AccuracyBonusOf(zone) : 0;
-        // 優先救済は救済完了した弾にだけ乗る（途中命中は付録B B-2 どおり 0 点）。
-        int priorityBonus = rescued && priorityRescue ? PriorityRescueBonus : 0;
-        int gained = rescued ? Mathf.RoundToInt((rescueBaseScore + bonus + priorityBonus) * TotalMultiplier) : 0;
+        if (!rescued)
+        {
+            // とちゅうの当たり: 縁は 0、C は保つ、5秒タイマーだけもどす（7章「福の連なりの判定」）
+            _chain.KeepAlive(now);
+            LastGain = 0;
+            LastBonus = 0;
+            LastPriorityBonus = 0;
+            Debug.Log($"[Score] 正色命中（救済途中）: 縁は入らない (連なり {Combo} を維持 / 縁 {En})");
+            return;
+        }
+
+        // 倍率の保存順（7章）: C を +1 してから、その段の倍率を確定する
+        _chain.AddRescue(now);
+        RescueCount++;
+        float chainMultiplier = Multiplier;
+        float blessing = Mathf.Max(1f, blessingMultiplier ?? GokagoMultiplier);
+
+        int bonus = AccuracyBonusOf(zone);
+        int priorityBonus = priorityRescue ? PriorityRescueBonus : 0;
+        int gained = EnFormula.RescueScore(rescueBaseScore, bonus, priorityBonus, chainMultiplier, blessing);
         En += gained;
 
-        LastZone = zone;
         LastGain = gained;
         LastBonus = bonus;
         LastPriorityBonus = priorityBonus;
+        // 救済得点を足した直後に2つの倍率を保存して、あとから起きる伝播得点にも使う
+        LastRescueSnapshot = new EnMultiplierSnapshot(chainMultiplier, blessing);
 
-        if (rescued)
-            Debug.Log($"[Score] 救済完了 {zone} : 基礎 {rescueBaseScore} + 精度 {bonus}" +
-                      (priorityBonus > 0 ? $" + 優先救済 {priorityBonus}" : "") +
-                      $" x{TotalMultiplier:0.00} = +{gained}  (連なり {Combo} / 縁 {En})");
-        else
-            Debug.Log($"[Score] 正色命中（救済途中）: 縁は入らない (連なり {Combo} / 縁 {En})");
+        Debug.Log($"[Score] 救済完了 {zone} : (基礎 {rescueBaseScore} + 精度 {bonus}" +
+                  (priorityBonus > 0 ? $" + 優先救済 {priorityBonus}" : "") +
+                  $") x連なり{chainMultiplier:0.00} xご加護{blessing:0.00} = +{gained}  (連なり {Combo} / 縁 {En})");
 
-        // #31: ポーリング廃止。変化をイベントで配信（HUD/SE/ご加護#29/評価#30 が購読）。
-        onComboChanged?.Invoke(Combo);
-        onMultiplierChanged?.Invoke(TotalMultiplier);
+        NotifyChainChanged();
         onEnChanged?.Invoke(En);
     }
 
-    /// <summary>
-    /// 旧API（#22）。1発で救済が完了する客だけ正しい。#54 以降は
-    /// <see cref="RegisterCorrectHit(HitZone,bool,int)"/> を使い、基礎点は客種ごとの値を渡すこと。
-    /// </summary>
+    /*
+        古いメソッド（#22）。1発で救える客のときだけ正しい。#54 からは
+        RegisterCorrectHit(HitZone,bool,int) を使って、基礎点は客の種類ごとの値を渡すこと
+    */
     public void RegisterHit(HitZone zone) => RegisterCorrectHit(zone, rescued: true, rescueBaseScore: hitScore);
 
-    /// <summary>
-    /// 笑顔の伝播が 1 回成立した（#56 / 企画書 v8 6章・7章）。
-    ///
-    ///   伝播得点 = round(20 × 救済時に保存した福の連なり倍率 × 救済時に保存したご加護倍率)
-    ///
-    /// 伝播は救済ではないので<b>福の連なり C を伸ばさず、途切れさせもしない</b>。ご加護専用進捗 G も数えない
-    /// （v8 10章「ご加護専用進捗」）。倍率は伝播が起きた時点ではなく、<b>救済時のスナップショット</b>を使う。
-    /// </summary>
-    /// <param name="snapshot">救済完了時に確定した倍率（<see cref="SmileCarrier"/> が持ち回る）。</param>
-    /// <returns>この 1 回で入った縁。</returns>
-    public int RegisterSmilePropagation(SmileMultiplierSnapshot snapshot)
-    {
-        int gain = snapshot.ScoreOf(SmilePropagationBonus);
-
-        En += gain;
-        PropagationEn += gain;
-        PropagationCount++;
-        LastPropagationGain = gain;
-
-        Debug.Log($"[Score] 笑顔の伝播: {SmilePropagationBonus} x{snapshot.Product:0.00}（{snapshot}） = +{gain}" +
-                  $"  (伝播 {PropagationCount}回 / 伝播の縁 {PropagationEn} / 縁 {En})");
-
-        // 連なりも合計倍率も変わらないので、配るのは縁の変化だけ。
-        onEnChanged?.Invoke(En);
-        return gain;
-    }
-
-    /// <summary>
-    /// ミス（外し／相性の合わないお守り）を記録する。コンボが途切れる。
-    /// </summary>
+    // 誤投擲（相性の合わないお守り）か、黒客への通常弾を記録する。福の連なりが切れる
     public void RegisterMiss()
     {
-        if (Combo > 0)
-            Debug.Log($"[Score] MISS : combo break (was {Combo})");
+        if (IsLocked) return;
 
-        Combo = 0;
+        int before = _chain.Count;
+        if (_chain.Break())
+            Debug.Log($"[Score] 福の連なりが切れた (was {before})");
 
-        // 「渋る」リアクション（#14）は客ごとの CustomerReluctance が CustomerRescue.onBadHit を
-        // 購読して再生する（誤投擲＝相性✗ヒット時のみ）。ここは「外し」も含む全ミス共通の処理。
-        onComboChanged?.Invoke(Combo);
-        onMultiplierChanged?.Invoke(TotalMultiplier);
-        onMiss?.Invoke(); // ミスSE・コンボ途切れ演出（HUD点滅など）はここを購読する
+        /*
+            「渋る」リアクション（#14）は客ごとの CustomerReluctance が CustomerRescue.onBadHit を
+            受け取って再生する（まちがい＝相性✗で当たったときだけ）
+        */
+        NotifyChainChanged();
+        onMiss?.Invoke(); // ミスの効果音やコンボが切れる演出（HUD の点滅など）はここを受け取る
     }
 
-    /// <summary>ご加護タイム(#29)から呼ぶ。上乗せ倍率の設定/解除。</summary>
+    /*
+        地面に落ちた（どの客にも当たらなかった）のを記録する（#61）
+        7章で C を切るのは「誤投擲（色ちがい）」「黒客への通常弾」「5秒無命中」だけ。外れだけでは切らない
+        （外してばかりなら5秒タイマーで切れる）
+    */
+    public void RegisterGroundMiss()
+    {
+        if (IsLocked) return;
+        LastZone = HitZone.Miss;
+        LastGain = 0;
+        LastBonus = 0;
+        LastPriorityBonus = 0;
+    }
+
+    /*
+        笑顔の伝播1回ぶんの縁を足す（#61。伝播する相手を決めるのは #56）
+        snapshot: 伝播のもとになった救済で保存した倍率（OmamoriHitInfo.RescueSnapshot / LastRescueSnapshot）
+        3:00 以後の接触では入れない（7章「伝播は接触時刻が180.000秒未満のものだけ有効」）
+        返す値: 入った点。入らなかったら 0
+    */
+    public int RegisterPropagation(EnMultiplierSnapshot snapshot) => RegisterPropagation(snapshot, double.NaN);
+
+    /*
+        #65: 接触した時刻を渡す版。contactSessionSeconds は GameSession の時計の秒（NaN なら今）
+        接触が 180.000秒未満なら、判定が次のフレームにずれても入れる。180.000秒以上なら入れない
+    */
+    public int RegisterPropagation(EnMultiplierSnapshot snapshot, double contactSessionSeconds)
+    {
+        if (IsLocked || !snapshot.IsValid) return 0;
+
+        GameSession session = GameSession.Instance;
+        if (session != null)
+        {
+            double contact = double.IsNaN(contactSessionSeconds) ? session.ElapsedTime : contactSessionSeconds;
+            if (!session.AcceptsPropagationAt(contact)) return 0;
+        }
+
+        int gained = EnFormula.PropagationScore(snapshot.ChainMultiplier, snapshot.BlessingMultiplier, PropagationPoints);
+        En += gained;
+        LastGain = gained;
+        LastBonus = 0;
+        LastPriorityBonus = 0;
+
+        Debug.Log($"[Score] 笑顔の伝播 : {PropagationPoints} x連なり{snapshot.ChainMultiplier:0.00} xご加護{snapshot.BlessingMultiplier:0.00} = +{gained}  (縁 {En})");
+
+        onPropagationScored?.Invoke(gained);
+        onEnChanged?.Invoke(En);
+        return gained;
+    }
+
+    // ご加護タイム（#29）から呼ぶ。上乗せする倍率を設定したり、やめたりする
     public void SetGokagoMultiplier(float multiplier)
     {
         GokagoMultiplier = Mathf.Max(1f, multiplier);
         onMultiplierChanged?.Invoke(TotalMultiplier);
     }
 
-    /// <summary>スコアとコンボを初期化（テスト・リトライ用）。</summary>
+    /*
+        スコアを固定する（#61）。3:00 のあと、受理済みの弾がぜんぶ落ちたときに GameSession が呼ぶ
+        固定したあとは救済・伝播・ミス・5秒タイマーのどれでも縁と C を動かさない
+    */
+    public void LockScore()
+    {
+        if (IsLocked) return;
+        IsLocked = true;
+        Debug.Log($"[Score] スコア固定 : 縁 {En} / 最大の福の連なり {MaxCombo}");
+        onScoreLocked?.Invoke(En);
+    }
+
+    // スコアと福の連なりを最初にもどす（テスト・リトライ用）。固定も外す
     public void ResetAll()
     {
         En = 0;
-        Combo = 0;
-        MaxCombo = 0;
+        _chain.Reset();
+        RescueCount = 0;
         LastZone = HitZone.Miss;
         LastGain = 0;
         LastBonus = 0;
         LastPriorityBonus = 0;
-        LastPropagationGain = 0;
-        PropagationCount = 0;
-        PropagationEn = 0;
+        LastRescueSnapshot = EnMultiplierSnapshot.None;
         GokagoMultiplier = 1f;
+        IsLocked = false;
         Debug.Log("[Score] Reset");
 
         onEnChanged?.Invoke(En);
@@ -256,7 +322,7 @@ public class ScoreManager : MonoBehaviour
         onReset?.Invoke();
     }
 
-    /// <summary>命中ゾーンごとの命中精度ボーナス（#60 / 付録B B-2）。数値表があればその値を使う。</summary>
+    // 命中ゾーンごとの命中精度のボーナス（#60 / 付録B B-2）。数値の表があればその値を使う
     public int AccuracyBonusOf(HitZone zone)
     {
         if (bonusTable != null) return bonusTable.AccuracyBonusOf(zone);
@@ -268,5 +334,17 @@ public class ScoreManager : MonoBehaviour
             case HitZone.Outer:  return outerBonus;
             default:             return 0;
         }
+    }
+
+    // C から福の連なり倍率を出す（付録B B-2）。数値の表があればその値を使う
+    public float ChainMultiplierOf(int chain)
+    {
+        return bonusTable != null ? bonusTable.ChainMultiplierOf(chain) : FukuChain.MultiplierOf(chain);
+    }
+
+    void NotifyChainChanged()
+    {
+        onComboChanged?.Invoke(Combo);
+        onMultiplierChanged?.Invoke(TotalMultiplier);
     }
 }

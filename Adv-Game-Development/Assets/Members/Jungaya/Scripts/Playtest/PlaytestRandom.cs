@@ -2,37 +2,41 @@ using UnityEngine;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>乱数の用途。値を変えると同じシードでも列が変わるので、並べ替え・使い回しをしないこと。</summary>
+    // 乱数の使いみち。値を変えると同じシードでも乱数が変わるので、ならべかえたり使いまわしたりしないこと
     public static class PlaytestStreams
     {
-        /// <summary>定位置の敷き詰め（MockCrowdDirector）。</summary>
+        // 定位置のしきつめ（MockCrowdDirector）
         public const int SlotLayout = 1;
-        /// <summary>スポーン位置（空き定位置の選択・X 座標）。</summary>
+        // 出てくる位置（空いている定位置を選ぶのと X 座標）
         public const int Placement = 2;
-        /// <summary>黒客かどうか。</summary>
+        // 黒客かどうか
         public const int Identity = 3;
-        /// <summary>初期ゲージ（視認性モックの初期危険度）。</summary>
+        // 最初のゲージ（視認性モックの最初の危険度）
         public const int Gauge = 4;
-        /// <summary>客タイプ（正解お守り）。</summary>
+        // 客のタイプ（正解のお守り）
         public const int Profile = 5;
-        /// <summary>危険度Dが100になるまでの秒数（客種ごとの幅。通常客 15〜25秒。付録B B-1）。</summary>
+        // 危険度Dが100になるまでの秒数（客の種類ごとのはば。通常客は 15〜25秒。付録B B-1）
         public const int DangerSeconds = 6;
+        // 客の種類（通常・移動・遠方・欲張り。#62）
+        public const int Kind = 7;
+        // 移動客が往復するときに歩き出す向き（#62）
+        public const int Motion = 8;
     }
 
-    /// <summary>
-    /// 計測プレイのシード — Issue #63
-    ///
-    /// ・<see cref="PlaytestLogger"/> がシードを決めて <see cref="Control"/> する。シードはログのファイル名とヘッダーに残る。
-    /// ・スポーン側は <see cref="TryFor"/> で「用途 × 客ID」の列を受け取る。計測ロガーの無いシーン（未制御）では null が返り、
-    ///   従来どおり UnityEngine.Random を使う（#44 のモックシーンなどの挙動は変わらない）。
-    /// ・null を渡しても使える <see cref="Value"/> / <see cref="Range(DeterministicRandom, int, int)"/> で、呼び出し側の分岐を省く。
-    /// </summary>
+    /*
+        計測プレイのシードを管理するクラス（#63）
+
+        ・PlaytestLogger がシードを決めて Control する。シードはログのファイル名とヘッダーに残る
+        ・出す側は TryFor で「使いみち × 客ID」の乱数を受け取る。計測ロガーがないシーン（管理されていない）では null が返ってきて、
+          前と同じで UnityEngine.Random を使う（#44 のモックのシーンなどの動きは変わらない）
+        ・null を渡しても使える Value / Range(DeterministicRandom, int, int) で、呼ぶ側が if で分けなくてすむようにしている
+    */
     public static class PlaytestRandom
     {
-        /// <summary>計測ロガーがシードを握っているか。</summary>
+        // 計測ロガーがシードを管理しているかどうか
         public static bool IsControlled { get; private set; }
 
-        /// <summary>現在のシード（<see cref="IsControlled"/> が false の間は意味を持たない）。</summary>
+        // 今のシード（IsControlled が false の間は意味がない）
         public static int Seed { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -53,20 +57,20 @@ namespace Toufuku.Playtest
             IsControlled = false;
         }
 
-        /// <summary>新しいシード（正の値）を作る。</summary>
+        // 新しいシード（プラスの値）を作る
         public static int NewSeed()
         {
             int seed = (int)(DeterministicRandom.Mix((ulong)System.DateTime.UtcNow.Ticks) & 0x7FFFFFFFUL);
             return seed == 0 ? 1 : seed;
         }
 
-        /// <summary>用途 × 番号の列。未制御なら null。</summary>
+        // 使いみち × 番号の乱数。管理されていなければ null
         public static DeterministicRandom TryFor(int stream, int index)
         {
             return IsControlled ? DeterministicRandom.Derive(Seed, stream, index) : null;
         }
 
-        /// <summary>客（<see cref="CustomerSpawnId"/> 付き）ごとの列。未制御・ID なしなら null。</summary>
+        // 客（CustomerSpawnId が付いている）ごとの乱数。管理されていない・IDがないなら null
         public static DeterministicRandom TryForCustomer(GameObject customer, int stream)
         {
             if (!IsControlled || customer == null) return null;
@@ -74,7 +78,7 @@ namespace Toufuku.Playtest
             return id != null && id.Id > 0 ? DeterministicRandom.Derive(Seed, stream, id.Id) : null;
         }
 
-        /// <summary>用途ごとの子シード。</summary>
+        // 使いみちごとの子どものシード
         public static int DeriveSeed(int stream)
         {
             return DeterministicRandom.DeriveSeed(Seed, stream);

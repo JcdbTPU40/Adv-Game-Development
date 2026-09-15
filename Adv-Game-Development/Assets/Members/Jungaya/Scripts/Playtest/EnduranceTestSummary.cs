@@ -3,13 +3,13 @@ using System.Globalization;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>実操作周期と照らした大負荷ウェーブの人数案 1 つ分。</summary>
+    // 実際に振る間かくと照らし合わせた、大きい負荷ウェーブの人数の案1つぶん
     public readonly struct WaveCandidateCheck
     {
         public readonly WaveCandidate Candidate;
-        /// <summary>この案が許す 1 投周期が、実測の p75 より短い（＝ 4 投に 1 投以上は間に合わない）。</summary>
+        // この案が許す1投の間かくが、実際に測った p75 より短い（＝4投に1投以上は間に合わない）
         public readonly bool RequiresFasterThanP75;
-        /// <summary>T3 候補から外す（実操作周期が想定から外れていて、かつ p75 より短い周期を要求する）。</summary>
+        // T3 の候補から外す（実際の間かくが思っていたのとちがっていて、しかも p75 より短い間かくが必要になる）
         public readonly bool Excluded;
 
         public WaveCandidateCheck(WaveCandidate candidate, bool requiresFasterThanP75, bool excluded)
@@ -29,53 +29,52 @@ namespace Toufuku.Playtest
         }
     }
 
-    /// <summary>
-    /// 1 回分（対象層 10 人）の合否 — Issue #53（仕様書 v8 17章 T0-3M）
-    ///
-    /// | 完了条件 | 判定 |
-    /// |---|---|
-    /// | 9/10 が 3 分完走 | 3:00 まで続けた人数 |
-    /// | 最終 1 分の投数低下が初分比 20% 以内 | 完走者それぞれの（1 − 最終分 ÷ 初分）の<b>中央値</b> |
-    /// | 疲労中央値 2/5 以下 | 聞き取りの疲労 5 段階の中央値 |
-    /// | 7/10 がもう一度を選択 | 実際に再挑戦を選んだ人数 |
-    /// | 痛み・恐怖・ストラップ逸脱 0 件 | 1 件でも出たら不合格（記入途中の行でも数える） |
-    ///
-    /// 実操作周期は全員分の発射間隔を束ねて中央値と p75 を出す。想定 1.0〜1.4 秒から外れたら、
-    /// p75 より短い周期を要求する大負荷ウェーブ案（<see cref="WaveLoadArithmetic"/>）を T3 候補から外す。
-    /// 周期は合否の条件ではなく、8章の負荷算術を更新するための記録。
-    /// 「別日・別対象者で 2 回連続合格」は 1 回分では判定できないので、19章のテスト記録で 2 回並べて確認する。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        1回ぶん（対象の10人）の合格・不合格を出すクラス（#53 / 企画書 v8 17章 T0-3M）
+
+        完了条件と判定のしかた:
+        ・10人中9人が3分最後までやる → 3:00 まで続けた人数
+        ・最後の1分で投げた数が、最初の分の 20% 以内しか下がらない → 最後までやった人それぞれの（1 − 最後の分 ÷ 最初の分）の中央値
+        ・疲れの中央値が 2/5 以下 → 聞き取りの疲れ5段階の中央値
+        ・10人中7人がもう一回を選ぶ → 本当にもう一回を選んだ人数
+        ・痛い・こわい・ストラップが外れた、が0件 → 1件でも出たら不合格（書きかけの行でも数える）
+
+        実際に振った間かくは、全員ぶんの発射の間かくをまとめて中央値と p75 を出す。思っていた 1.0〜1.4 秒から外れたら、
+        p75 より短い間かくが必要になる大きい負荷ウェーブの案（WaveLoadArithmetic）を T3 の候補から外す
+        間かくは合格の条件じゃなくて、8章の負荷の計算を直すための記録
+        「別の日・別の人で2回連続合格」は1回ぶんでは判定できないので、19章のテスト記録に2回ならべて確認する
+        MonoBehaviour は使っていない
+    */
     public sealed class EnduranceTestSummary
     {
         public int PlannedParticipants { get; private set; }
-        /// <summary>集計に入れた人数（疲労と再挑戦が入っている行）。</summary>
+        // 集計に入れた人数（疲れともう一回が入っている行）
         public int Count { get; private set; }
-        /// <summary>聞き取りが足りず数えなかった行数。</summary>
+        // 聞き取りが足りなくて数えなかった行の数
         public int Incomplete { get; private set; }
         public int Completed { get; private set; }
         public int StoppedEarly { get; private set; }
         public int Retry { get; private set; }
-        /// <summary>痛み・恐怖・ストラップ逸脱の件数（全行）。</summary>
+        // 痛い・こわい・ストラップが外れた、の件数（ぜんぶの行）
         public int SafetyIncidents { get; private set; }
 
-        /// <summary>完走者の投数低下率の中央値。</summary>
+        // 最後までやった人の、投げた数の下がり方の中央値
         public double? ThrowsDropMedian { get; private set; }
         public int ThrowsDropSamples { get; private set; }
         public double? FatigueMedian { get; private set; }
 
-        /// <summary>完走者の 1 分ごとの投数の合計（参考）。</summary>
+        // 最後までやった人の、1分ごとの投げた数の合計（参考）
         public int[] ThrowsPerMinute { get; private set; } = new int[EnduranceTestPlan.MinuteCount];
-        /// <summary>完走者の 1 分ごとの命中率（着弾を束ねた値。参考）。</summary>
+        // 最後までやった人の、1分ごとの命中率（着弾をまとめた値。参考）
         public double?[] HitRatePerMinute { get; private set; } = new double?[EnduranceTestPlan.MinuteCount];
 
         public int CycleCount { get; private set; }
         public double? CycleMedian { get; private set; }
         public double? CycleP75 { get; private set; }
 
-        /// <summary>中央値・p75 とも想定 1.0〜1.4 秒の範囲内か（データが無ければ false）。</summary>
+        // 中央値と p75 がどっちも思っていた 1.0〜1.4 秒に入っているか（データがなければ false）
         public bool CycleWithinExpected { get; private set; }
-        /// <summary>データがあって想定から外れた（8章の負荷算術を更新する）。</summary>
+        // データがあって、思っていたのから外れた（8章の負荷の計算を直す）
         public bool CycleOutOfExpected => CycleMedian.HasValue && !CycleWithinExpected;
 
         public IReadOnlyList<WaveCandidateCheck> Waves { get; private set; } = new WaveCandidateCheck[0];
@@ -117,7 +116,7 @@ namespace Toufuku.Playtest
                     if (r == null) continue;
                     r.EnsureArrays();
 
-                    // 安全事象は聞き取りの入力を待たずに数える（1 件でも出たらその場で止めるため）
+                    // 安全のことは、聞き取りの入力を待たずに数える（1件でも出たらその場で止めるため）
                     s.SafetyIncidents += r.SafetyIncidents;
 
                     if (!r.IsComplete) { s.Incomplete++; continue; }

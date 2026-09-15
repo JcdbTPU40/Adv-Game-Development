@@ -2,15 +2,15 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 足元の円（危険円・二重円）をシーン中の客へ配って回る — Issue #55
-    ///
-    /// シーンに 1 つ置くだけで、いま居る客と後から湧いた客の両方に <see cref="CustomerGroundRing"/> が付く。
-    /// 見た目の設定はここ 1 か所で持つので、T1（初見で読めるか）の調整はこのコンポーネントだけを触ればよい。
-    ///
-    /// 客のプレハブへ直接 <see cref="CustomerGroundRing"/> を付けてもよい。その場合もここに置いた設定で上書きされる
-    /// （<see cref="applyStyleToExisting"/> を OFF にすると、プレハブ側の設定をそのまま残す）。
-    /// </summary>
+    /*
+        足元の円（危険円・二重円）をシーンの客に配って回るクラス（#55）
+
+        シーンに1つ置くだけで、今いる客にもあとから出てきた客にも CustomerGroundRing が付く
+        見た目の設定はここ1か所で持つので、T1（はじめて見てわかるか）の調整はこのコンポーネントだけをさわればいい
+
+        客のプレハブに直接 CustomerGroundRing を付けてもいい。そのときもここに置いた設定で上書きされる
+        （applyStyleToExisting を OFF にすると、プレハブのほうの設定をそのまま残す）
+    */
     [DisallowMultipleComponent]
     public class GroundRingDirector : MonoBehaviour
     {
@@ -25,7 +25,7 @@ namespace Toufuku.Rescue
 
         float _nextScan;
 
-        /// <summary>シーン共通の見た目の設定。</summary>
+        // シーンでいっしょに使う見た目の設定
         public CustomerGroundRing.Style Style => style;
 
         void OnEnable()
@@ -43,11 +43,11 @@ namespace Toufuku.Rescue
 
         void OnValidate()
         {
-            // インスペクタで色・太さを動かしたら、再生中でもすぐ全員へ反映する（T1 の調整用）。
+            // インスペクターで色や太さを変えたら、再生中でもすぐ全員に反映する（T1 の調整用）
             if (Application.isPlaying && isActiveAndEnabled) Scan();
         }
 
-        /// <summary>いま居る客すべてに足元の円を付ける（付いていれば設定だけ配る）。</summary>
+        // 今いる客ぜんぶに足元の円を付ける（付いていたら設定だけ配る）
         public void Scan()
         {
             var targets = HitZoneTarget.Active;
@@ -56,7 +56,7 @@ namespace Toufuku.Rescue
                 HitZoneTarget target = targets[i];
                 if (target == null) continue;
 
-                // 円は「救済の対象になりうる客」だけに付ける（的だけの検証シーンでは付かない）。
+                // 円は「救える対象になるかもしれない客」だけに付ける（的だけの検証シーンでは付かない）
                 if (target.GetComponent<CustomerState>() == null) continue;
 
                 CustomerGroundRing ring = target.GetComponent<CustomerGroundRing>();

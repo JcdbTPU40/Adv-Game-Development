@@ -27,6 +27,7 @@ namespace Toufuku.Rescue.OutlineEditor
         const string OccluderMatPath = PerfFolder + "/OutlinePerfOccluder.mat";
         const string PrefabPath = PerfFolder + "/OutlinePerfCustomer.prefab";
         const string RendererPath = "Assets/Settings/PC_Renderer.asset";
+        const string PalettePath = "Assets/Members/Jungaya/Scripts/Rescue/OmamoriPalette.asset";
 
         static readonly Vector3 CameraPosition = new Vector3(0f, 5.3f, 39f);
         static readonly Vector3 CameraEuler = new Vector3(31.7f, 180f, 0f);
@@ -64,7 +65,8 @@ namespace Toufuku.Rescue.OutlineEditor
 
             Debug.Log(
                 $"[OutlinePerf] シーンを生成しました: {ScenePath}\n" +
-                "Play して 1/2/3=体数、O=アウトライン、F=雨天、P=計測、C=CSV。");
+                "Play して 1/2/3=体数、O=アウトライン、F=雨天、P=計測、C=CSV、" +
+                "G=グレースケール、T=もよう、H=照準、R=欲張り客の1発目。");
         }
 
         [MenuItem(OpenMenuPath, priority = 201)]
@@ -249,6 +251,8 @@ namespace Toufuku.Rescue.OutlineEditor
             SetObject(dirSo, "customerParent", customers.transform);
             var countProp = dirSo.FindProperty("targetCount");
             if (countProp != null) countProp.intValue = 16;
+            // #59: 色は OmamoriPalette、もようは OutlineStyle で、ゲームと同じ組み合わせにする
+            SetObject(dirSo, "palette", AssetDatabase.LoadAssetAtPath<OmamoriPalette>(PalettePath));
             dirSo.ApplyModifiedPropertiesWithoutUndo();
 
             var hudSo = new SerializedObject(hud);

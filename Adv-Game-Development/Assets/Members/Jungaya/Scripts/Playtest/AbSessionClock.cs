@@ -1,22 +1,22 @@
 namespace Toufuku.Playtest
 {
-    /// <summary>1 人分の進行。値は表示の並びと同じ順。</summary>
+    // 1人ぶんの進み方。値は表示する順番と同じ
     public enum AbPhase
     {
-        Ready = 0,       // 説明・構え待ち
-        FirstTrial = 1,  // 1 案目 45 秒
-        Rest = 2,        // 休憩 60 秒
-        SecondTrial = 3, // 2 案目 45 秒
-        Survey = 4,      // 聞き取り（時間制限なし）
-        Done = 5         // 記録済み
+        Ready = 0,       // 説明して、構えるのを待つ
+        FirstTrial = 1,  // 1つ目の案を45秒
+        Rest = 2,        // 60秒休けい
+        SecondTrial = 3, // 2つ目の案を45秒
+        Survey = 4,      // 聞き取り（時間の制限なし）
+        Done = 5         // 記録した
     }
 
-    /// <summary>
-    /// 1 人分の進行時計 — Issue #49（仕様書 v8 17章）
-    ///
-    /// 45 秒 → 60 秒休憩 → 45 秒 → 聞き取り。時刻は秒で渡す（MonoBehaviour 非依存）。
-    /// フレームが飛んでもフェーズは 1 つずつ進む（<see cref="Advance"/> を毎フレーム呼ぶ）。
-    /// </summary>
+    /*
+        1人ぶんの進み方を管理する時計（#49 / 企画書 v8 17章）
+
+        45秒 → 60秒休けい → 45秒 → 聞き取り。時刻は秒で渡す（MonoBehaviour は使っていない）
+        フレームが飛んでも、フェーズは1つずつ進む（Advance を毎フレーム呼ぶ）
+    */
     public sealed class AbSessionClock
     {
         public double TrialSeconds = AbTestPlan.TrialSeconds;
@@ -26,16 +26,16 @@ namespace Toufuku.Playtest
 
         public AbPhase Phase { get; private set; } = AbPhase.Ready;
 
-        /// <summary>今が 45 秒の試技中か。</summary>
+        // 今が45秒の本番中かどうか
         public bool IsTrial => Phase == AbPhase.FirstTrial || Phase == AbPhase.SecondTrial;
 
-        /// <summary>試技の番号（0 = 1 案目、1 = 2 案目）。試技中でなければ -1。</summary>
+        // 本番の番号（0 = 1つ目の案、1 = 2つ目の案）。本番中じゃなければ -1
         public int TrialIndex => Phase == AbPhase.FirstTrial ? 0 : Phase == AbPhase.SecondTrial ? 1 : -1;
 
-        /// <summary>このフェーズに入ってからの秒数。</summary>
+        // このフェーズに入ってからの秒数
         public double ElapsedSeconds(double now) => now - _phaseStart;
 
-        /// <summary>このフェーズの残り秒数。時間で終わらないフェーズは 0。</summary>
+        // このフェーズの残りの秒数。時間で終わらないフェーズは 0
         public double RemainingSeconds(double now)
         {
             double duration = DurationOf(Phase);
@@ -44,14 +44,14 @@ namespace Toufuku.Playtest
             return remaining > 0.0 ? remaining : 0.0;
         }
 
-        /// <summary>1 案目を始める。</summary>
+        // 1つ目の案を始める
         public void Begin(double now)
         {
             Phase = AbPhase.FirstTrial;
             _phaseStart = now;
         }
 
-        /// <summary>時間で終わるフェーズを進める。変わったら true。</summary>
+        // 時間で終わるフェーズを進める。変わったら true
         public bool Advance(double now)
         {
             bool changed = false;
@@ -68,7 +68,7 @@ namespace Toufuku.Playtest
             return changed;
         }
 
-        /// <summary>実施者の操作で次のフェーズへ飛ばす（休憩を切り上げる・言い直しで撮り直すなど）。</summary>
+        // やる人の操作で次のフェーズにとばす（休けいを早めに終わる・言いまちがえてやりなおすなど）
         public bool Skip(double now)
         {
             if (Phase == AbPhase.Ready)
@@ -83,13 +83,13 @@ namespace Toufuku.Playtest
             return true;
         }
 
-        /// <summary>聞き取りを記録し終えた。</summary>
+        // 聞き取りの記録が終わった
         public void FinishSurvey()
         {
             Phase = AbPhase.Done;
         }
 
-        /// <summary>次の参加者へ。</summary>
+        // 次の参加者へ
         public void Reset()
         {
             Phase = AbPhase.Ready;
@@ -119,7 +119,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>参加者に見せる文言（どちらが案A / 案B かは伏せる）。</summary>
+        // 参加者に見せる文字（どっちが案Aで、どっちが案Bかはかくす）
         public static string LabelOf(AbPhase phase)
         {
             switch (phase)

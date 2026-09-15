@@ -9,36 +9,35 @@ using UnityEngine.InputSystem;
 
 namespace Toufuku.Feedback
 {
-    /// <summary>MVP 必須 SE 7 種。</summary>
+    // MVP で必要な効果音7種
     public enum FeedbackSe
     {
         Throw = 0,     // 発射
         Hit = 1,       // 命中
         Rescue = 2,    // 救済
-        Fail = 3,      // 失敗（黒客化）
-        BlackHit = 4,  // 黒客ヒット
+        Fail = 3,      // 失敗（黒客になった）
+        BlackHit = 4,  // 黒客に当たった
         Countdown = 5, // カウントダウン
         Bell = 6       // 鈴
     }
 
-    /// <summary>
-    /// MVP 必須 SE 7 種と振動の結線 — Issue #64（仕様書 v8 15章・1章）
-    ///
-    /// | SE | きっかけ | 鳴らす場所 |
-    /// |---|---|---|
-    /// | 発射 | 有効スイング確定（振りピーク） | <see cref="ThrowInputController"/> が他の処理より先に <see cref="OnThrowAccepted"/> を呼ぶ |
-    /// | 命中 | 相性◯の命中 | <see cref="OmamoriHitResolver.HitResolved"/>。福の連なりで音階を上げ、3・6・10 で和音 |
-    /// | 救済 | 命中で救済が確定 | 同上（<see cref="OmamoriHitInfo.Rescued"/>） |
-    /// | 失敗（黒客化） | 客の危険度Dが100 | <see cref="CustomerState.AnyFinished"/> |
-    /// | 黒客ヒット | 黒客に命中 | <see cref="OmamoriHitResolver.HitResolved"/>（命中音の代わりに鳴らす） |
-    /// | カウントダウン | ゲーム終了の残り countdownFrom 秒から毎秒 | <see cref="GameSession.RemainingSeconds"/> |
-    /// | 鈴 | ゲーム開始・終了 | <see cref="GameSession.IsPlaying"/> の変化 |
-    ///
-    /// ・振動は <see cref="HapticArbiter"/> で 1 本に絞る（救済成功 ＞ 命中 ＞ 発射、100ms 以内の重なりは上位へ置き換え）。
-    ///   出力先は接続中のゲームパッド。ESP32 の振動は <see cref="HapticStarted"/> を購読して送る（ファームウェア未対応）。
-    /// ・発音までの遅延は <see cref="FeedbackBudget"/> で計測し、デバッグ HUD（画面右上）に出す。
-    /// ・素材が未設定の枠は <see cref="ProceduralSe"/> の仮SE を鳴らす。
-    /// </summary>
+    /*
+        MVP で必要な効果音7種と振動をつなぐクラス（#64 / 企画書 v8 15章・1章）
+
+        効果音ごとの「きっかけ」と「鳴らす場所」:
+        ・発射: 有効スイングが決まったとき。ThrowInputController がほかの処理より先に OnThrowAccepted を呼ぶ
+        ・命中: 相性◯で当たったとき。OmamoriHitResolver.HitResolved。福の連なりで音を上げて、3・6・10 で和音
+        ・救済: 当てて救済が決まったとき。同じく HitResolved（OmamoriHitInfo.Rescued）
+        ・失敗（黒客になった）: 客の危険度Dが100になったとき。CustomerState.AnyFinished
+        ・黒客ヒット: 黒客に当たったとき。HitResolved（命中音のかわりに鳴らす）
+        ・カウントダウン: 残り countdownFrom 秒から毎秒。GameSession.RemainingSeconds
+        ・鈴: ゲームの開始と終了。GameSession.IsPlaying が変わったとき
+
+        ・振動は HapticArbiter で1本にしぼる（救済成功 ＞ 命中 ＞ 発射。100ms 以内に重なったら上のほうに入れかえ）
+          出す先はつながっているゲームパッド。ESP32 の振動は HapticStarted を受け取って送る形にする（ファームウェアはまだ対応してない）
+        ・音が鳴るまでの遅れは FeedbackBudget で測って、デバッグHUD（画面の右上）に出す
+        ・素材が入っていない枠は、ProceduralSe の仮の音を鳴らす
+    */
     public class GameFeedbackDirector : MonoBehaviour, IThrowFeedbackSink
     {
         [Header("SE 素材（未設定の枠は仮SE を合成して鳴らす）")]
@@ -100,9 +99,9 @@ namespace Toufuku.Feedback
         [Tooltip("予算を超えた発音を Console に警告する")]
         [SerializeField] bool warnBudgetViolation = true;
 
-        /// <summary>SE を鳴らした（和音の追加音では発火しない）。</summary>
+        // 効果音を鳴らしたときに呼ばれる（和音で足した音では呼ばれない）
         public event Action<FeedbackSe> SePlayed;
-        /// <summary>振動が採用された（ESP32 など、ゲームパッド以外の出力先はここを購読する）。</summary>
+        // 振動が決まったときに呼ばれる（ESP32 とか、ゲームパッド以外に出したいときはここを受け取る）
         public event Action<HapticPulse> HapticStarted;
 
         static readonly int s_seKinds = Enum.GetValues(typeof(FeedbackSe)).Length;
@@ -169,26 +168,26 @@ namespace Toufuku.Feedback
             ApplyMotor();
         }
 
-        // ---- 発射（IThrowFeedbackSink）----
+        // ---- 発射（IThrowFeedbackSink） ----
 
-        /// <summary>有効スイング確定の瞬間。ThrowInputController が発射より先に呼ぶ。</summary>
+        // 有効スイングが決まった瞬間。ThrowInputController が発射より先に呼ぶ
         public void OnThrowAccepted(SwingAcceptedArgs e)
         {
             PlayThrowSe(e);
             PlayThrowHaptic();
         }
 
-        /// <summary>
-        /// 投擲SE だけを鳴らす。予算（振りピーク → 発音）もここで測る。
-        /// #49 の T0-A/B は投擲SE と発射振動に別々の時刻差を付けるので、2 つに分けてある。
-        /// </summary>
+        /*
+            投げる音だけを鳴らす。振りピークから音が鳴るまでの遅れもここで測る
+            #49 の T0-A/B では投げる音と発射の振動に別々の時間差を付けるので、2つに分けてある
+        */
         public void PlayThrowSe(SwingAcceptedArgs e)
         {
             Play(FeedbackSe.Throw, _throw);
             Record(FeedbackCategory.Swing, Now - e.Time);
         }
 
-        /// <summary>発射の振動だけを出す。</summary>
+        // 発射の振動だけを出す
         public void PlayThrowHaptic()
         {
             RequestHaptic(HapticKind.Throw, throwHapticMs, weakAmplitude);
@@ -237,7 +236,7 @@ namespace Toufuku.Feedback
             return hitHapticMs;
         }
 
-        // ---- 失敗（黒客化）----
+        // ---- 失敗（黒客になった） ----
 
         void HandleCustomerFinished(CustomerState state, CustomerPhase result)
         {
@@ -245,7 +244,7 @@ namespace Toufuku.Feedback
                 Play(FeedbackSe.Fail, _fail);
         }
 
-        // ---- カウントダウン・鈴 ----
+        // ---- カウントダウンと鈴 ----
 
         void UpdateSession()
         {
@@ -257,7 +256,8 @@ namespace Toufuku.Feedback
                 _countdown.Reset();
                 if (bellOnSessionStart) Play(FeedbackSe.Bell, _bell);
             }
-            else if (!playing && _wasPlaying && session != null && session.IsFinished)
+            // #61: 3:00 のあとは受理済みの弾を待つ解決中（IsResolving）になるので、そこでも終わりの鈴を鳴らす
+            else if (!playing && _wasPlaying && session != null && (session.IsFinished || session.IsResolving))
             {
                 if (bellOnSessionEnd) Play(FeedbackSe.Bell, _bell);
             }
@@ -341,7 +341,7 @@ namespace Toufuku.Feedback
             SePlayed?.Invoke(kind);
         }
 
-        /// <summary>空いている声を使う。すべて鳴っていれば最も古く割り当てた声を止めて使う。</summary>
+        // 空いている AudioSource を使う。ぜんぶ鳴っていたら、いちばん古く使ったものを止めて使う
         AudioSource AcquireVoice()
         {
             for (int i = 0; i < _voices.Length; i++)
@@ -373,7 +373,7 @@ namespace Toufuku.Feedback
             ApplyMotor();
         }
 
-        /// <summary>今の振動の強さをモーターへ反映する（上位 1 本の強さだけ。足さない）。</summary>
+        // 今の振動の強さをモーターに反映する（いちばん上の1本の強さだけ。足したりはしない）
         void ApplyMotor()
         {
             float amplitude = _haptics.AmplitudeAt(Now);
@@ -386,7 +386,7 @@ namespace Toufuku.Feedback
 #endif
         }
 
-        // ---- 予算 ----
+        // ---- 予算（遅れの計測） ----
 
         void Record(FeedbackCategory category, double latencySeconds)
         {

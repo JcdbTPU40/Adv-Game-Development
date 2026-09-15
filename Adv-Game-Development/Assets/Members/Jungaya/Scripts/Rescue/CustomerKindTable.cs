@@ -3,9 +3,7 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 客種1種ぶんの数値（企画書 v8 付録B B-1 の1行）。
-    /// </summary>
+    // 客の種類1つぶんの数値（企画書 v8 付録B B-1 の1行）
     [Serializable]
     public class CustomerKindEntry
     {
@@ -30,7 +28,7 @@ namespace Toufuku.Rescue
         [Tooltip("黒客化（救済失敗）時の神社評価の減分（正の値で書く）。")]
         public int ratingLossOnBlack = 20;
 
-        /// <summary>この客種の D 満タン秒数を rng（0〜1）で1つ決める。幅が無ければ固定値。</summary>
+        // この種類の D が満タンになる秒数を、rng（0〜1）で1つ決める。はばがなければ決まった値
         public float PickDangerFullSeconds(float unitRandom)
         {
             float lo = Mathf.Min(dangerFullSecondsMin, dangerFullSecondsMax);
@@ -40,17 +38,17 @@ namespace Toufuku.Rescue
         }
     }
 
-    /// <summary>
-    /// 客種ごとのランタイム数値表（企画書 v8 付録B B-1 の写し）— Issue #54
-    ///
-    /// 付録B が Phase 1 の唯一の数値マスターなので、コードに数値を直書きせず
-    /// この ScriptableObject 1枚に集約する。値を変えるときは付録B（または移管後のシート）と
-    /// ここを必ず同時に直す。
-    ///
-    /// 使い方:
-    ///   Project で右クリック → Create → Toufuku → 客種数値表 (CustomerKindTable)。
-    ///   シーンのスポナー／客プレハブの <see cref="CustomerState"/> に割り当てる。
-    /// </summary>
+    /*
+        客の種類ごとの、プレイ中に使う数値の表（企画書 v8 付録B B-1 を写したもの）（#54）
+
+        付録B が Phase 1 でただ1つの数値の元なので、コードに数値を直接書かないで
+        この ScriptableObject 1つにまとめる。値を変えるときは付録B（またはうつしたあとのシート）と
+        ここを必ずいっしょに直す
+
+        使い方:
+          Project で右クリック → Create → Toufuku → 客種数値表 (CustomerKindTable)
+          シーンのスポナーや客プレハブの CustomerState に入れる
+    */
     [CreateAssetMenu(
         fileName = "CustomerKindTable",
         menuName = "Toufuku/客種数値表 (CustomerKindTable)",
@@ -67,7 +65,7 @@ namespace Toufuku.Rescue
             new CustomerKindEntry { kind = CustomerKind.Boss,    initialRemaining = 3, dangerFullSecondsMin = 30f, dangerFullSecondsMax = 30f, rescueBaseScore = 500, ratingGainOnRescue = 25, ratingLossOnBlack = 30 },
         };
 
-        /// <summary>客種の行を引く。未登録なら null。</summary>
+        // 客の種類の行を取る。登録されていなければ null
         public CustomerKindEntry Get(CustomerKind kind)
         {
             if (entries == null) return null;
@@ -78,11 +76,11 @@ namespace Toufuku.Rescue
             return null;
         }
 
-        /// <summary>登録済みの全行（読み取り用）。</summary>
+        // 登録してあるぜんぶの行（読むだけ用）
         public CustomerKindEntry[] Entries => entries;
 
 #if UNITY_EDITOR
-        /// <summary>付録B の行が欠けている／重複しているときに気づけるようにする（エディタ専用）。</summary>
+        // 付録B の行が足りない、または重なっているときに気づけるようにする（エディタだけ）
         private void OnValidate()
         {
             if (entries == null) return;

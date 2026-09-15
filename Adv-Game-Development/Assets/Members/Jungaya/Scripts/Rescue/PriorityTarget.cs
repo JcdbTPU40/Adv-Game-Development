@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>優先救済の候補 1 人ぶん。</summary>
+    // 優先救済の候補1人ぶん
     public readonly struct PriorityCandidate
     {
-        /// <summary>客の生成ID（スポーン順の通し番号。<c>CustomerSpawnId</c>）。</summary>
+        // 客の生成ID（出てきた順の通し番号。CustomerSpawnId）
         public readonly int Id;
-        /// <summary>危険度 D（0〜100）。</summary>
+        // 危険度 D（0〜100）
         public readonly float Danger;
-        /// <summary>プレイヤー（照準の基準点）からの距離。</summary>
+        // プレイヤー（照準の基準点）からの距離
         public readonly float Distance;
-        /// <summary>active になった時刻（秒）。小さいほど早く定位置に着いた客。</summary>
+        // active になった時刻（秒）。小さいほど早く定位置に着いた客
         public readonly float ActiveSince;
 
         public PriorityCandidate(int id, float danger, float distance, float activeSince = 0f)
@@ -24,26 +24,26 @@ namespace Toufuku.Rescue
         }
     }
 
-    /// <summary>
-    /// 優先対象（二重円の客）を 1 人に決める — Issue #55（仕様書 v8 6章「最危険マーク＝優先救済候補」／7章 得点表）
-    ///
-    /// ・候補集合は呼び出し側が「画面内の、active かつ 未救済・非黒客・R&gt;0 の客」に絞って渡す
-    ///   （<see cref="PriorityRescueDirector"/>）。入場中・退場中・黒客は候補に入れない。
-    /// ・同値順は仕様どおり <b>D が最大 → 遠い方 → active になった時刻が早い方 → 生成IDが小さい方</b>。
-    ///   最後が生成ID（重複しない）なので、同時刻に同じ D の客が何人いても必ず 1 人に定まる。
-    /// ・「遠い方」を先に取るのは、同じ危険度なら当てにくい方を読ませたいから（v8 7章の選択の設計）。
-    /// ・閾値は無い（付録B PRIORITY.MARK：対象数 1 人／D閾値なし）。D&lt;50 でも必ず 1 人に出るので、
-    ///   「D を上げてから救うと得」という待ちの利益が構造的に生まれない。
-    ///
-    /// MonoBehaviour 非依存。順序の全ケースはエディタテストで検証する（PriorityTargetTests）。
-    /// </summary>
+    /*
+        優先の相手（二重円の客）を1人に決めるクラス（#55 / 企画書 v8 6章「最危険マーク＝優先救済候補」、7章 得点表）
+
+        ・候補の集まりは、呼ぶ側が「画面の中にいる、active で、まだ救われていない・黒客じゃない・R>0 の客」にしぼって渡す
+          （PriorityRescueDirector）。入ってくる途中・帰っている途中・黒客は候補に入れない
+        ・同じ値のときの順番は仕様どおり「D がいちばん大きい → 遠いほう → active になった時刻が早いほう → 生成IDが小さいほう」
+          最後が生成ID（かぶらない）なので、同じ時刻に同じ D の客が何人いても必ず1人に決まる
+        ・「遠いほう」を先にしているのは、同じ危険度なら当てにくいほうを考えてほしいから（v8 7章の選ばせ方の考え）
+        ・しきい値はない（付録B PRIORITY.MARK: 相手は1人、D のしきい値なし）。D が 50 より小さくても必ず1人に出るので、
+          「D を上げてから救うと得」という、待ったほうが得になることがしくみとして起きない
+
+        MonoBehaviour は使っていない。順番のパターンはぜんぶエディタのテストで確かめる（PriorityTargetTests）
+    */
     public static class PriorityTarget
     {
         public const float DangerEpsilon = 1e-3f;
         public const float DistanceEpsilon = 1e-3f;
         public const float TimeEpsilon = 1e-4f;
 
-        /// <summary>優先対象の ID。候補が無ければ null。</summary>
+        // 優先の相手のID。候補がいなければ null
         public static int? Select(IReadOnlyList<PriorityCandidate> candidates)
         {
             if (candidates == null) return null;
@@ -56,7 +56,7 @@ namespace Toufuku.Rescue
             return best >= 0 ? candidates[best].Id : (int?)null;
         }
 
-        /// <summary>a が b より優先されるか（D 最大 → 遠い → active 化が早い → ID 昇順）。</summary>
+        // a が b より優先されるか（D が大きい → 遠い → active になったのが早い → IDが小さい）
         public static bool IsBetter(PriorityCandidate a, PriorityCandidate b)
         {
             if (Math.Abs(a.Danger - b.Danger) > DangerEpsilon) return a.Danger > b.Danger;

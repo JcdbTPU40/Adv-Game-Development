@@ -5,21 +5,21 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T0-CD クールダウン値の探索の進行と記録 — Issue #50（仕様書 v8 17章・付録B INPUT.CD）
-    ///
-    /// 1 人分の流れ（4 条件をラテン方格の順に）:
-    /// 単発ブロック → 休憩 → 連投ブロック → 記録 → 休憩 → 次の条件…
-    ///
-    /// ・条件（0.40 / 0.50 / 0.60 / 0.65 秒）は <see cref="CooldownTestPlan.ConditionAt"/> の順で自動的に切り替える。
-    ///   参加者には秒数を見せない（「設定1〜4」としか出さない）。
-    /// ・ゲーム側は受理・却下・実連投間隔を自動で数えるが、<b>合否の正本は外部動画</b>。
-    ///   動画で数えた 4 項目（単発振り数・連投組数・余分な発射・2 発目欠落）を記録画面か CSV に入れて初めて集計に入る。
-    /// ・記録は 1 条件 1 行の集計 CSV と、発射 1 件 1 行の生ログ CSV の 2 本
-    ///   （<see cref="CooldownCsvFile"/>）。
-    ///
-    /// 操作: Space = 開始 / 次へ、Tab = 実施者パネル、V = 同期マーク、L = CSV を読み直して集計。
-    /// </summary>
+    /*
+        T0-CD でクールダウンの値をさがすテストを進めて記録するクラス（#50 / 企画書 v8 17章・付録B INPUT.CD）
+
+        1人ぶんの流れ（4つの条件をラテン方格の順番で）:
+        1回振りのブロック → 休けい → 連投のブロック → 記録 → 休けい → 次の条件…
+
+        ・条件（0.40 / 0.50 / 0.60 / 0.65 秒）は CooldownTestPlan.ConditionAt の順番で自動で切りかえる
+          参加者には秒数を見せない（「設定1〜4」としか出さない）
+        ・ゲーム側でも受け付けた数・はじいた数・実際の連投の間かくを自動で数えるけど、合格かどうかは外の動画で決める
+          動画で数えた4つ（1回振りの回数・連投の組の数・よけいな発射・2発目の抜け）を記録画面か CSV に入れて、はじめて集計に入る
+        ・記録は、条件1つを1行にした集計の CSV と、発射1回を1行にしたそのままのログの CSV の2つ
+          （CooldownCsvFile）
+
+        操作: Space = スタート / 次へ、Tab = やる人のパネル、V = 同期マーク、L = CSV を読みなおして集計
+    */
     [DefaultExecutionOrder(-80)]
     public class CooldownTestDirector : MonoBehaviour
     {
@@ -85,13 +85,13 @@ namespace Toufuku.Playtest
         public string CsvPath => _csvPath;
         public string EventPath => _eventPath;
 
-        /// <summary>今の条件（参加者番号と試行順から決まる）。</summary>
+        // 今の条件（参加者の番号と、ためした順番から決まる）
         public CooldownPreset CurrentPreset =>
             CooldownTestPlan.ConditionAt(CooldownTestPlan.OrderIndexOf(participantNo), _clock.TrialIndex);
 
         static double Now => Time.realtimeSinceStartupAsDouble;
 
-        /// <summary>セッション開始からの経過秒（生ログ・画面表示・動画の突き合わせに使う共通の時間軸）。</summary>
+        // 始まってからの経過秒（ログ・画面表示・動画の照らし合わせで使う、共通の時間のものさし）
         public double Elapsed => Now - _sessionStart;
 
         void Awake()
@@ -175,7 +175,7 @@ namespace Toufuku.Playtest
             switch (phase)
             {
                 case CooldownPhase.SingleBlock:
-                    // 条件が変わる境目。ここで初めてクールダウン値を切り替える
+                    // 条件が変わるさかい目。ここではじめてクールダウンの値を切りかえる
                     if (_record == null || _record.trialIndex != _clock.TrialIndex) NewRecord();
                     ApplyPreset();
                     BeginBlock(CooldownBlock.Single);
@@ -191,7 +191,7 @@ namespace Toufuku.Playtest
                     break;
             }
 
-            // ブロック中だけ投擲を受け付ける（休憩・記録中は振っても何も起きない）
+            // ブロックの間だけ投げるのを受け付ける（休けいや記録の間は振っても何も起きない）
             if (input != null) input.enabled = _clock.IsBlock;
         }
 
@@ -212,7 +212,7 @@ namespace Toufuku.Playtest
         {
             if (_record == null) return;
 
-            // 実際に適用されていた秒数を残す（F1〜F4 で手で変えられていても記録は実測に合わせる）
+            // 実際に使っていた秒数を残す（F1〜F4 で手で変えられていても、記録は実際の値に合わせる）
             if (input != null) _record.cooldownSeconds = input.CooldownSeconds;
 
             if (block == CooldownBlock.Single)
@@ -241,8 +241,10 @@ namespace Toufuku.Playtest
             CooldownPreset preset = CurrentPreset;
             input.Preset = preset;
 
-            // ThrowInputController は自分の Update で状態機械へ流すが、実行順はこちらが後
-            // （入力 -100 → 進行 -80）。切り替えたフレームの振りを古い値で判定させないよう、ここで直接入れる
+            /*
+                ThrowInputController は自分の Update で状態機械に流すけど、動く順番はこっちがあと
+                （入力が -100 → 進行が -80）。切りかえたフレームの振りを古い値で判定しないように、ここで直接入れる
+            */
             if (input.Machine != null) input.Machine.CooldownSeconds = input.CooldownSeconds;
 
             _record.preset = preset;
@@ -304,7 +306,7 @@ namespace Toufuku.Playtest
             EnterPhase();
         }
 
-        /// <summary>CSV を読み直して集計しなおす（動画側の列を Excel で埋めたあと）。</summary>
+        // CSV を読みなおして集計しなおす（動画側の列を Excel でうめたあと）
         public void Reload()
         {
             _saved.Clear();
@@ -313,7 +315,7 @@ namespace Toufuku.Playtest
 
             if (_saved.Count == 0) return;
 
-            // 続きから始める: 最後の参加者の記録が 4 条件そろっていれば次の人、足りなければその続きの条件から
+            // 続きから始める: 最後の参加者の記録が4つの条件ともそろっていれば次の人、足りなければその続きの条件から
             int lastNo = _saved[_saved.Count - 1].participantNo;
             int done = 0;
             for (int i = 0; i < _saved.Count; i++)
@@ -347,7 +349,7 @@ namespace Toufuku.Playtest
                 note: videoSync != null ? $"{videoSync.MarkCount} 回目" : "画面フラッシュなし");
         }
 
-        // ---- 投数 ----
+        // ---- 投げた数 ----
 
         void Subscribe()
         {
@@ -376,7 +378,7 @@ namespace Toufuku.Playtest
             {
                 if (_pairFirstTime > double.NegativeInfinity && e.Time - _pairFirstTime <= pairWindowSeconds)
                 {
-                    // 1 組の 2 発目。実連投間隔はこの差
+                    // 1組の2発目。実際の連投の間かくはこの差
                     _pairCompleted++;
                     _pairIntervals.Add(e.Time - _pairFirstTime);
                     _pairFirstTime = double.NegativeInfinity;
@@ -442,7 +444,7 @@ namespace Toufuku.Playtest
 
         void DrawBanner()
         {
-            // 参加者には秒数を見せない（何秒の設定かを知ると振り方が変わる）
+            // 参加者には秒数を見せない（何秒の設定か知ると振り方が変わるから）
             string setting = $"設定 {_clock.TrialIndex + 1} / {CooldownTestPlan.ConditionCount}";
             string title;
             string sub;
@@ -535,7 +537,7 @@ namespace Toufuku.Playtest
             return value;
         }
 
-        /// <summary>空欄なら未入力（<see cref="CooldownConditionRecord.NotEntered"/>）のまま。</summary>
+        // 空欄なら、まだ入れていない（CooldownConditionRecord.NotEntered）のまま
         static int VideoField(string label, int value)
         {
             GUILayout.BeginHorizontal();

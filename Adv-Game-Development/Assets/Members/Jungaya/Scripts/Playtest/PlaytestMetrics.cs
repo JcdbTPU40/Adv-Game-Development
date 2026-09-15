@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>集計 CSV の 1 行（section, metric, value）。</summary>
+    // 集計の CSV の1行（section, metric, value）
     public readonly struct PlaytestSummaryRow
     {
         public readonly string Section;
@@ -24,22 +24,22 @@ namespace Toufuku.Playtest
     [Serializable]
     public class PlaytestMetricsSettings
     {
-        /// <summary>T3 の区間の長さ（秒）。</summary>
+        // T3 の区間の長さ（秒）
         public float segmentSeconds = 60f;
-        /// <summary>T3 の区間数（0-60 / 60-120 / 120-180 秒 = 3）。</summary>
+        // T3 の区間の数（0-60 / 60-120 / 120-180 秒 で 3つ）
         public int segmentCount = 3;
-        /// <summary>この秒数以上振らなかったら「停止」とみなす（仕様書 v8 19章: 3 秒以上の停止）。</summary>
+        // この秒数以上振らなかったら「止まった」とする（企画書 v8 19章: 3秒以上止まる）
         public float idleThresholdSeconds = 3f;
-        /// <summary>T1 の色誤り・停止を数える区間（開始からの秒。v8 11章の段階学習 0:00〜0:30）。</summary>
+        // T1 で色まちがいと止まったのを数える区間（始まってからの秒。v8 11章の段階学習 0:00〜0:30）
         public float t1WindowSeconds = 30f;
     }
 
-    /// <summary>
-    /// 1 プレイのイベント列から T1・T2・T3 の判定に使う数値を出す — Issue #63（仕様書 v8 17章・19章）
-    ///
-    /// MonoBehaviour に依存しない純粋関数。同じイベント列からは必ず同じ集計になる（EditMode テストで検証）。
-    /// 定義は Docs/63_計測ログ基盤.md の「集計の定義」を正本とする。値が求められないもの（分母 0 など）は空欄（欠測）。
-    /// </summary>
+    /*
+        1プレイのイベントのならびから、T1・T2・T3 の判定に使う数字を出すクラス（#63 / 企画書 v8 17章・19章）
+
+        MonoBehaviour を使わない、入力だけで結果が決まる関数。同じイベントのならびなら必ず同じ集計になる（EditMode テストで確かめている）
+        決め方は Docs/63_計測ログ基盤.md の「集計の定義」が正しいものとする。出せない値（わる数が 0 など）は空欄（データなし）
+    */
     public static class PlaytestMetrics
     {
         public const string SectionPlay = "play";
@@ -48,9 +48,9 @@ namespace Toufuku.Playtest
         public const string SectionT3 = "t3";
         public const string SectionInput = "input";
 
-        /// <summary>HitZone.Miss の文字列（相性✗の命中・外し）。</summary>
+        // HitZone.Miss の文字（相性✗で当たった・外れた）
         public const string ZoneMiss = "Miss";
-        /// <summary>セッション外の却下（リザルト中など）。停止の判定に含めない。</summary>
+        // ゲームの時間外ではじいた（リザルト中など）。止まったかの判定には入れない
         public const string RejectInactive = "Inactive";
         public const string StageAchieved = "achieved";
         public const string StageTimeout = "timeout";
@@ -61,7 +61,7 @@ namespace Toufuku.Playtest
             public int Throws, Rejected, Landings, LandingHits, Hits, GoodHits, GoodLandingHits, ColorErrors, Rescues, Conversions;
         }
 
-        /// <param name="endTime">プレイの終わり（セッション開始からの秒）。途中終了なら最後に記録した時刻。</param>
+        // endTime: プレイの終わり（ゲームが始まってからの秒）。とちゅうで終わったら最後に記録した時刻
         public static List<PlaytestSummaryRow> Compute(IReadOnlyList<PlaytestEvent> events, PlaytestMetricsSettings settings, double endTime)
         {
             if (events == null) events = Array.Empty<PlaytestEvent>();
@@ -123,7 +123,7 @@ namespace Toufuku.Playtest
             Add(rows, s, "rating_final", rating?.Rating);
             AddText(rows, s, "rank_final", rating?.Rank);
 
-            // プレイ中の最高ランクと、そこへ最初に到達した秒
+            // プレイ中のいちばん高いランクと、そこに最初に届いた秒
             PlaytestEvent best = null;
             foreach (PlaytestEvent e in events)
             {
@@ -133,7 +133,7 @@ namespace Toufuku.Playtest
             AddText(rows, s, "max_rank", best?.Rank);
             Add(rows, s, "max_rank_sec", best != null ? best.T : (double?)null);
 
-            // 実操作周期（T0-3M #53 と共用）
+            // 実際に振る間かく（T0-3M の #53 でも使う）
             var intervals = new List<double>();
             double? prev = null;
             foreach (PlaytestEvent e in events)
@@ -178,7 +178,7 @@ namespace Toufuku.Playtest
             Add(rows, s, "stages_recorded", stages.Count);
             Add(rows, s, "unachieved_stages", unachieved);
 
-            // 自由練習: 明示された秒が優先。無ければ最後の段階を達成してから学習区間の終わりまで
+            // 自由練習: はっきり書いてある秒を優先する。なければ最後の段階をクリアしてから学習の区間が終わるまで
             PlaytestEvent practice = LastWith(events, e => e.Type == PlaytestEventType.T1FreePractice && e.Value.HasValue);
             double? practiceSec = practice?.Value;
             if (!practiceSec.HasValue && lastStageEnd != null && lastStageEnd.Detail == StageAchieved && lastStageEnd.T < window)
@@ -191,7 +191,7 @@ namespace Toufuku.Playtest
             PlaytestEvent firstRescue = FirstWith(events, e => e.Type == PlaytestEventType.Rescue);
             Add(rows, s, "first_rescue_sec", firstRescue != null ? firstRescue.T : (double?)null);
 
-            // 何投目で初めて正しい色を当てたか（T1 合格値: 2 投目まで）
+            // 何投目ではじめて正しい色を当てたか（T1 の合格の値: 2投目まで）
             PlaytestEvent firstCorrect = FirstWith(events, e => IsCustomerHit(e) && e.ColorError == false && e.IsBlack != true && e.ThrowNo.HasValue);
             Add(rows, s, "first_correct_color_throw", firstCorrect?.ThrowNo);
 
@@ -288,7 +288,7 @@ namespace Toufuku.Playtest
                 AddText(rows, s, label + "rank_end", rating?.Rank);
             }
 
-            // 合格値（v8 17章 T3）と照合するための値
+            // 合格の値（v8 17章 T3）とくらべるための値
             Counts first = CountIn(events, 0.0, length);
             Counts last = CountIn(events, (n - 1) * length, double.PositiveInfinity);
             bool lastReached = n == 1 || endTime > (n - 1) * length;
@@ -305,7 +305,7 @@ namespace Toufuku.Playtest
                 lastReached ? (last.Conversions <= last.Rescues ? 1 : 0) : (int?)null);
         }
 
-        // ---- 入力遅延（T6-USB #52 と共用）----
+        // ---- 入力の遅れ（T6-USB の #52 でも使う） ----
 
         static void AddInput(List<PlaytestSummaryRow> rows, IReadOnlyList<PlaytestEvent> events)
         {
@@ -324,7 +324,7 @@ namespace Toufuku.Playtest
 
             AddPercentiles(rows, s, "receive_to_fire_ms", receiveToFire, "0.0");
 
-            // コントローラの時計と Unity の時計は原点が違うので、最小値を 0 とした揺らぎ（ジッタ）だけを出す
+            // コントローラーの時計と Unity の時計はスタート地点がちがうので、いちばん小さい値を 0 にしたゆれ（ジッタ）だけを出す
             if (inputToReceive.Count > 0)
             {
                 double offset = double.PositiveInfinity;
@@ -335,9 +335,9 @@ namespace Toufuku.Playtest
             AddPercentiles(rows, s, "input_to_receive_jitter_ms", inputToReceive, "0.0");
         }
 
-        // ---- 部品（テストから使う）----
+        // ---- 部品（テストから使う） ----
 
-        /// <summary>停止判定に使う振りの時刻（発射確定と、セッション外以外の却下）。昇順。</summary>
+        // 止まったかの判定に使う振りの時刻（発射が決まったのと、ゲームの時間外じゃないのにはじいたの）。小さい順
         public static List<double> SwingTimes(IReadOnlyList<PlaytestEvent> events)
         {
             var times = new List<double>();
@@ -350,9 +350,7 @@ namespace Toufuku.Playtest
             return times;
         }
 
-        /// <summary>
-        /// threshold 秒以上振らなかった区間。開始から最初の振り、最後の振りから終わりまでも含める。
-        /// </summary>
+        // threshold 秒以上振らなかった区間。始まってから最初の振りまでと、最後の振りから終わりまでも入れる
         public static List<(double Start, double End)> IdleGaps(IReadOnlyList<double> sortedTimes, double start, double end, double threshold)
         {
             var gaps = new List<(double Start, double End)>();
@@ -367,10 +365,10 @@ namespace Toufuku.Playtest
             return gaps;
         }
 
-        /// <summary>
-        /// 同時にいた黒客（黒客として出現 or 黒客化してから退場するまで）の最大数を区間ごとに返す。
-        /// 区間の最大には、区間の開始時点で残っている数も含める。
-        /// </summary>
+        /*
+            同時にいた黒客（黒客として出てきた、または黒客になってから、いなくなるまで）のいちばん多い数を区間ごとに返す
+            区間のいちばん多い数には、区間が始まったときに残っている数も入れる
+        */
         public static int[] MaxSimultaneousBlack(IReadOnlyList<PlaytestEvent> events, int segmentCount, double segmentSeconds)
         {
             int n = Math.Max(1, segmentCount);
@@ -397,7 +395,7 @@ namespace Toufuku.Playtest
                 result[current] = Math.Max(result[current], black.Count);
             }
 
-            // 最後のイベント以降の区間にも、残っている黒客を持ち越す
+            // 最後のイベントのあとの区間にも、残っている黒客を持ちこす
             while (current < n - 1)
             {
                 current++;

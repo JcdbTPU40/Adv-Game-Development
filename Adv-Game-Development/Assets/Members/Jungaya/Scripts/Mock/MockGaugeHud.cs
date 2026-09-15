@@ -3,27 +3,27 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Mock
 {
-    /// <summary>
-    /// 視認性モック(#44)用の頭上ゲージ。既存 Test/CustomerGaugeHud の派生版（既存ファイルは無改変）。
-    ///
-    /// ── なぜ既存 CustomerGaugeHud をそのまま使わないか ────────────────────
-    ///   既存版を 12〜15 体で使うと、次の3点が検証の邪魔になると判断した。
-    ///     1) OnGUI の中で毎回 FindObjectsByType している。OnGUI は 1 フレームに
-    ///        複数回（Layout/Repaint ほか）呼ばれるため、体数ぶんの全探索が何度も走る。
-    ///        → Director が持つ登録リストを読み、描画は Repaint のときだけにした。
-    ///     2) バー幅が固定ピクセル。遠近感が消え、密集すると隣のバーと重なって読めない。
-    ///        → 距離スケールを ON/OFF できるようにした。どちらが読めるかが #44 の検証項目。
-    ///     3) 描画順が探索順まかせ。手前の客のバーが奥の客のバーに隠れることがある。
-    ///        → 奥→手前にソートしてから描く。
-    ///   加えて既存版には黒客（黒ゲージ）の概念が無いため、#44 の検証ができない。
-    ///
-    /// ※ 検証用の使い捨て。Mock/ ごと削除できる。
-    /// </summary>
+    /*
+        視認性モック（#44）用の、頭の上のゲージ。もともとある Test/CustomerGaugeHud をもとに作ったもの（もとのファイルはさわっていない）
+
+        ---- なんでもとの CustomerGaugeHud をそのまま使わないのか ----
+          もとのほうを 12〜15人で使うと、次の3つが検証のじゃまになると思った
+            1) OnGUI の中で毎回 FindObjectsByType している。OnGUI は1フレームに
+               何回か（Layout や Repaint など）呼ばれるので、人数ぶんの全部さがしが何回も動く
+               → Director が持っているリストを読むようにして、描くのは Repaint のときだけにした
+            2) バーのはばがピクセルで固定。遠い近いがわからなくなるし、集まるととなりのバーと重なって読めない
+               → 距離に合わせて大きさを変えるのをオンオフできるようにした。どっちが読みやすいかが #44 で調べること
+            3) 描く順番がさがした順番まかせ。手前の客のバーが、奥の客のバーにかくれることがある
+               → 奥から手前の順にならべてから描く
+          それと、もとのほうには黒客（黒いゲージ）がないので、#44 の検証ができない
+
+        ※ 検証用の使い捨て。Mock/ フォルダごと消せる
+    */
     public class MockGaugeHud : MonoBehaviour
     {
         private struct DrawItem
         {
-            public float Depth;      // カメラからの距離（奥→手前ソート用）
+            public float Depth;      // カメラからの距離（奥から手前にならべる用）
             public Rect Rect;
             public float Fill;       // 0〜1
             public bool Resolved;
@@ -90,10 +90,10 @@ namespace Toufuku.Rescue.Mock
         private static readonly System.Comparison<DrawItem> FarToNear =
             (a, b) => b.Depth.CompareTo(a.Depth);
 
-        /// <summary>距離スケールが有効か（デバッグ表示用）。</summary>
+        // 距離に合わせて大きさを変えるのが ON かどうか（デバッグ表示用）
         public bool ScaleWithDistance => scaleWithDistance;
 
-        /// <summary>距離スケールを切り替える（デバッグ操作から呼ばれる）。</summary>
+        // 距離に合わせて大きさを変えるのを切りかえる（デバッグ操作から呼ばれる）
         public void ToggleScaleWithDistance() => scaleWithDistance = !scaleWithDistance;
 
         private void Awake()
@@ -104,7 +104,7 @@ namespace Toufuku.Rescue.Mock
 
         private void OnGUI()
         {
-            // Layout など Repaint 以外のイベントでは描かない（OnGUI は1フレームに複数回来る）。
+            // Layout とか Repaint じゃないイベントのときは描かない（OnGUI は1フレームに何回も来るから）
             if (Event.current.type != EventType.Repaint) return;
             if (director == null) return;
 
@@ -114,7 +114,7 @@ namespace Toufuku.Rescue.Mock
             _items.Clear();
             CollectItems(cam);
 
-            // 奥→手前の順に描く＝手前の客のバーが必ず上に来る。
+            // 奥から手前の順に描く＝手前の客のバーが必ず上に来る
             _items.Sort(FarToNear);
 
             for (int i = 0; i < _items.Count; i++)
@@ -131,11 +131,11 @@ namespace Toufuku.Rescue.Mock
             {
                 MockCrowdDirector.Member m = members[i];
                 if (m == null || m.Go == null || m.State == null) continue;
-                if (m.State.IsBlack) continue;  // 黒客はバーを描かない（頭上ゲージは消す。v8 6章）
+                if (m.State.IsBlack) continue;  // 黒客はバーを描かない（頭の上のゲージは消す。v8 6章）
 
                 Vector3 worldPos = m.Tr.position + Vector3.up * worldHeightOffset;
                 Vector3 sp = cam.WorldToScreenPoint(worldPos);
-                if (sp.z <= 0f) continue;       // カメラ後方
+                if (sp.z <= 0f) continue;       // カメラのうしろ
 
                 float scale = 1f;
                 if (scaleWithDistance && referenceDistance > 0.001f)
@@ -148,7 +148,7 @@ namespace Toufuku.Rescue.Mock
                 float w = barWidth * scale;
                 float h = barHeight * scale;
 
-                // スクリーン座標 → GUI座標（Yを反転）
+                // スクリーン座標を GUI の座標に直す（Y を反対にする）
                 float x = sp.x - w * 0.5f;
                 float y = (Screen.height - sp.y) - h * 0.5f;
 
@@ -170,7 +170,7 @@ namespace Toufuku.Rescue.Mock
         {
             Rect r = item.Rect;
 
-            // 外枠（既定OFF。輪郭以外の識別手がかりを足したい比較用）
+            // 外わく（ふつうは OFF。輪郭以外にも見分けるヒントを足したいときにくらべる用）
             if (tintBorderByCustomerColor)
             {
                 GUI.color = item.Tint;
@@ -184,7 +184,7 @@ namespace Toufuku.Rescue.Mock
 
             if (item.Resolved)
             {
-                // 解消＝0で光る演出。
+                // 解消して 0 になったら光る演出
                 float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * glowPulseSpeed * Mathf.PI * 2f);
                 Color g = glowColor;
                 g.a = Mathf.Lerp(0.4f, 1f, pulse);
@@ -193,7 +193,7 @@ namespace Toufuku.Rescue.Mock
                 return;
             }
 
-            // 通常：満ち具合を表示。黒客だけは黒系のグラデにする。
+            // ふつう: どれくらいたまっているかを表示する。黒客だけは黒っぽいグラデーションにする
             Color from = item.Black ? blackEmptyColor : emptyColor;
             Color to = item.Black ? blackFullColor : fullColor;
 

@@ -2,27 +2,25 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// お守り5色パレット（ScriptableObject）— 色の一元管理。
-    ///
-    /// 企画書 v3 §3：5ボタンの色・客の輪郭発光・お守り弾の色は完全に同一。
-    /// 【このアセットが唯一の正】であり、各所でハードコードしないこと。
-    /// 配列順は <see cref="OmamoriType"/> の enum 順に厳密に一致させること。
-    /// enum を並べ替えたらこの配列も同時に並べ替える。
-    ///
-    /// 5色の選定理由（既存3セットが互いに近すぎ・彩度不揃いだったため新規に調色）:
-    ///   ・色相を約 130°/215°/285°/340°/45° に散らし、隣接色の色相差を最低 55° 確保している。
-    ///   ・明度（知覚輝度）を 金運 &gt; 健康 &gt; 縁結び &gt; 厄除け安全 &gt; 学業成就 の順に
-    ///     段階的にずらしてあるので、彩度が落ちる環境でも順序で判別できる。
-    ///   ・客本体の灰 (0.72, 0.70, 0.66) および黒客 (0.04, 0.04, 0.06) の
-    ///     どちらとも十分な差がある。
-    ///
-    /// 【要検証：Issue #44 の視認性検証で確認すること（ここでは対処しない）】
-    ///   ・厄除け安全（紫）と縁結び（桃）は色相差 55° と5色中で最も近い。
-    ///     輪郭発光＋Bloom で滲むと同化する可能性があるため、#44 で最優先に確認すること。
-    ///   ・健康（緑）と金運（山吹）は P型/D型色覚では近づく。明度差で分離しているが、
-    ///     これも #44 で確認対象。
-    /// </summary>
+    /*
+        お守り5色のパレット（ScriptableObject）。色をまとめて管理するためのもの
+
+        企画書 v3 §3: 5つのボタンの色・客の輪郭の光・お守りの弾の色は、ぜんぶ同じにする
+        【このアセットだけが正しい色】なので、いろんな場所に色を直接書かないこと
+        配列の順番は OmamoriType の enum の順番と必ず同じにすること
+        enum をならべかえたら、この配列もいっしょにならべかえる
+
+        5色は企画書 v8 6章「5色とパターン」の表のカラーコードそのまま（#59 で合わせた。前は #44 のときに作った明るめの色だった）:
+          健康 #3FBF5F / 学業成就 #2F7FD8 / 厄除け安全 #8B5FD0 / 縁結び #E85F8F / 金運 #E8B93F
+          ボタン箱のボタンと LED もこの値にそろえる（v8 3章）。値を変えるときは企画書といっしょに変えること
+
+        この5色の性質（#59 で計算した）:
+          ・色相は 135°/212°/263°/339°/43°。いちばん近いのは学業成就（青）と厄除け安全（紫）で 52°
+          ・見た目の明るさは 金運 0.52 > 健康 0.39 > 縁結び 0.27 > 学業成就 0.21 > 厄除け安全 0.18
+            青と紫は明るさもほぼ同じなので、グレースケールや色がわかりにくい人には輪郭のもよう（点線と破線）で見分けてもらう
+          ・健康（緑）と金運（金）は P型/D型の色覚だと近く見える。明るさの差と、もよう（実線と二重線）で分ける
+          ・客の本体のグレー (0.72, 0.70, 0.66) と黒客 (0.04, 0.04, 0.06) のどっちとも十分ちがう
+    */
     [CreateAssetMenu(
         fileName = "OmamoriPalette",
         menuName = "Toufuku/お守り5色パレット (OmamoriPalette)",
@@ -33,29 +31,29 @@ namespace Toufuku.Rescue
         [SerializeField]
         private Color[] colors =
         {
-            new Color(0.20f, 0.90f, 0.35f), // 健康：若草緑。明度高め
-            new Color(0.20f, 0.50f, 1.00f), // 学業成就：藍青。5色中で最も暗い
-            new Color(0.65f, 0.25f, 0.95f), // 厄除け安全：紫。青と桃の中間だが明度で分離
-            new Color(1.00f, 0.40f, 0.62f), // 縁結び：桃。紫より明るく赤寄り
-            new Color(1.00f, 0.78f, 0.10f), // 金運：山吹。5色中で最も明るい
+            new Color(63 / 255f, 191 / 255f, 95 / 255f),  // 健康: #3FBF5F
+            new Color(47 / 255f, 127 / 255f, 216 / 255f), // 学業成就: #2F7FD8
+            new Color(139 / 255f, 95 / 255f, 208 / 255f), // 厄除け安全: #8B5FD0
+            new Color(232 / 255f, 95 / 255f, 143 / 255f), // 縁結び: #E85F8F
+            new Color(232 / 255f, 185 / 255f, 63 / 255f), // 金運: #E8B93F
         };
 
         [Tooltip("黒客（救済失敗客）の輪郭色。5色すべてと識別できることが要件（v3 §6）。")]
         [SerializeField] private Color blackCustomerColor = new Color(0.04f, 0.04f, 0.06f);
 
-        /// <summary>黒客の色。</summary>
+        // 黒客の色
         public Color BlackCustomerColor => blackCustomerColor;
 
-        /// <summary>お守り種別数（＝色数。常に5）。色数から種別数を求めたい場合はこれを参照する。</summary>
+        // お守りの種類の数（＝色の数。いつも5）。色の数から種類の数を知りたいときはこれを見る
         public int Count => colors != null ? colors.Length : 0;
 
-        /// <summary>お守り種別 → 色。</summary>
+        // お守りの種類から色を返す
         public Color GetColor(OmamoriType type) => GetColor((int)type);
 
-        /// <summary>
-        /// インデックス → 色。範囲外・未設定は Color.magenta を返して設定ミスを目立たせる
-        /// （黙って白を返さないこと）。
-        /// </summary>
+        /*
+            番号から色を返す。範囲外や入っていないときは Color.magenta を返して、設定ミスを目立たせる
+            （だまって白を返したりしないこと）
+        */
         public Color GetColor(int index)
         {
             if (colors == null || index < 0 || index >= colors.Length)
@@ -64,10 +62,10 @@ namespace Toufuku.Rescue
         }
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// colors の長さを常に OmamoriType の種別数（=5）に矯正する。
-        /// Inspector 操作で要素数を変えてしまった事故を検知して警告する。
-        /// </summary>
+        /*
+            colors の長さを、いつも OmamoriType の種類の数（=5）に直す
+            Inspector で要素の数を変えてしまったミスに気づけるように警告を出す
+        */
         private void OnValidate()
         {
             int expected = System.Enum.GetValues(typeof(OmamoriType)).Length;

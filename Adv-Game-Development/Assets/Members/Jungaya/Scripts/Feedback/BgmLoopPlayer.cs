@@ -2,11 +2,11 @@ using UnityEngine;
 
 namespace Toufuku.Feedback
 {
-    /// <summary>
-    /// BGM — Issue #64（MVP 範囲: 1 環境につき 1 ループだけ）
-    ///
-    /// 1 本のループ素材を開始と同時に鳴らし続ける。曲の切り替え・季節や月での変化は MVP 範囲外。
-    /// </summary>
+    /*
+        BGM を流すクラス（#64。MVP では1つの環境につき1ループだけ）
+
+        1本のループ曲を、始まったらずっと鳴らしつづける。曲の切りかえや、季節・月で変えるのは MVP ではやらない
+    */
     [RequireComponent(typeof(AudioSource))]
     public class BgmLoopPlayer : MonoBehaviour
     {

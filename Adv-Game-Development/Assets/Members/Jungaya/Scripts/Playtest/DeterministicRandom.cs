@@ -1,14 +1,14 @@
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 固定シードの乱数列 — Issue #63（仕様書 v8 17章）
-    ///
-    /// ・UnityEngine.Random（全体で 1 本を共有）とは独立した列。ほかの処理が乱数を引いても列がずれない。
-    /// ・SplitMix64。同じシードからは OS・Unity のバージョンによらず同じ列になる。
-    /// ・<see cref="Derive"/> で「シード × 用途 × 客ID」ごとに別の列を作る。n 体目の客の抽選は、
-    ///   それまでに何発当てたか・どの客が先に退場したかに左右されない。
-    /// ・MonoBehaviour・UnityEngine に依存しない（EditMode テストで検証する）。
-    /// </summary>
+    /*
+        決まったシードから作る乱数（#63 / 企画書 v8 17章）
+
+        ・UnityEngine.Random（全体で1つを使いまわしている）とは別の乱数。ほかの処理が乱数を使っても、こっちの順番はずれない
+        ・SplitMix64 を使っている。同じシードなら、OS や Unity のバージョンがちがっても同じ数字がならぶ
+        ・Derive で「シード × 使いみち × 客ID」ごとに別の乱数を作る。n 人目の客のくじは、
+          それまでに何発当てたかや、どの客が先に帰ったかで変わらない
+        ・MonoBehaviour も UnityEngine も使っていない（EditMode テストで確かめる）
+    */
     public sealed class DeterministicRandom
     {
         const ulong Golden = 0x9E3779B97F4A7C15UL;
@@ -20,19 +20,19 @@ namespace Toufuku.Playtest
             _state = seed;
         }
 
-        /// <summary>シード・用途・番号（客ID など）から独立した列を作る。</summary>
+        // シード・使いみち・番号（客IDなど）から、別々の乱数を作る
         public static DeterministicRandom Derive(int seed, int stream, int index)
         {
             return new DeterministicRandom(Mix(Mix(Mix((uint)seed) ^ (uint)stream) ^ (uint)index));
         }
 
-        /// <summary>シードから用途ごとの子シードを作る（定位置の敷き詰めなど、番号を持たない抽選用）。</summary>
+        // シードから、使いみちごとの子どものシードを作る（定位置をしきつめるときみたいに、番号がないくじ用）
         public static int DeriveSeed(int seed, int stream)
         {
             return (int)(Mix(Mix((uint)seed) ^ (uint)stream) >> 32);
         }
 
-        /// <summary>SplitMix64 の攪拌関数。</summary>
+        // SplitMix64 のかきまぜる関数
         public static ulong Mix(ulong z)
         {
             z += Golden;
@@ -50,20 +50,20 @@ namespace Toufuku.Playtest
             return z ^ (z >> 31);
         }
 
-        /// <summary>[0, 1) の実数。</summary>
+        // 0 以上 1 未満の小数
         public double NextDouble()
         {
             return (NextULong() >> 11) * (1.0 / (1UL << 53));
         }
 
-        /// <summary>[0, 1) の実数（float）。</summary>
+        // 0 以上 1 未満の小数（float）
         public float Value()
         {
             float f = (float)NextDouble();
             return f >= 1f ? 0.99999994f : f;
         }
 
-        /// <summary>[min, max) の整数。max ≤ min なら min（UnityEngine.Random.Range(int, int) と同じ）。</summary>
+        // min 以上 max 未満の整数。max が min 以下なら min（UnityEngine.Random.Range(int, int) と同じ）
         public int Range(int minInclusive, int maxExclusive)
         {
             if (maxExclusive <= minInclusive) return minInclusive;
@@ -71,7 +71,7 @@ namespace Toufuku.Playtest
             return (int)(minInclusive + (long)(NextDouble() * span));
         }
 
-        /// <summary>min〜max の実数。</summary>
+        // min〜max の小数
         public float Range(float min, float max)
         {
             return min + (max - min) * (float)NextDouble();

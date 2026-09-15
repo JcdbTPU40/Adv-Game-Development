@@ -2,14 +2,14 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Mock
 {
-    /// <summary>
-    /// 視認性モック(#44)の「鳥居 → 定位置」の歩行。補充テンポ確認用の最小実装。
-    ///
-    /// ・位置を補間するだけ。回転は触らない（本番の演出コンポーネントと競合させないため）。
-    /// ・所要時間とイージングは <see cref="MockCrowdDirector"/> から渡され、Inspector で調整できる。
-    ///
-    /// ※ 検証用の使い捨て。Mock/ ごと削除できる。
-    /// </summary>
+    /*
+        視認性モック（#44）で「鳥居 → 定位置」まで歩かせるクラス。補充のテンポを見るための、いちばんシンプルなもの
+
+        ・位置をなめらかにつなぐだけ。回転はさわらない（本番の演出のコンポーネントとぶつからないように）
+        ・かかる時間と動きのカーブは MockCrowdDirector から渡されて、Inspector で調整できる
+
+        ※ 検証用の使い捨て。Mock/ フォルダごと消せる
+    */
     public class MockCustomerWalker : MonoBehaviour
     {
         private Vector3 _from;
@@ -19,11 +19,14 @@ namespace Toufuku.Rescue.Mock
         private AnimationCurve _ease;
         private bool _walking;
 
-        /// <summary>移動中か。Director はこれを見て「定位置に着いた体数」を数える。</summary>
+        // 歩いている途中かどうか。Director はこれを見て「定位置に着いた人数」を数える
         public bool IsWalking => _walking;
 
-        /// <summary>この客の最終的な定位置。</summary>
+        // この客が最後に着く定位置
         public Vector3 Destination => _to;
+
+        // 歩いて定位置に着いたときに呼ばれる（SnapTo では呼ばれない）。#62 の移動客はここから往復を始める
+        public event System.Action Arrived;
 
         private void Update()
         {
@@ -39,10 +42,11 @@ namespace Toufuku.Rescue.Mock
             {
                 transform.position = _to;
                 _walking = false;
+                Arrived?.Invoke();
             }
         }
 
-        /// <summary>鳥居位置から定位置へ歩き始める。</summary>
+        // 鳥居の位置から定位置に歩き始める
         public void Begin(Vector3 from, Vector3 to, float duration, AnimationCurve ease)
         {
             _from = from;
@@ -55,7 +59,7 @@ namespace Toufuku.Rescue.Mock
             transform.position = _walking ? from : to;
         }
 
-        /// <summary>歩行を省いて定位置に即着地する（開始時の一括配置用）。</summary>
+        // 歩くのをとばして、すぐ定位置に置く（始めにまとめてならべる用）
         public void SnapTo(Vector3 position)
         {
             _from = position;

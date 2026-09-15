@@ -2,14 +2,14 @@ using System;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>割合とその 95% 信頼区間。</summary>
+    // わりあいと、その 95% 信頼区間
     public readonly struct RateWithInterval
     {
-        /// <summary>事象の数（誤発射の件数など）。</summary>
+        // 起きた数（まちがい発射の件数など）
         public readonly int Count;
-        /// <summary>母数（意図した振り数・組数）。</summary>
+        // わる数（振ろうとした回数や組の数）
         public readonly int Total;
-        /// <summary>点推定（Count / Total）。母数 0 なら 0。</summary>
+        // わりあいそのもの（Count / Total）。わる数が 0 なら 0
         public readonly double Rate;
         public readonly double Lower;
         public readonly double Upper;
@@ -25,7 +25,7 @@ namespace Toufuku.Playtest
 
         public bool HasData => Total > 0;
 
-        /// <summary>"3/200 = 1.5%（95%CI 0.5〜4.3%）" の形。</summary>
+        // "3/200 = 1.5%（95%CI 0.5〜4.3%）" みたいな形の文字
         public string Describe()
         {
             if (!HasData) return "-";
@@ -35,19 +35,19 @@ namespace Toufuku.Playtest
         public override string ToString() => Describe();
     }
 
-    /// <summary>
-    /// 割合の 95% 信頼区間（ウィルソン得点区間）— Issue #50
-    ///
-    /// T0-CD は「誤発射 ≤2%」のように 0 に近い割合を見るので、
-    /// 正規近似（p ± z√(p(1-p)/n)）だと 0 件のとき区間が 0 幅になってしまい使えない。
-    /// ウィルソン区間は 0 件でも上限が出るので、「0 件だったが母数がいくつまでなら言い切れるか」が残せる。
-    ///
-    /// 例: 0/200 → 上限 1.9%（2% 以下と言える）／0/50 → 上限 7.1%（母数が足りず言い切れない）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        わりあいの 95% 信頼区間（ウィルソンの得点区間）を出すクラス（#50）
+
+        T0-CD は「まちがい発射 2%以下」みたいに 0 に近いわりあいを見るので、
+        ふつうの正規分布での近似（p ± z√(p(1-p)/n)）だと 0件のときに区間のはばが 0 になってしまって使えない
+        ウィルソンの区間なら 0件でも上限が出るので、「0件だったけど、わる数がいくつあれば言いきれるか」が残せる
+
+        例: 0/200 → 上限 1.9%（2%以下と言える）、0/50 → 上限 7.1%（わる数が足りなくて言いきれない）
+        MonoBehaviour は使っていない
+    */
     public static class WilsonInterval
     {
-        /// <summary>95% 両側の z 値。</summary>
+        // 95% 両側の z の値
         public const double Z95 = 1.959963984540054;
 
         public static RateWithInterval Of(int count, int total, double z = Z95)

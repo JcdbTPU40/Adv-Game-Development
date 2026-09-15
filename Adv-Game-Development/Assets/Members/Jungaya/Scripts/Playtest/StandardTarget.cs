@@ -3,14 +3,14 @@ using Toufuku.Aim;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T0-A/B の標準ターゲット — Issue #49（仕様書 v8 17章）
-    ///
-    /// 参拝客も得点も置かない検証シーンで「同じ的・同じ判定」を担う。
-    /// ・当たり判定は <see cref="HitZoneTarget"/> そのまま（本番と同じ判定半径・同じゾーン分け）。
-    /// ・当たったら短く光るだけ。光り方は案A・案B で同じにする（比べるのは 3 つの時刻差だけ）。
-    /// ・救済も得点も無いので、当たっても命中SE（根音）が鳴るだけで福の連なりは増えない。
-    /// </summary>
+    /*
+        T0-A/B で使うふつうの的（#49 / 企画書 v8 17章）
+
+        客も得点も置かない検証のシーンで「同じ的・同じ判定」にするためのクラス
+        ・当たり判定は HitZoneTarget をそのまま使う（本番と同じ判定半径・同じゾーンの分け方）
+        ・当たったら短く光るだけ。光り方は案Aも案Bも同じにする（くらべるのは3つの時間差だけ）
+        ・救済も得点もないので、当たっても命中音（根音）が鳴るだけで福の連なりは増えない
+    */
     [RequireComponent(typeof(HitZoneTarget))]
     public class StandardTarget : MonoBehaviour
     {
@@ -29,7 +29,7 @@ namespace Toufuku.Playtest
         float _flashUntil;
         bool _flashing;
 
-        /// <summary>この的に当たった回数（確認用）。</summary>
+        // この的に当たった回数（確認用）
         public int HitCount { get; private set; }
 
         void Awake()

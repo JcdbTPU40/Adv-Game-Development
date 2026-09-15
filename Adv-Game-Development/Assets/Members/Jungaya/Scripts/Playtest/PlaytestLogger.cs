@@ -10,18 +10,18 @@ using Toufuku.Rescue.Mock;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 計測ログ基盤 — Issue #63（仕様書 v8 17章）
-    ///
-    /// ・シーンに 1 つ置く。起動時にシードを決めて <see cref="PlaytestRandom"/> を制御し、スポーン・配置を再現できるようにする。
-    /// ・<see cref="GameSession"/> のプレイ開始から終了までのイベントを集め、終了した瞬間に CSV を 2 本自動保存する。
-    ///   - <c>…_events.csv</c> : 1 イベント 1 行（時刻・種別・対象ID・色・命中精度・得点・倍率・優先対象ID・入力時刻／Unity受信／発射確定）
-    ///   - <c>…_summary.csv</c>: T1・T2・T3 の判定に使う数値（<see cref="PlaytestMetrics"/>）
-    /// ・ファイル名とヘッダーにテストID・日付・ビルド番号・シード値、ヘッダーにパラメータ（主要コンポーネントの設定値）を入れる。
-    /// ・既存の処理は変えず、公開イベントを購読するだけ（発射 = ThrowInputController.SwingAccepted、命中 = OmamoriHitResolver.HitResolved、
-    ///   着弾 = OmamoriProjectile.Landed、結末 = CustomerState.AnyFinished、評価 = ShrineRating.onRatingChanged）。
-    /// ・シードはほかのスポーン処理より先に決めるため、実行順を最も早くしている。
-    /// </summary>
+    /*
+        計測ログのしくみの本体（#63 / 企画書 v8 17章）
+
+        ・シーンに1つ置く。起動したときにシードを決めて PlaytestRandom を管理して、客の出方やならびを同じにできるようにする
+        ・GameSession のプレイ開始から終わりまでのイベントを集めて、終わった瞬間に CSV を2つ自動で保存する
+          - …_events.csv: 1イベント1行（時刻・種類・相手ID・色・命中精度・得点・倍率・優先相手ID・入力時刻／Unity が受け取った時刻／発射が決まった時刻）
+          - …_summary.csv: T1・T2・T3 の判定に使う数字（PlaytestMetrics）
+        ・ファイル名とヘッダーにテストID・日付・ビルド番号・シード値、ヘッダーにパラメータ（大事なコンポーネントの設定値）を入れる
+        ・もとからある処理は変えないで、公開されているイベントを受け取るだけ（発射 = ThrowInputController.SwingAccepted、当たり = OmamoriHitResolver.HitResolved、
+          着弾 = OmamoriProjectile.Landed、結果 = CustomerState.AnyFinished、評価 = ShrineRating.onRatingChanged）
+        ・シードはほかの出現の処理より先に決めたいので、動く順番をいちばん早くしている
+    */
     [DefaultExecutionOrder(-300)]
     public class PlaytestLogger : MonoBehaviour
     {
@@ -49,7 +49,7 @@ namespace Toufuku.Playtest
         [SerializeField] bool showHud = true;
         [SerializeField] bool logSaves = true;
 
-        /// <summary>保存した（引数: イベント CSV のパス, 集計 CSV のパス）。</summary>
+        // 保存した（引数: イベントの CSV のパス, 集計の CSV のパス）
         public event Action<string, string> Saved;
 
         static readonly Type[] s_defaultParameterTypes =
@@ -102,10 +102,10 @@ namespace Toufuku.Playtest
         public string LastSavedEventsPath { get; private set; }
         public string LastSavedSummaryPath { get; private set; }
 
-        /// <summary>ファイル名・ヘッダーに入れるビルド番号（未設定なら Application.version）。</summary>
+        // ファイル名とヘッダーに入れるビルド番号（決まっていなければ Application.version）
         public string BuildLabel => string.IsNullOrWhiteSpace(_meta?.buildNumber) ? Application.version : _meta.buildNumber;
 
-        // ---- ライフサイクル ----
+        // ---- 始まりと毎フレームの処理 ----
 
         void Awake()
         {
@@ -174,14 +174,15 @@ namespace Toufuku.Playtest
             GameSession session = GameSession.Instance;
             if (session == null)
             {
-                // セッション管理の無いシーンでは起動からアプリ終了までを 1 プレイとして記録する
+                // ゲームの管理がないシーンでは、起動してからアプリが終わるまでを1プレイとして記録する
                 if (!_recording && !_hasPlayed) BeginPlay();
             }
             else if (!_recording && session.IsPlaying)
             {
                 BeginPlay();
             }
-            else if (_recording && !session.IsPlaying)
+            // #61: 3:00 のあとの解決中（受理済みの弾の着弾）も同じプレイとして記録して、スコアを固定したら閉じる
+            else if (_recording && !session.IsPlaying && !session.IsResolving)
             {
                 EndPlay(completed: session.IsFinished);
             }
@@ -201,7 +202,7 @@ namespace Toufuku.Playtest
             FlushPendingSpawns();
         }
 
-        // ---- プレイの開始・終了 ----
+        // ---- プレイの開始と終わり ----
 
         void BeginPlay()
         {
@@ -209,7 +210,7 @@ namespace Toufuku.Playtest
 
             if (_hasPlayed)
             {
-                // リトライ: ID を 1 から振り直し、同じシード（RandomEachPlay なら新しいシード）で同じ列を使う
+                // リトライ: IDを1から付けなおして、同じシード（RandomEachPlay なら新しいシード）で同じ乱数を使う
                 if (_meta.seedMode == PlaytestSeedMode.RandomEachPlay) _seed = PlaytestRandom.NewSeed();
                 PlaytestRandom.Control(_seed);
                 CustomerSpawnId.ResetSequence();
@@ -273,7 +274,7 @@ namespace Toufuku.Playtest
                 Save(completed, end);
         }
 
-        /// <summary>セッション開始からの秒。セッションが無い・破棄済みなら realtime から進める。</summary>
+        // ゲームが始まってからの秒。ゲームの管理がない・消えているときは realtime から進める
         double CurrentT()
         {
             GameSession session = GameSession.Instance;
@@ -284,7 +285,7 @@ namespace Toufuku.Playtest
 
         // ---- 記録 ----
 
-        /// <summary>外部（<see cref="PlaytestLog"/>）からの記録。時刻・フレームはここで入れる。</summary>
+        // 外（PlaytestLog）からの記録。時刻とフレームはここで入れる
         public void Record(PlaytestEvent e)
         {
             if (!_recording || e == null) return;
@@ -308,7 +309,7 @@ namespace Toufuku.Playtest
             _events.Add(e);
         }
 
-        // ---- シーンの結線 ----
+        // ---- シーンとつなぐ ----
 
         void HookScene()
         {
@@ -359,9 +360,9 @@ namespace Toufuku.Playtest
             }
         }
 
-        // ---- 停止（3 秒以上振らない）----
+        // ---- 止まっている（3秒以上振っていない） ----
 
-        /// <summary>振った。停止中なら停止の終わりを記録する。</summary>
+        // 振った。止まっていたら、止まっていたのが終わったことを記録する
         void NoteSwing()
         {
             double t = CurrentT();
@@ -375,7 +376,7 @@ namespace Toufuku.Playtest
             _lastSwingT = t;
         }
 
-        /// <summary>最後の振りから idleThresholdSeconds 経ったら、その時点で停止の始まりを記録する（value = 最後に振った秒）。</summary>
+        // 最後に振ってから idleThresholdSeconds たったら、その時点で止まり始めたことを記録する（value = 最後に振った秒）
         void DetectIdle()
         {
             if (_idleOpen || CurrentT() - _lastSwingT < metrics.idleThresholdSeconds) return;
@@ -412,7 +413,7 @@ namespace Toufuku.Playtest
             _lastFirePriority = priority;
             _lastFireLinked = false;
 
-            // OnusaThrower の購読がこちらより先なら、弾はもう飛んでいる
+            // OnusaThrower がこっちより先に受け取っていたら、弾はもう飛んでいる
             for (int i = 0; i < _unlinkedProjectiles.Count; i++)
             {
                 (OmamoriProjectile projectile, int frame) = _unlinkedProjectiles[i];
@@ -472,7 +473,7 @@ namespace Toufuku.Playtest
             PlaytestEvent row;
             if (result.Hit != null && _pendingHit != null && _pendingHitCustomer == result.Hit.gameObject)
             {
-                // 同じ呼び出しの中で判定し終えた命中（得点・倍率入り）を着弾の行にまとめる
+                // 同じ呼び出しの中で判定し終わった当たり（得点・倍率入り）を、着弾の行にまとめる
                 row = _pendingHit;
                 row.Type = PlaytestEventType.Landing;
                 _pendingHit = null;
@@ -506,7 +507,7 @@ namespace Toufuku.Playtest
             Add(row);
         }
 
-        // ---- 命中・結末 ----
+        // ---- 当たりと結果 ----
 
         void HandleHitResolved(OmamoriHitInfo info)
         {
@@ -555,11 +556,11 @@ namespace Toufuku.Playtest
             Add(row);
         }
 
-        // ---- 客の出現・退場 ----
+        // ---- 客が出てくる・いなくなる ----
 
         void HandleSpawned(CustomerSpawnId id)
         {
-            // 記録前（開始時の一括配置）に出た客は、記録開始時にまとめて書く
+            // 記録を始める前（最初にまとめてならべたとき）に出てきた客は、記録を始めたときにまとめて書く
             if (_recording || !_hasPlayed) _pendingSpawns.Add(id);
         }
 
@@ -575,7 +576,7 @@ namespace Toufuku.Playtest
                 FillCustomer(row, id.gameObject);
                 if (id.Destination.HasValue)
                 {
-                    // 鳥居から歩いて入る客は、生成位置ではなく立ち位置（配置）を残す
+                    // 鳥居から歩いて入ってくる客は、作った場所じゃなくて立つ場所（ならび）を残す
                     row.PosX = id.Destination.Value.x;
                     row.PosZ = id.Destination.Value.z;
                 }
@@ -596,7 +597,7 @@ namespace Toufuku.Playtest
             Add(row);
         }
 
-        /// <summary>客の ID・分類・色・黒客・位置・危険度を行に入れる。</summary>
+        // 客のID・分類・色・黒客か・位置・危険度を行に入れる
         void FillCustomer(PlaytestEvent row, GameObject customer)
         {
             if (customer == null) return;
@@ -626,7 +627,7 @@ namespace Toufuku.Playtest
             return rescue != null ? rescue.CorrectOmamori.ToString() : null;
         }
 
-        // ---- 評価・セッション ----
+        // ---- 評価とゲーム ----
 
         void HandleRatingChanged(float normalized)
         {
@@ -661,13 +662,13 @@ namespace Toufuku.Playtest
             if (_recording) Add(New(PlaytestEventType.GokagoEnd));
         }
 
-        // ---- 優先対象ID ----
+        // ---- 優先相手のID ----
 
-        /// <summary>
-        /// 発射確定の瞬間の優先対象（二重円の客）の ID。
-        /// 判定は画面に出ている二重円と同じ <see cref="PriorityRescue"/>（#55）に任せる。
-        /// ログと画面と加点が同じ 1 か所を見るので、三者が食い違わない。
-        /// </summary>
+        /*
+            発射が決まった瞬間の優先の相手（二重円の客）のID
+            判定は画面に出ている二重円と同じ PriorityRescue（#55）にまかせる
+            ログと画面とボーナスが同じ1か所を見ているので、3つがずれない
+        */
         int? CurrentPriorityTarget()
         {
             if (PlaytestLog.PriorityTargetProvider != null) return PlaytestLog.PriorityTargetProvider();
@@ -675,7 +676,7 @@ namespace Toufuku.Playtest
             return PriorityRescue.CurrentTargetId;
         }
 
-        // ---- パラメータ（1 ビルド 1 仮説の記録）----
+        // ---- パラメータ（1つのビルドで調べることは1つ、の記録） ----
 
         void CaptureParameters()
         {
@@ -711,7 +712,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>分類ごとに最初の 1 体だけ、客のバランス値（客種・初期R・D満タン秒数・判定半径）を残す。</summary>
+        // 分類ごとに最初の1人だけ、客のバランスの値（客の種類・最初のR・D が満タンになる秒数・判定半径）を残す
         void CaptureCustomerParameters(CustomerSpawnId id)
         {
             if (id == null || !_capturedCustomerCategories.Add(id.Category)) return;
@@ -788,6 +789,14 @@ namespace Toufuku.Playtest
             Put("completed", completed ? "1" : "0");
             Put("duration_sec", F(endTime));
             Put("session_total_sec", GameSession.Instance != null ? F(GameSession.Instance.TotalSeconds) : "");
+            // #65: 時計に足さなかった引っかかりの秒と、3:00境界ログ（19章。3:00 を通ってスコアを固定したプレイだけ）
+            Put("session_stalled_sec", GameSession.Instance != null ? F(GameSession.Instance.StalledSeconds) : "");
+            SessionBoundaryReport boundary = GameSession.Instance != null ? GameSession.Instance.LastBoundaryReport : null;
+            if (boundary != null && boundary.IsComplete)
+            {
+                foreach (KeyValuePair<string, string> kv in boundary.ToHeaderValues())
+                    Put("boundary." + kv.Key, kv.Value);
+            }
             Put("event_count", _events.Count.ToString(CultureInfo.InvariantCulture));
             Put("command_line", string.Join(" ", _commandLineKeys));
             Put("metrics.segment_sec", F(metrics.segmentSeconds));
@@ -799,7 +808,7 @@ namespace Toufuku.Playtest
             return h;
         }
 
-        /// <summary>保存先。Editor ではプロジェクト直下の PlaytestLogs/、ビルドでは persistentDataPath/PlaytestLogs/。</summary>
+        // 保存する場所。エディタではプロジェクトのすぐ下の PlaytestLogs/、ビルドでは persistentDataPath/PlaytestLogs/
         public string ResolveOutputFolder()
         {
             string root = Application.isEditor
