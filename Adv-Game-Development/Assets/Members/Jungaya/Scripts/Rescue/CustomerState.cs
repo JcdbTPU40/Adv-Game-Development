@@ -279,6 +279,15 @@ namespace Toufuku.Rescue
         // 危険度 D を直接決める（モックや検証のシーン用。ふつうのゲームの進み方では使わない）
         public void SetDangerForDebug(float danger) => Machine.SetDangerForDebug(danger);
 
+        // #58: D をスクリプトで決めた値に固定しているか（段階学習）
+        public bool IsDangerLocked => Machine.IsDangerLocked;
+
+        // #58: D を danger に固定する（段階学習 0:00〜0:30。時間でも伝播でも動かない・黒客にならない）
+        public void LockDanger(float danger) => Machine.LockDanger(danger);
+
+        // #58: 固定を外す。resetTo を渡したらその D から時間で進みはじめる（0:30.000 の本番開始）
+        public void UnlockDanger(float? resetTo = null) => Machine.UnlockDanger(resetTo);
+
         void Finish(CustomerPhase result)
         {
             if (result == CustomerPhase.Rescued)

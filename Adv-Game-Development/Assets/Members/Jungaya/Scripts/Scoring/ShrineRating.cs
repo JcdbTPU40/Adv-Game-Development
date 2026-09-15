@@ -77,6 +77,11 @@ public class ShrineRating : MonoBehaviour
     public float MaxRankReachedSeconds { get; private set; }
     // 評価を固定したか（3:00 の解決が終わった）
     public bool IsLocked { get; private set; }
+    /*
+        #58: 段階学習（0:00〜0:30）の練習中か。練習中は評価値・ランク・最高ランクを動かさない（18章「学習中は競技用の得点・評価・ランクを加算しない」）
+        段階学習だけが切りかえる。ふつうは false。ResetAll では変えない
+    */
+    public bool IsPractice { get; private set; }
     // ランクのしきい値
     public RankThresholds Thresholds => thresholds;
     // ランクC停滞タイマーの秒（#65 / 11章）。動的難易度を足すときはここを読む
@@ -144,7 +149,13 @@ public class ShrineRating : MonoBehaviour
         Debug.Log($"[Rating] 評価固定 : {_rating:0}/{ratingMax:0}（今のランク {_rank} / 最高ランク {MaxRank}）");
     }
 
-    // 評価を最初の値にもどす（リトライ用。GameSession #32 が呼ぶ）。固定も外す
+    // #58: 練習中にするかを切りかえる（段階学習が 0:00 に true、0:30.000 に false にする）
+    public void SetPractice(bool practice)
+    {
+        IsPractice = practice;
+    }
+
+    // 評価を最初の値にもどす（リトライ用。GameSession #32 が呼ぶ）。固定も外す。練習中かどうかは変えない
     public void ResetAll()
     {
         IsLocked = false;
@@ -164,7 +175,7 @@ public class ShrineRating : MonoBehaviour
 
     void Modify(float delta, string reason)
     {
-        if (IsLocked) return;
+        if (IsLocked || IsPractice) return;
 
         float before = _rating;
         _rating = Mathf.Clamp(_rating + delta, 0f, ratingMax);

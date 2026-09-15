@@ -66,6 +66,7 @@ int score = ScoreManager.Instance.En;   // どこからでも読める
 | `LastZone` | `HitZone` | 直近の命中ゾーン（Center/Inner/Outer/Miss） | ヒット演出の出し分け |
 | `LastGain` | `int` | 直近の獲得点（救済得点か伝播得点） | 「+300」のポップアップ |
 | `IsLocked` | `bool` | スコアを固定したか（3:00 の解決が終わった） | リザルト前の最終値かどうか |
+| `IsPractice` | `bool` | 段階学習（0:00〜0:30）の練習中か。練習中は縁・福の連なりが動かない（#58。`ShrineRating.IsPractice` も同じ） | 練習中は縁・ランクを出さない |
 
 ### 購読できるイベント（**C#イベント** — コードで `+=` する）
 
@@ -157,7 +158,12 @@ int score = ScoreManager.Instance.En;   // どこからでも読める
 | `TotalMonths` | `int` | 総月数（3） | 「2 / 3ヶ月」表示 |
 | `RemainingSeconds` | `float` | 終了までの残り秒数 | タイマー表示（※`Update()`で読んでOK） |
 | `IsHeld` / `HoldReasons` | `bool` / `SessionHoldReason` | 時計を止めているか・その理由（`Paused` アテンドの一時停止、`LinkRecovery` 通信の復帰中）（#65） | 「一時停止中」表示。止めている間は残り時間も減らない |
-| `IsLearning` | `bool` | 0:00〜0:30 の学習中か（#65。段階学習そのものは #58） | 学習中の表示 |
+| `IsLearning` | `bool` | 0:00〜0:30 の学習中か（#65） | 学習中の表示 |
+| `HasCompetitionStarted` | `bool` | このプレイで 0:30.000 を通って競技が始まったか（#58） | 縁・ランクの HUD を出してよいか |
+
+> #58: 0:30.000 に届いたフレームで C# イベント `CompetitionStarted`（引数: 学習の秒 = 30.0）が1回出ます。
+> 段階学習（`StagedLearningDirector`）はここで縁・評価・福の連なり・ランク・C停滞タイマーを 0 にもどします。
+> 段階学習の練習中は `ScoreManager.IsPractice` / `ShrineRating.IsPractice` が true で、縁と評価は動きません（HUD の `ScoreBoardHud` は練習中は隠れます）。
 
 > #65: 時計は単調増加時計です。ポーズ・通信の復帰中は `RemainingSeconds` も止まり、`Time.timeScale` が 0 になります。
 > UI のアニメは `Time.unscaledDeltaTime` で動かしてください（止めている間も表示を動かすため）。

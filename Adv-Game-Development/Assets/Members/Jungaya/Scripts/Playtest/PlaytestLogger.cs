@@ -295,6 +295,19 @@ namespace Toufuku.Playtest
             Add(e);
         }
 
+        /*
+            #58: 時刻 t（ゲームの時計の秒）を決めて記録する。段階の時間切れ（0:08.000 など）を、見つけたフレームの時刻ではなく締切の時刻で残すため
+            realtime とフレームは記録した瞬間のもの
+        */
+        public void RecordAt(PlaytestEvent e, double t)
+        {
+            if (!_recording || e == null) return;
+            e.T = t;
+            e.Realtime = Time.realtimeSinceStartupAsDouble;
+            e.Frame = Time.frameCount;
+            Add(e);
+        }
+
         PlaytestEvent New(string type)
         {
             return new PlaytestEvent(CurrentT(), type)

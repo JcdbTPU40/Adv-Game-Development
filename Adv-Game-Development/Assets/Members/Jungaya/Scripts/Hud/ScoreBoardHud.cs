@@ -12,7 +12,7 @@ namespace Toufuku.Hud
         ・縁と今のランクは、列のうしろ（画面から約7m）から読める大きさにする（13章「画面外から読める大きさ」）
           文字の大きさは画面の高さのわりあいで持つ。既定値は 50インチのモニターでも 7m 先から読める（HudLegibility と EditMode テストで確認）
         ・リザルト中（GameSession.IsFinished）は消す。3:00 のあとの解決中は出したまま（最後の弾の救済得点が入るのを見せる）
-        ・「開始30秒は縁を出さない」（7章）は #58（段階学習）でつなぐ
+        ・#58: 段階学習の練習中（ScoreManager.IsPractice）は出さない（7章「開始30秒は縁を出さない」、18章「得点・ランクは操作と危険度が理解された後に表示」）
 
         Canvas はコードで組み立てるので、シーンの空の GameObject に付けるだけで動く
         ScoreManager / ShrineRating / DailyBestRecorder のイベントを受け取って表示を変える（毎フレーム値を読みに行かない）
@@ -285,7 +285,8 @@ namespace Toufuku.Hud
         {
             if (_canvas == null) return;
             GameSession session = GameSession.Instance;
-            bool show = session == null || !session.IsFinished;
+            ScoreManager sm = ScoreManager.Instance;
+            bool show = (session == null || !session.IsFinished) && !(sm != null && sm.IsPractice);
             if (_canvas.gameObject.activeSelf == show) return;
 
             _canvas.gameObject.SetActive(show);

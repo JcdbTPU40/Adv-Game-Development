@@ -212,6 +212,29 @@ namespace Toufuku.Playtest.Tests
             Assert.AreEqual("26", Get(rows, "t1", "idle3s_total_sec"));
             Assert.AreEqual("1", Get(rows, "t1", "ghosts"));
             Assert.AreEqual("1", Get(rows, "t1", "interventions"));
+            Assert.AreEqual("1", Get(rows, "t1", "ghost_interventions"));
+            Assert.AreEqual("0", Get(rows, "t1", "staff_interventions"));
+        }
+
+        [Test]
+        public void T1はゴーストの介入とスタッフの介入を分けて_ゴーストの状況を出す()
+        {
+            var events = new List<PlaytestEvent>
+            {
+                Ev(3, PlaytestEventType.T1Ghost, e => e.Detail = "stage1_idle:swing"),
+                Ev(12, PlaytestEventType.T1Intervention, e => e.Detail = "staff"),
+                Ev(30, PlaytestEventType.T1Ghost, e => e.Detail = "after_learning:aim"),
+                Ev(30, PlaytestEventType.T1Intervention, e => e.Detail = "ghost:aim"),
+                Ev(40, PlaytestEventType.T1Intervention, e => e.Detail = "staff"),
+            };
+            List<PlaytestSummaryRow> rows = Compute(events, 60);
+
+            Assert.AreEqual("2", Get(rows, "t1", "ghosts"));
+            Assert.AreEqual("3", Get(rows, "t1", "interventions"));
+            Assert.AreEqual("1", Get(rows, "t1", "ghost_interventions"));
+            Assert.AreEqual("2", Get(rows, "t1", "staff_interventions"));
+            Assert.AreEqual("1", Get(rows, "t1", "stage1_idle_ghosts"));
+            Assert.AreEqual("aim", Get(rows, "t1", "after_learning_ghost"));
         }
 
         [Test]
