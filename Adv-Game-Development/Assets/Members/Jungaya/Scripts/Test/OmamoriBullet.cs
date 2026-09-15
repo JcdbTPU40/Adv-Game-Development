@@ -3,13 +3,13 @@ using Toufuku.Rescue;
 
 public class OmamoriBullet : MonoBehaviour
 {
-    // このお守りのタイプ。選択ボタン(#9)で弾を生成するときに SetType でセットする想定。
-    // インスペクタからもテスト用に設定できるように SerializeField にしておく。
+    /*
+        このお守りのタイプ。選ぶボタン（#9）で弾を作るときに SetType で入れるつもり
+        インスペクターからもテスト用に設定できるように SerializeField にしておく
+    */
     [SerializeField] private OmamoriType type = OmamoriType.Kenkou;
     [SerializeField] Shoot shoot;
-    /// <summary>
-    /// 弾生成時にお守りタイプを差し込む用（#9 の発射側から呼ぶ）。
-    /// </summary>
+    // 弾を作るときにお守りのタイプを入れる用（#9 の発射する側から呼ぶ）
     public void SetType(OmamoriType t)
     {
         type = t;
@@ -20,19 +20,21 @@ public class OmamoriBullet : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Customer"))
         {
-            // 当たった位置から命中ゾーン（中心/中/外）を判定
+            // 当たった位置から命中ゾーン（中心/中/外）を判定する
             Vector3 hitPoint = collision.GetContact(0).point;
             HitZoneTarget target = collision.gameObject.GetComponent<HitZoneTarget>();
             HitZone zone = target != null ? target.EvaluateZone(hitPoint) : HitZone.Inner;
 
-            // 救済判定(#13) → スコア。#60 の着弾点判定（OmamoriProjectile）と共通の処理。
-            // 客の退場（救済成功/失敗）は CustomerRescue が管理するので、ここでは破棄しない。
+            /*
+                救済の判定（#13）→ スコア。#60 の着弾点の判定（OmamoriProjectile）と同じ処理
+                客が帰る（救えた/失敗）のは CustomerRescue が管理しているので、ここでは消さない
+            */
             OmamoriHitResolver.ApplyHit(collision.gameObject, type, zone);
-            Destroy(gameObject); // 通常弾は単体ヒット → 当たったら消す
+            Destroy(gameObject); // ふつうの弾は1人に当たる → 当たったら消す
         }
         else
         {
-            // 客以外（地面・壁など）に当たった＝外し → コンボ途切れ
+            // 客以外（地面やかべなど）に当たった＝外れ → コンボが切れる
             OmamoriHitResolver.ApplyMiss();
             Destroy(gameObject);
         }

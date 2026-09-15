@@ -3,19 +3,19 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>意図的 100 投の突き合わせ結果。</summary>
+    // わざと100投を照らし合わせた結果
     public readonly struct UsbIntentResult
     {
         public readonly int Cues;
         public readonly int Voided;
-        /// <summary>意図した投擲の数（合図 − 無効にした合図）。欠落率・誤発射率の分母。</summary>
+        // 振ろうとした投げの数（合図 − なしにした合図）。抜けのわりあいとまちがい発射のわりあいのわる数
         public readonly int Intended;
         public readonly int Matched;
-        /// <summary>合図に応える発射が無かった（意図的入力の欠落）。</summary>
+        // 合図に反応した発射がなかった（わざと入力したのに抜けた）
         public readonly int Missed;
-        /// <summary>どの合図にも当たらない発射、または 1 つの合図への 2 発目以降（誤発射）。</summary>
+        // どの合図にも合わない発射、または1つの合図への2発目から（まちがい発射）
         public readonly int Extra;
-        /// <summary>無効にした合図の窓に入った発射（どちらにも数えない）。</summary>
+        // なしにした合図の時間のはんいに入った発射（どっちにも数えない）
         public readonly int IgnoredInVoid;
 
         public UsbIntentResult(int cues, int voided, int matched, int extra, int ignoredInVoid)
@@ -33,21 +33,23 @@ namespace Toufuku.Playtest
         public double? FalseFireRate => Intended > 0 ? (double)Extra / Intended : (double?)null;
     }
 
-    /// <summary>
-    /// 合図と発射を突き合わせて、意図的入力の欠落と誤発射を数える — Issue #52（T6-USB 意図的 100 投）
-    ///
-    /// 「意図」の正本は画面と音の合図。合図 k の窓 = [合図 − before, 合図 + after]。
-    /// ・発射は、窓に入っている合図のうち時刻がいちばん近いものへの応答とみなす。
-    /// ・その合図がすでに応答済みなら 2 発目以降 = 誤発射。どの窓にも入らない発射も誤発射（振り上げなどで出た弾）。
-    /// ・応答の無い合図 = 欠落。
-    /// ・実施者が「振らなかった」と無効にした合図は分母から外し、その窓に入った発射はどちらにも数えない。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        合図と発射を照らし合わせて、わざと入力したのに抜けたのと、まちがい発射を数えるクラス（#52。T6-USB のわざと100投）
+
+        「振ろうとした」の正しい基準は画面と音の合図。合図 k のはんい = [合図 − before, 合図 + after]
+        ・発射は、はんいに入っている合図のうち、時刻がいちばん近いものへの反応とする
+        ・その合図にもう反応していたら、2発目からはまちがい発射。どのはんいにも入らない発射もまちがい発射（振り上げたときに出た弾とか）
+        ・反応がない合図は抜け
+        ・やる人が「振らなかった」となしにした合図はわる数から外して、そのはんいに入った発射はどっちにも数えない
+        MonoBehaviour は使っていない
+    */
     public static class UsbIntentMatcher
     {
-        /// <param name="cueTimes">合図の秒（昇順）</param>
-        /// <param name="voidedCueIndices">無効にした合図の番号（0 始まり）</param>
-        /// <param name="fireTimes">発射確定の秒（同じ時間軸）</param>
+        /*
+            cueTimes: 合図の秒（小さい順）
+            voidedCueIndices: なしにした合図の番号（0から）
+            fireTimes: 発射が決まった秒（同じ時間のものさし）
+        */
         public static UsbIntentResult Match(IReadOnlyList<double> cueTimes, ICollection<int> voidedCueIndices,
             IReadOnlyList<double> fireTimes,
             double before = UsbGatePlan.CueWindowBeforeSeconds, double after = UsbGatePlan.CueWindowAfterSeconds)
@@ -82,7 +84,7 @@ namespace Toufuku.Playtest
             return new UsbIntentResult(cueCount, voided, matchedCount, extra, ignored);
         }
 
-        /// <summary>時刻 t を窓に含む合図のうち、いちばん近いものの番号。無ければ -1。</summary>
+        // 時刻 t をはんいに入れている合図のうち、いちばん近いものの番号。なければ -1
         public static int NearestCueInWindow(IReadOnlyList<double> cueTimes, double t, double before, double after)
         {
             if (cueTimes == null) return -1;

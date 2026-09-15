@@ -6,26 +6,26 @@ using Toufuku.Playtest;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 客の足元の円（危険円＋二重円）— Issue #55（仕様書 v8 6章／13章 観戦要件／付録B UI.DANGER・PRIORITY.MARK）
-    ///
-    /// ・危険円 … 危険度 D が 50 以上で出て、D が上がるほど濃く・太くなる。85 から明るさが脈打つ。
-    /// ・二重円 … 優先救済の対象 1 人に出る細い 2 本の輪。<b>D&lt;50 でも出す</b>（付録B PRIORITY.MARK：D 閾値なし）。
-    ///            ゆっくり呼吸するように広がる（危険円と意味が混ざらないよう、動かすのは明るさではなく半径）。
-    ///
-    /// 見せ方の根拠:
-    ///   ・輪郭＝種類／足元＝危険度／頭上＝残り発数 のチャネル分離（v8 6章）を崩さないよう、色は
-    ///     危険円＝赤系、二重円＝金系に固定する。お守りの 5 色とは別系統の色にして読み違えを防ぐ。
-    ///   ・待機列から見える必要がある（13章）ので、線幅はカメラからの距離で割り増しして、
-    ///     遠くの客でも髪の毛のように細くならないようにする。
-    ///
-    /// 置き方: 客 1 人に 1 つ。<see cref="GroundRingDirector"/> をシーンに 1 つ置けば、
-    ///         いま居る客と後から湧く客の両方へ自動で付く（プレハブへ手で付けてもよい）。
-    /// </summary>
+    /*
+        客の足元の円（危険円＋二重円）（#55 / 企画書 v8 6章、13章 観戦要件、付録B UI.DANGER・PRIORITY.MARK）
+
+        ・危険円: 危険度 D が 50 以上で出て、D が上がるほど濃く太くなる。85 から明るさがドクドクする
+        ・二重円: 優先救済の相手1人に出る、細い2本の輪。D が 50 より小さくても出す（付録B PRIORITY.MARK: D のしきい値なし）
+                  ゆっくり息をするように広がる（危険円と意味がまざらないように、動かすのは明るさじゃなくて半径）
+
+        こういう見せ方にした理由:
+          ・輪郭 = 種類、足元 = 危険度、頭の上 = 残りの発数、という分け方（v8 6章）をくずさないように、色は
+            危険円 = 赤っぽい色、二重円 = 金っぽい色で固定する。お守りの5色とは別の色にして読みまちがえないようにする
+          ・待っている列から見える必要がある（13章）ので、線のはばはカメラからの距離で太くして、
+            遠くの客でも髪の毛みたいに細くならないようにする
+
+        置き方: 客1人に1つ。GroundRingDirector をシーンに1つ置けば、
+                今いる客にもあとから出てくる客にも自動で付く（プレハブに手で付けてもいい）
+    */
     [DisallowMultipleComponent]
     public class CustomerGroundRing : MonoBehaviour
     {
-        /// <summary>見た目の設定。シーンで 1 か所（GroundRingDirector）にまとめて調整できるよう切り出す。</summary>
+        // 見た目の設定。シーンの1か所（GroundRingDirector）でまとめて調整できるように分けてある
         [Serializable]
         public class Style
         {
@@ -91,11 +91,11 @@ namespace Toufuku.Rescue
         int _id;
         bool _lastPriority;
 
-        /// <summary>この客の生成ID（優先対象の照合に使う ID と同じもの）。</summary>
+        // この客の生成ID（優先の相手と照らし合わせるときに使うIDと同じ）
         public int CustomerId => _id;
-        /// <summary>いま危険円が見えているか（確認・テスト用）。</summary>
+        // 今危険円が見えているかどうか（確認・テスト用）
         public bool DangerRingVisible => _danger != null && _danger.enabled;
-        /// <summary>いま二重円が見えているか（確認・テスト用）。</summary>
+        // 今二重円が見えているかどうか（確認・テスト用）
         public bool PriorityRingVisible => _priorityOuter != null && _priorityOuter.enabled;
 
         void Awake()
@@ -107,7 +107,7 @@ namespace Toufuku.Rescue
 
         void OnEnable()
         {
-            // ID はスポーン側が振る。振られていなければここで確定させる（優先対象の照合に必ず ID が要る）。
+            // IDは出す側が付ける。付いていなければここで決める（優先の相手と照らし合わせるのに必ずIDがいる）
             _id = CustomerSpawnId.Of(gameObject);
         }
 
@@ -115,7 +115,7 @@ namespace Toufuku.Rescue
         {
             if (_state == null || _root == null) return;
 
-            // 足元へ置き直す（客が歩いても円は地面に水平のまま付いていく）。
+            // 足元に置きなおす（客が歩いても、円は地面に水平なままついていく）
             _root.position = FeetPosition();
             _root.rotation = Quaternion.identity;
 
@@ -135,7 +135,7 @@ namespace Toufuku.Rescue
             float amount = DangerRingDisplay.DangerAmount01(danger);
             Color color = Color.Lerp(style.dangerNearColor, style.dangerFarColor, amount);
 
-            // D≥85 は明るさを脈打たせる（付録B UI.DANGER）。半径は動かさない。
+            // D が 85 以上なら明るさをドクドクさせる（付録B UI.DANGER）。半径は動かさない
             if (DangerRingDisplay.Pulses(danger))
             {
                 float pulse = DangerRingDisplay.PulseAmount01(danger, Time.time, style.dangerPulsePerSecond);
@@ -162,7 +162,7 @@ namespace Toufuku.Rescue
 
             if (!show) return;
 
-            // 呼吸（半径）。危険円の脈打ち（明るさ）と動かす軸を分けて、2 つの意味が混ざらないようにする。
+            // 息をするように半径を変える。危険円のドクドク（明るさ）と動かすものを分けて、2つの意味がまざらないようにする
             float breath = style.priorityBreathPerSecond > 0f
                 ? 0.5f + 0.5f * Mathf.Sin(Time.time * style.priorityBreathPerSecond * Mathf.PI * 2f)
                 : 1f;
@@ -173,19 +173,19 @@ namespace Toufuku.Rescue
             _outerRadius = SetRing(_priorityOuter, _outerRadius, r * style.priorityOuterRadiusScale * grow, style.priorityWidth, style.priorityColor);
         }
 
-        /// <summary>見た目の設定を差し替える（GroundRingDirector がシーン全体へ配る）。</summary>
+        // 見た目の設定を入れかえる（GroundRingDirector がシーン全体に配る）
         public void SetStyle(Style next)
         {
             if (next == null) return;
             style = next;
 
-            // 分割数が変わっているかもしれないので、次の更新で張り直させる。
+            // 分ける数が変わっているかもしれないので、次の更新で作りなおさせる
             _dangerRadius = -1f;
             _innerRadius = -1f;
             _outerRadius = -1f;
         }
 
-        /// <summary>この客に足元の円を付ける（すでに付いていればそれを返す）。</summary>
+        // この客に足元の円を付ける（もう付いていたらそれを返す）
         public static CustomerGroundRing EnsureOn(GameObject customer, Style style = null)
         {
             if (customer == null) return null;
@@ -203,7 +203,7 @@ namespace Toufuku.Rescue
 
         Vector3 FeetPosition()
         {
-            // 判定の中心は胴の高さにあることがあるので、水平位置だけ借りて足元の高さへ落とす。
+            // 判定の中心は胴の高さにあることがあるので、水平の位置だけ使って足元の高さに下ろす
             Vector3 center = _zone != null ? _zone.Center : transform.position;
             return new Vector3(center.x, transform.position.y + style.groundOffset, center.z);
         }
@@ -227,7 +227,7 @@ namespace Toufuku.Rescue
             LineRenderer lr = go.AddComponent<LineRenderer>();
             lr.useWorldSpace = false;
             lr.loop = true;
-            lr.alignment = LineAlignment.TransformZ;   // 地面に寝かせる（カメラへ向けない）
+            lr.alignment = LineAlignment.TransformZ;   // 地面に寝かせる（カメラのほうに向けない）
             lr.textureMode = LineTextureMode.Stretch;
             lr.shadowCastingMode = ShadowCastingMode.Off;
             lr.receiveShadows = false;
@@ -242,10 +242,10 @@ namespace Toufuku.Rescue
             return lr;
         }
 
-        /// <summary>
-        /// 輪を更新して、張り直した半径を返す。
-        /// 半径は点の座標そのもので与える（transform を拡大すると線幅まで一緒に伸びてしまうため）。
-        /// </summary>
+        /*
+            輪を更新して、作りなおした半径を返す
+            半径は点の座標そのもので決める（transform を大きくすると線のはばまでいっしょにのびてしまうから）
+        */
         float SetRing(LineRenderer lr, float builtRadius, float radius, float width, Color color)
         {
             float r = Mathf.Max(0.0001f, radius);
@@ -258,7 +258,7 @@ namespace Toufuku.Rescue
             return r;
         }
 
-        /// <summary>半径 r の円をローカル XY 平面に張る（この子は X+90 度回してあるので地面に寝る）。</summary>
+        // 半径 r の円を、ローカルの XY 平面に作る（この子オブジェクトは X に 90 度回してあるので地面に寝る）
         void BuildCircle(LineRenderer lr, float r)
         {
             int segments = Mathf.Clamp(style.segments, 12, 128);
@@ -270,7 +270,7 @@ namespace Toufuku.Rescue
             }
         }
 
-        /// <summary>遠くの客でも線が消えないように、カメラからの距離で太さを割り増しする（13章 観戦要件）。</summary>
+        // 遠くの客でも線が消えないように、カメラからの距離で太さを増やす（13章 観戦要件）
         float WidthScale()
         {
             if (_camera == null) _camera = Camera.main;

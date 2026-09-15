@@ -4,30 +4,30 @@ using UnityEngine.Events;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 参拝客の状態（危険度 D ／ 残り必要発数 R）の所有者 — Issue #54（旧 CustomerMood / #11 の不満ゲージを置き換え）
-    ///
-    /// 仕様（企画書 v8 6章「コアメカニクス ── 救済と輪郭発光」／付録B B-1）:
-    ///   ・状態は<b>2変数</b>で管理する。同じゲージとして増減させない（v8変更点1）。
-    ///       危険度 D（0〜100） … 残り時間。activeの間だけ時間で増え、100で黒客化。
-    ///       残り必要発数 R（1〜3）… 救済までの手数。正色命中で1減り、0で救済完了。
-    ///   ・誤色命中は D も R も変えない（v8変更点2）。福の連なり C とご加護進捗 G だけを切る。
-    ///   ・笑顔の伝播を受けると D を5減らす。対象は active・未救済・非黒客・R&gt;0 だけ。
-    ///   ・rescued / black は終端状態。退場中に再び active へ戻さない。
-    ///
-    /// 遷移そのものは MonoBehaviour 非依存の <see cref="CustomerStateMachine"/> が持ち、
-    /// ここは Unity 側の入れ物（時間を進める／イベントを配る／当たり判定と退場を扱う）に徹する。
-    ///
-    /// 同時刻の解決順（v8 6章）:
-    ///   Update で D を進め、LateUpdate で黒客化を確定する。こうするとフレーム内で着弾した
-    ///   正色命中・笑顔の伝播が先に解決され、「間一髪の救済」が一意に優先される。
-    ///
-    /// 役割分担:
-    ///   ・相性◯/✗の判定と正解お守りの保持は <see cref="CustomerRescue"/>。命中時にここの
-    ///     <see cref="ApplyCorrectColorHit"/> / <see cref="ApplyWrongColorHit"/> を呼ぶ。
-    ///   ・得点（救済完了時の基礎点）は ScoreManager、評価は ShrineRatingHook が各イベントから行う。
-    ///   ・数値（初期R・D満タン秒数・基礎点・評価増減）は <see cref="CustomerKindTable"/>（付録B B-1）が正本。
-    /// </summary>
+    /*
+        客の状態（危険度 D と、残りの必要な発数 R）を持っているクラス（#54。前の CustomerMood / #11 の不満ゲージのかわり）
+
+        仕様（企画書 v8 6章「コアメカニクス ── 救済と輪郭発光」、付録B B-1）:
+          ・状態は2つの変数で管理する。1本のゲージとして増やしたり減らしたりしない（v8 の変更点1）
+              危険度 D（0〜100）: 残り時間。active の間だけ時間で増えて、100 で黒客になる
+              残りの必要な発数 R（1〜3）: 救うまでの手数。正しい色で当たると1減って、0 で救えた
+          ・まちがった色で当たっても D も R も変えない（v8 の変更点2）。福の連なり C とご加護の進み G だけを切る
+          ・笑顔が伝わってきたら D を5減らす。対象は active・まだ救われていない・黒客じゃない・R>0 の客だけ
+          ・rescued と black は終わりの状態。帰っている途中にまた active にもどしたりしない
+
+        状態の変わり方そのものは MonoBehaviour を使わない CustomerStateMachine が持っていて、
+        ここは Unity 側の入れ物（時間を進める・イベントを配る・当たり判定と帰るのをあつかう）に集中する
+
+        同じ時刻に起きたときの順番（v8 6章）:
+          Update で D を進めて、LateUpdate で黒客になるのを決める。こうすると、そのフレームの中で当たった
+          正しい色と笑顔の伝わりが先に処理されるので、「ギリギリで救えた」がちゃんと優先される
+
+        役割分担:
+          ・相性◯/✗の判定と正解のお守りを持つのは CustomerRescue。当たったときにここの
+            ApplyCorrectColorHit / ApplyWrongColorHit を呼ぶ
+          ・得点（救えたときの基礎点）は ScoreManager、評価は ShrineRatingHook がそれぞれのイベントから入れる
+          ・数値（最初のR・D が満タンになる秒数・基礎点・評価の増減）は CustomerKindTable（付録B B-1）が正しい
+    */
     [DisallowMultipleComponent]
     public class CustomerState : MonoBehaviour
     {
@@ -86,16 +86,16 @@ namespace Toufuku.Rescue
         [Tooltip("救済完了で光る演出のトリガ。")]
         public UnityEvent onGlow;
 
-        /// <summary>どの客でも終端（救済成功 / 黒客化）が確定したら発火する（#64 失敗SE・#63 計測ログなど、客ごとに結線しない購読者用）。</summary>
+        // どの客でも終わり（救えた / 黒客になった）が決まったら呼ばれる（#64 の失敗の音や #63 の計測ログなど、客ごとにつながない受け取り手用）
         public static event System.Action<CustomerState, CustomerPhase> AnyFinished;
 
         CustomerStateMachine _machine;
         CustomerKindEntry _entry;
 
-        /// <summary>
-        /// 遷移の本体。読み取り専用で使う（値を変えるのはこのコンポーネント経由）。
-        /// Awake 前や、エディタ上（Awake が呼ばれない）で触られても落ちないよう、必要なら遅延生成する。
-        /// </summary>
+        /*
+            状態の変わり方の本体。読むだけで使う（値を変えるのはこのコンポーネントを通す）
+            Awake の前や、エディタの上（Awake が呼ばれない）でさわられても落ちないように、必要ならあとから作る
+        */
         public CustomerStateMachine Machine
         {
             get
@@ -105,42 +105,42 @@ namespace Toufuku.Rescue
             }
         }
 
-        /// <summary>この客の客種。</summary>
+        // この客の種類
         public CustomerKind Kind => customerKind;
-        /// <summary>現在の状態。</summary>
+        // 今の状態
         public CustomerPhase Phase => Machine.Phase;
-        /// <summary>危険度 D（0〜100）。</summary>
+        // 危険度 D（0〜100）
         public float Danger => Machine.Danger;
-        /// <summary>危険度 D の 0〜1 正規化（HUD用）。</summary>
+        // 危険度 D を 0〜1 に直したもの（HUD 用）
         public float DangerNormalized => Machine.DangerNormalized;
-        /// <summary>残り必要発数 R。</summary>
+        // 残りの必要な発数 R
         public int Remaining => Machine.Remaining;
-        /// <summary>救済待ち（active）。</summary>
+        // 救われるのを待っている（active）
         public bool IsActive => Machine.IsActive;
-        /// <summary>救済成功。</summary>
+        // 救えた
         public bool IsRescued => Machine.IsRescued;
-        /// <summary>黒客（救済失敗）。</summary>
+        // 黒客（救えなかった）
         public bool IsBlack => Machine.IsBlack;
-        /// <summary>終端状態（救済成功 or 黒客）。判定対象外。</summary>
+        // 終わりの状態（救えた、または黒客）。判定しない
         public bool IsFinished => Machine.IsFinished;
-        /// <summary>笑顔の伝播・優先救済（二重円）の対象になれるか（active・未救済・非黒客・R&gt;0）。</summary>
+        // 笑顔の伝わりや優先救済（二重円）の対象になれるか（active・まだ救われていない・黒客じゃない・R>0）
         public bool IsRescueTarget => Machine.IsRescueTarget;
-        /// <summary>
-        /// active になった時刻（<see cref="Time.time"/> 秒）。優先救済の同値順「active 化が早い方」で使う（#55）。
-        /// 入場中（まだ定位置に着いていない）は 0。
-        /// </summary>
+        /*
+            active になった時刻（Time.time の秒）。優先救済で同じ値のときの順番「active になったのが早いほう」で使う（#55）
+            入ってくる途中（まだ定位置に着いていない）は 0
+        */
         public float ActiveSinceTime { get; private set; }
 
-        /// <summary>救済完了（R=0）時の基礎点（付録B B-1）。途中命中では入らない。</summary>
+        // 救えた（R=0）ときの基礎点（付録B B-1）。とちゅうで当たったときは入らない
         public int RescueBaseScore => _entry != null ? _entry.rescueBaseScore : fallbackRescueBaseScore;
-        /// <summary>救済成功時の神社評価の増分（付録B B-1）。</summary>
+        // 救えたときに神社の評価が増える量（付録B B-1）
         public int RatingGainOnRescue => _entry != null ? _entry.ratingGainOnRescue : 10;
-        /// <summary>黒客化時の神社評価の減分（正の値。付録B B-1）。</summary>
+        // 黒客になったときに神社の評価が減る量（プラスの値。付録B B-1）
         public int RatingLossOnBlack => _entry != null ? _entry.ratingLossOnBlack : 20;
-        /// <summary>
-        /// 終端状態から退場（Destroy）までの秒数（付録B EXIT.TIMING：救済3秒／黒客4秒）。
-        /// 退場歩行（#62 <see cref="CustomerMotion"/>）はこの秒数で出口まで歩き切る。
-        /// </summary>
+        /*
+            終わりの状態から帰る（Destroy）までの秒数（付録B EXIT.TIMING: 救済3秒、黒客4秒）
+            歩いて帰る（#62 CustomerMotion）ときはこの秒数で出口まで歩ききる
+        */
         public float ExitSecondsFor(CustomerPhase phase) =>
             phase == CustomerPhase.Black ? blackExitSeconds : rescuedExitSeconds;
 
@@ -156,12 +156,12 @@ namespace Toufuku.Rescue
             onPhaseChanged?.Invoke(Phase);
         }
 
-        /// <summary>
-        /// 客種と数値表を差し込む（スポーン側から生成直後に呼ぶ）。D・R は差し込んだ客種で作り直す。
-        /// </summary>
-        /// <param name="kind">客種。</param>
-        /// <param name="table">数値表（付録B B-1）。null ならこのコンポーネントの設定を使う。</param>
-        /// <param name="dangerSecondsRandom">D満タン秒数に幅がある客種（通常客 15〜25秒）で使う 0〜1 の乱数。</param>
+        /*
+            客の種類と数値の表を入れる（出す側が作った直後に呼ぶ）。D と R は入れた種類で作りなおす
+            kind: 客の種類
+            table: 数値の表（付録B B-1）。null ならこのコンポーネントの設定を使う
+            dangerSecondsRandom: D が満タンになる秒数にはばがある種類（通常客は 15〜25秒）で使う 0〜1 の乱数
+        */
         public void Setup(CustomerKind kind, CustomerKindTable table = null, float dangerSecondsRandom = 0.5f)
         {
             customerKind = kind;
@@ -179,7 +179,7 @@ namespace Toufuku.Rescue
 
             int initialRemaining = _entry != null ? _entry.initialRemaining : fallbackInitialRemaining;
             float fullSeconds = dangerFullSecondsOverride > 0f
-                ? dangerFullSecondsOverride                                   // 検証シーン用の上書き
+                ? dangerFullSecondsOverride                                   // 検証のシーン用に上書きする値
                 : (_entry != null
                     ? _entry.PickDangerFullSeconds(dangerSecondsRandom ?? 0.5f)
                     : fallbackDangerFullSeconds);
@@ -189,11 +189,11 @@ namespace Toufuku.Rescue
             _machine.RemainingChanged += r => onRemainingChanged?.Invoke(r);
             _machine.PhaseChanged += HandlePhaseChanged;
 
-            // 定位置に置いた客（startActive）はこの時点で active。#55 の同値順のため到達時刻を控える。
+            // 定位置に置いた客（startActive）はこの時点で active。#55 の同じ値のときの順番のために、着いた時刻をメモしておく
             ActiveSinceTime = _machine.IsActive ? Time.time : 0f;
         }
 
-        /// <summary>active になった時刻を控えてから、外向きのイベントを配る。</summary>
+        // active になった時刻をメモしてから、外に向けたイベントを配る
         void HandlePhaseChanged(CustomerPhase phase)
         {
             if (phase == CustomerPhase.Active) ActiveSinceTime = Time.time;
@@ -202,25 +202,27 @@ namespace Toufuku.Rescue
 
         private void Update()
         {
-            // active 中だけ D が進む（入場中・終端状態では進まない）。黒客化は LateUpdate で確定する。
+            // active の間だけ D が進む（入ってくる途中や終わりの状態では進まない）。黒客になるのは LateUpdate で決める
             Machine.TickDanger(Time.deltaTime);
         }
 
         private void LateUpdate()
         {
-            // 同じイベント時刻では、正色着弾と有効な笑顔伝播を先に解決 → R と D を更新 → R=0 の救済判定
-            // → なお active で D≥100 なら黒客化（企画書 v8 6章）。フレーム内の着弾はこの時点で解決済み。
+            /*
+                同じ時刻なら、正しい色の着弾と有効な笑顔の伝わりを先に処理 → R と D を更新 → R=0 なら救えた
+                → それでも active で D が 100 以上なら黒客になる（企画書 v8 6章）。フレームの中の着弾はこの時点でもう処理ずみ
+            */
             if (Machine.ResolveBlackout())
                 Finish(CustomerPhase.Black);
         }
 
-        /// <summary>入場中 → 定位置へ到着（active 開始）。スポーン／歩行側から呼ぶ。</summary>
+        // 入ってくる途中 → 定位置に着いた（active スタート）。出す側や歩かせる側から呼ぶ
         public void Arrive() => Machine.Arrive();
 
-        /// <summary>
-        /// 現在要求中の正しい色が命中した。R を1減らし D は変えない。R=0 なら救済完了。
-        /// <see cref="CustomerRescue"/> から呼ぶ。
-        /// </summary>
+        /*
+            今ほしがっている正しい色が当たった。R を1減らして、D は変えない。R=0 なら救えた
+            CustomerRescue から呼ぶ
+        */
         public CorrectHitResult ApplyCorrectColorHit()
         {
             CorrectHitResult result = Machine.HitCorrectColor();
@@ -236,10 +238,10 @@ namespace Toufuku.Rescue
             return result;
         }
 
-        /// <summary>
-        /// 違う色が命中した。D も R も変えない。福の連なり C とご加護進捗 G のリセットは呼び出し側で行う。
-        /// </summary>
-        /// <returns>active で受け付けたら true。</returns>
+        /*
+            ちがう色が当たった。D も R も変えない。福の連なり C とご加護の進み G のリセットは呼ぶ側でやる
+            返す値: active で受け付けたら true
+        */
         public bool ApplyWrongColorHit()
         {
             if (!Machine.HitWrongColor()) return false;
@@ -247,13 +249,13 @@ namespace Toufuku.Rescue
             return true;
         }
 
-        /// <summary>
-        /// 笑顔の伝播を受けた。対象条件（active・未救済・非黒客・R&gt;0）を満たすときだけ D を5減らす。
-        /// </summary>
-        /// <returns>伝播が成立したら true（縁+20 を数えてよい）。</returns>
+        /*
+            笑顔が伝わってきた。対象の条件（active・まだ救われていない・黒客じゃない・R>0）を満たすときだけ D を5減らす
+            返す値: 伝わったら true（縁+20 を数えていい）
+        */
         public bool ReceiveSmilePropagation() => Machine.ReceiveSmile();
 
-        /// <summary>危険度 D を直接設定する（モック・検証シーン用。正規のゲーム進行では使わない）。</summary>
+        // 危険度 D を直接決める（モックや検証のシーン用。ふつうのゲームの進み方では使わない）
         public void SetDangerForDebug(float danger) => Machine.SetDangerForDebug(danger);
 
         void Finish(CustomerPhase result)
@@ -264,7 +266,7 @@ namespace Toufuku.Rescue
                 onRescued?.Invoke();
                 onGlow?.Invoke();
 
-                // 企画書 v8 6章：成功時は当たり判定を消す（救済済みの客に当て続けて縁を稼ぐ抜け道を塞ぐ）。
+                // 企画書 v8 6章: 救えたときは当たり判定を消す（救われた客に当てつづけて縁をかせぐずるをできなくする）
                 DisableHitDetection();
             }
             else
@@ -272,8 +274,10 @@ namespace Toufuku.Rescue
                 Debug.Log($"[State] 黒客化（救済失敗）… ({name})", this);
                 onBlack?.Invoke();
 
-                // 企画書 v8 6章：失敗時（黒客）の当たり判定は<b>残す</b>（邪魔になる）。
-                // 黒客への通常弾は福の連なりを切る罰として成立させる必要があるため、ここでは消さない。
+                /*
+                    企画書 v8 6章: 救えなかったとき（黒客）の当たり判定は残す（じゃまになる）
+                    黒客にふつうの弾を当てたら福の連なりが切れる、というペナルティにしたいので、ここでは消さない
+                */
             }
 
             AnyFinished?.Invoke(this, result);
@@ -281,15 +285,17 @@ namespace Toufuku.Rescue
             StartCoroutine(ExitThenDespawn(result == CustomerPhase.Rescued ? rescuedExitSeconds : blackExitSeconds));
         }
 
-        /// <summary>救済成功時の当たり判定の無効化。Destroy ではなく enabled=false（退場演出中も見た目は残す）。</summary>
+        // 救えたときに当たり判定をオフにする。Destroy じゃなくて enabled=false にする（帰る演出の間も見た目は残す）
         void DisableHitDetection()
         {
-            // Inspector 未設定（空 or null）でも動くよう、子階層から自動収集する（非アクティブ含む）。
+            // Inspector で入れていない（空や null）ときでも動くように、子どもの階層から自動で集める（非アクティブのものも入れる）
             if (hitColliders == null || hitColliders.Length == 0)
                 hitColliders = GetComponentsInChildren<Collider>(true);
 
-            // Rigidbody が付いている場合の落下対策：Collider を切る前に isKinematic にして、
-            // 退場中に床をすり抜けて落ちるのを防ぐ。
+            /*
+                Rigidbody が付いているときに落ちないようにする: Collider を切る前に isKinematic にして、
+                帰っている間に床をすりぬけて落ちるのを防ぐ
+            */
             Rigidbody rb = GetComponent<Rigidbody>();
             if (rb != null) rb.isKinematic = true;
 
@@ -305,7 +311,7 @@ namespace Toufuku.Rescue
             if (seconds > 0f)
                 yield return new WaitForSeconds(seconds);
 
-            // TODO: 参道を歩いて退場するアニメ（成功3秒／黒客4秒）に差し替える。いまは時間だけ待って破棄。
+            // TODO: 参道を歩いて帰るアニメ（成功3秒、黒客4秒）に入れかえる。今は時間だけ待って消している
             Destroy(gameObject);
         }
     }

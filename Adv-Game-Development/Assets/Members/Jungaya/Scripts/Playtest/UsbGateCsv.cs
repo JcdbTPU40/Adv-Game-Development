@@ -4,14 +4,14 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T6-USB の記録 CSV（1 イベント 1 行）— Issue #52
-    ///
-    /// ・時刻（input_time 〜 visible_time）は秒。受信・発射・表示は Unity の <c>Time.realtimeSinceStartupAsDouble</c>、
-    ///   input_time だけはコントローラ側の時計（原点が違う）。input_unity はそれを Unity の時計へ合わせた推定。
-    /// ・空欄は欠測。区切りと引用の扱いは #49 と同じ（<see cref="AbTestCsv.Escape"/> / <see cref="AbTestCsv.SplitRow"/>）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T6-USB の記録の CSV（1イベント1行）（#52）
+
+        ・時刻（input_time から visible_time まで）は秒。受け取り・発射・表示は Unity の Time.realtimeSinceStartupAsDouble で、
+          input_time だけはコントローラー側の時計（スタート地点がちがう）。input_unity はそれを Unity の時計に合わせて出した値
+        ・空欄はデータなし。区切りと引用符のあつかいは #49 と同じ（AbTestCsv.Escape / AbTestCsv.SplitRow）
+        MonoBehaviour は使っていない
+    */
     public static class UsbGateCsv
     {
         public const string Header =
@@ -52,7 +52,7 @@ namespace Toufuku.Playtest
         {
             e = null;
             if (string.IsNullOrWhiteSpace(line)) return false;
-            if (line.StartsWith("test_id", StringComparison.Ordinal)) return false; // 見出し行
+            if (line.StartsWith("test_id", StringComparison.Ordinal)) return false; // 見出しの行
 
             string[] f = AbTestCsv.SplitRow(line);
             if (f.Length < ColumnCount) return false;

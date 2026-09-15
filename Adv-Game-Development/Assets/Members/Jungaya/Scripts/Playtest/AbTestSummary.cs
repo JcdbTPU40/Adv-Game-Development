@@ -2,13 +2,13 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>完了条件 1 つ分の判定。</summary>
+    // 完了条件1つぶんの判定
     public readonly struct AbCriterion
     {
         public readonly string Name;
-        /// <summary>実測（例: "8 人"）。</summary>
+        // 実際の値（例: "8 人"）
         public readonly string Actual;
-        /// <summary>合格ライン（例: "8 人以上"）。</summary>
+        // 合格ライン（例: "8 人以上"）
         public readonly string Required;
         public readonly bool Passed;
 
@@ -23,49 +23,48 @@ namespace Toufuku.Playtest
         public override string ToString() => $"{(Passed ? "○" : "×")} {Name}: {Actual}（{Required}）";
     }
 
-    /// <summary>
-    /// 1 回分（対象層 10 人）の合否 — Issue #49（仕様書 v8 17章）
-    ///
-    /// | 完了条件 | 判定 |
-    /// |---|---|
-    /// | 8/10 が採用案を手応え 4/5 以上 | 各自が選んだ採用案の手応えで数える |
-    /// | 8/10 が「すぐもう一度振りたい」 | 同じく採用案への回答で数える |
-    /// | 7/10 以上が同じ案を選ぶ | 採用案の多いほうの人数 |
-    /// | 同期ずれの指摘が 2/10 以下 | 指摘した人数 |
-    /// | 痛み・恐怖・ストラップ逸脱 0 件 | 1 件でも出たら不合格 |
-    ///
-    /// 分母は「予定人数（既定 10 人）」で、途中まででも同じラインで見る（足りなければ不合格のまま）。
-    /// 未記入の記録（<see cref="AbParticipantRecord.IsComplete"/> が false）は数に入れず <see cref="Incomplete"/> に出す。
-    /// 「別日・別対象者で 2 回連続合格」は 1 回分では判定できないので、19章のテスト記録で 2 回並べて確認する。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        1回ぶん（対象の10人）の合格・不合格を出すクラス（#49 / 企画書 v8 17章）
+
+        完了条件と判定のしかた:
+        ・10人中8人が、選んだ案の手ごたえを4/5以上にした → それぞれが選んだ案の手ごたえで数える
+        ・10人中8人が「すぐもう一回振りたい」 → これも選んだ案への答えで数える
+        ・10人中7人以上が同じ案を選ぶ → 多いほうの案を選んだ人数
+        ・タイミングずれの指摘が10人中2人以下 → 指摘した人数
+        ・痛い・こわい・ストラップが外れた、が0件 → 1件でも出たら不合格
+
+        わる数は「予定の人数（ふつうは10人）」で、とちゅうでも同じラインで見る（足りなければ不合格のまま）
+        書き終わっていない記録（AbParticipantRecord.IsComplete が false）は数に入れないで、Incomplete に出す
+        「別の日・別の人で2回連続合格」は1回ぶんでは判定できないので、19章のテスト記録に2回ならべて確認する
+        MonoBehaviour は使っていない
+    */
     public sealed class AbTestSummary
     {
         public int PlannedParticipants { get; private set; }
-        /// <summary>集計に入れた人数。</summary>
+        // 集計に入れた人数
         public int Count { get; private set; }
-        /// <summary>記入が足りず数えなかった人数。</summary>
+        // 書き足りなくて数えなかった人数
         public int Incomplete { get; private set; }
         public int AdoptedA { get; private set; }
         public int AdoptedB { get; private set; }
-        /// <summary>採用案の手応えが 4 以上だった人数。</summary>
+        // 選んだ案の手ごたえが4以上だった人数
         public int FeelOk { get; private set; }
-        /// <summary>採用案で「すぐもう一度振りたい」を選んだ人数。</summary>
+        // 選んだ案で「すぐもう一回振りたい」を選んだ人数
         public int AgainOk { get; private set; }
         public int SyncComplaints { get; private set; }
         public int SafetyIncidents { get; private set; }
 
-        /// <summary>多いほうの案を選んだ人数。</summary>
+        // 多いほうの案を選んだ人数
         public int MajorityCount => AdoptedA >= AdoptedB ? AdoptedA : AdoptedB;
-        /// <summary>多いほうの案（同数なら案A）。</summary>
+        // 多いほうの案（同じ数なら案A）
         public VariantId Majority => AdoptedA >= AdoptedB ? VariantId.A : VariantId.B;
 
         public IReadOnlyList<AbCriterion> Criteria { get; private set; } = new AbCriterion[0];
 
-        /// <summary>すべての完了条件を満たしたか。</summary>
+        // 完了条件をぜんぶ満たしたかどうか
         public bool Passed { get; private set; }
 
-        /// <summary>不合格の項目だけを並べた 1 行（"-" なら合格）。</summary>
+        // 不合格の項目だけをならべた1行（"-" なら合格）
         public string FailureSummary()
         {
             var parts = new List<string>();

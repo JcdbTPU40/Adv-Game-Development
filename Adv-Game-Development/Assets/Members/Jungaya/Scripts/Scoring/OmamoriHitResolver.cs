@@ -4,26 +4,26 @@ using Toufuku.Playtest;
 using Toufuku.Rescue;
 using Toufuku.Rescue.Mock;
 
-/// <summary>客への命中を判定し終えた結果（#64 の命中音・救済音・振動用）。</summary>
+// 客に当たったのを判定し終わった結果（#64 の命中音・救済音・振動用）
 public readonly struct OmamoriHitInfo
 {
-    /// <summary>当たった客。</summary>
+    // 当たった客
     public readonly GameObject Customer;
     public readonly OmamoriType Type;
-    /// <summary>スコアへ渡したゾーン。相性✗なら Miss。</summary>
+    // スコアに渡したゾーン。相性✗なら Miss
     public readonly HitZone Zone;
-    /// <summary>黒客に当たったか。</summary>
+    // 黒客に当たったかどうか
     public readonly bool IsBlackCustomer;
-    /// <summary>この命中で救済が確定したか（ゲージが 0 になった）。</summary>
+    // この当たりで救えたかどうか（ゲージが 0 になった）
     public readonly bool Rescued;
-    /// <summary>優先救済（二重円）の加点が入ったか（#55）。発射時に保存した対象IDの客を救済完了させたときだけ true。</summary>
+    // 優先救済（二重円）のボーナスが入ったか（#55）。発射したときに保存した相手のIDの客を救えたときだけ true
     public readonly bool PriorityRescue;
-    /// <summary>計上後の福の連なり（ScoreManager.Combo）。</summary>
+    // スコアに入れたあとの福の連なり（ScoreManager.Combo）
     public readonly int Combo;
-    /// <summary>着弾の起点時刻（Time.realtimeSinceStartupAsDouble）。フィードバック予算の計測に使う。</summary>
+    // 着弾をスタートにする時刻（Time.realtimeSinceStartupAsDouble）。フィードバックの遅れの計測に使う
     public readonly double ImpactTime;
 
-    /// <summary>相性◯で命中として計上されたか。</summary>
+    // 相性◯で当たりとしてスコアに入ったかどうか
     public bool IsGoodHit => Zone != HitZone.Miss;
 
     public OmamoriHitInfo(GameObject customer, OmamoriType type, HitZone zone, bool isBlackCustomer, bool rescued, int combo, double impactTime,
@@ -40,29 +40,27 @@ public readonly struct OmamoriHitInfo
     }
 }
 
-/// <summary>
-/// お守りが参拝客に当たったときの共通処理（救済判定 → スコア）— #13 / #22 / #60 / #54
-///
-/// 物理衝突で当てる OmamoriBullet と、着弾点で判定する OmamoriProjectile（#60）の両方から呼ぶ。
-/// #64: 判定し終えた同じ呼び出しの中で <see cref="HitResolved"/> を発火する（命中音・救済音を判定と同時刻に鳴らすため）。
-/// </summary>
+/*
+    お守りが客に当たったときの共通の処理（救済の判定 → スコア）（#13 / #22 / #60 / #54）
+
+    物理でぶつけて当てる OmamoriBullet と、着弾点で判定する OmamoriProjectile（#60）の両方から呼ぶ
+    #64: 判定し終わった同じ呼び出しの中で HitResolved を呼ぶ（命中音と救済音を判定と同じ時刻に鳴らすため）
+*/
 public static class OmamoriHitResolver
 {
-    /// <summary>客への命中を判定し終えた（スコア計上後）。結末確定済みの客への命中では発火しない。</summary>
+    // 客に当たったのを判定し終わった（スコアに入れたあと）。もう結果が決まっている客に当たったときは呼ばれない
     public static event Action<OmamoriHitInfo> HitResolved;
 
-    /// <summary>
-    /// 客にお守りが当たったことを処理する。
-    /// </summary>
-    /// <param name="customer">当たった客</param>
-    /// <param name="type">お守りの種類</param>
-    /// <param name="zone">命中精度から決めたゾーン</param>
-    /// <param name="impactTime">着弾の起点時刻（realtimeSinceStartupAsDouble）。省略時は呼び出した時刻</param>
-    /// <param name="priorityTargetId">
-    /// 発射（SwingAccepted）時にこの弾へ保存した優先対象ID（#55）。0 なら優先救済の加点は無い。
-    /// 飛翔中に二重円が動いても弾の保存値は変えないので、ここへ渡ってくるのは<b>発射時点</b>の判断。
-    /// </param>
-    /// <returns>スコアへ渡したゾーン。相性✗なら Miss。結末確定済みの客なら何も計上せず Miss。</returns>
+    /*
+        客にお守りが当たったのを処理する
+        customer: 当たった客
+        type: お守りの種類
+        zone: 命中精度から決めたゾーン
+        impactTime: 着弾をスタートにする時刻（realtimeSinceStartupAsDouble）。書かなければ呼んだ時刻
+        priorityTargetId: 発射（SwingAccepted）したときにこの弾に保存した優先の相手のID（#55）。0 なら優先救済のボーナスはない
+          飛んでいる間に二重円が動いても弾に保存した値は変えないので、ここに来るのは「発射したとき」の判断
+        返す値: スコアに渡したゾーン。相性✗なら Miss。もう結果が決まっている客なら何も入れないで Miss
+    */
     public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null,
         int priorityTargetId = PriorityRescue.NoTarget)
     {
@@ -72,8 +70,10 @@ public static class OmamoriHitResolver
 
         CustomerState state = customer != null ? customer.GetComponent<CustomerState>() : null;
 
-        // 黒客への通常弾（企画書 v8 6章）：D も R も動かない終端状態。縁は入らず、
-        // 福の連なりが途切れる罰だけが起きる（当たり判定は残してあるので、ここへ到達するのは仕様どおり）。
+        /*
+            黒客にふつうの弾が当たった（企画書 v8 6章）: D も R も動かない終わりの状態。縁は入らないで、
+            福の連なりが切れるペナルティだけが起きる（当たり判定は残してあるので、ここに来るのは仕様どおり）
+        */
         if (isBlack)
         {
             if (ScoreManager.Instance != null)
@@ -84,14 +84,16 @@ public static class OmamoriHitResolver
             return HitZone.Miss;
         }
 
-        // 救済判定(#13)：お守りの種類を客に渡し、相性◯/✗と D・R の更新を処理させる。
+        // 救済の判定（#13）: お守りの種類を客に渡して、相性◯/✗と D・R の更新をやってもらう
         CustomerRescue rescue = customer != null ? customer.GetComponent<CustomerRescue>() : null;
         if (rescue != null)
         {
-            // すでに救済済みの客への追撃に対する防御的ガード。
-            // 過剰押し売り（#33 案B）は企画書 v3 §16【B】で廃案。救済完了時に当たり判定を
-            // 消す仕様（CustomerState.DisableHitDetection）により通常ここには到達しない。
-            // 到達した場合はコンポーネントの設定漏れなので、スコアもミスも一切計上しない。
+            /*
+                もう救われた客にもう一回当たったときのための、念のためのガード
+                過剰押し売り（#33 案B）は企画書 v3 §16【B】でボツになった。救えたときに当たり判定を
+                消す仕様（CustomerState.DisableHitDetection）なので、ふつうはここには来ない
+                来たときはコンポーネントの設定もれなので、スコアもミスも何も入れない
+            */
             if (rescue.IsFinished)
             {
                 Debug.LogWarning("[OmamoriHitResolver] 救済済みの客に命中しました（当たり判定の無効化漏れの疑い）", customer);
@@ -100,24 +102,28 @@ public static class OmamoriHitResolver
 
             Affinity affinity = rescue.ApplyHit(type);
 
-            // 誤色（相性✗）は Miss 扱いにして福の連なり C とご加護進捗 G を切る（v8変更点2）。
-            // D も R も変わらないので、誤色連打では黒客化を1秒も遅らせられない。
+            /*
+                まちがった色（相性✗）は Miss にして、福の連なり C とご加護の進み G を切る（v8 の変更点2）
+                D も R も変わらないので、まちがった色を連打しても黒客になるのを1秒も遅らせられない
+            */
             if (affinity == Affinity.Bad)
                 zone = HitZone.Miss;
 
-            // 直前まで active だったので、ここで救済済みなら「この命中で R が 0 になった」。
+            // さっきまで active だったので、ここで救われていたら「この当たりで R が 0 になった」ということ
             rescued = state != null && state.IsRescued;
         }
 
-        // 優先救済（#55）：発射時に保存した二重円の客を、この弾が救済完了させたときだけ +50（付録B B-2）。
-        // 途中命中や別の客の救済では入らない。ID を照らすだけなので、飛翔中の表示変化には影響されない。
+        /*
+            優先救済（#55）: 発射したときに保存した二重円の客を、この弾で救えたときだけ +50（付録B B-2）
+            とちゅうの当たりや別の客を救ったときは入らない。IDをくらべるだけなので、飛んでいる間の表示の変化にはえいきょうされない
+        */
         bool priorityRescue = rescued
             && priorityTargetId > PriorityRescue.NoTarget
             && PriorityRescue.IsBonusHit(priorityTargetId, CustomerSpawnId.Of(customer), true);
 
         if (ScoreManager.Instance != null)
         {
-            // 縁は救済完了のときだけ。途中命中（欲張り客の1発目など）は連なりだけ伸びて 0 点（付録B B-2）。
+            // 縁は救えたときだけ入る。とちゅうの当たり（欲張り客の1発目など）は連なりだけのびて 0 点（付録B B-2）
             int baseScore = state != null ? state.RescueBaseScore : 0;
             ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore, priorityRescue);
         }
@@ -128,17 +134,17 @@ public static class OmamoriHitResolver
         return zone;
     }
 
-    /// <summary>客以外（地面など）に落ちた＝外し。コンボが途切れる。</summary>
+    // 客以外（地面など）に落ちた＝外れ。コンボが切れる
     public static void ApplyMiss()
     {
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.RegisterMiss();
     }
 
-    /// <summary>
-    /// 黒客か。本番の客は CustomerState（#54）の状態で判定し、
-    /// CustomerState を持たない視認性モック(#44)の客だけ札（MockCustomerTag）で判定する。
-    /// </summary>
+    /*
+        黒客かどうか。本番の客は CustomerState（#54）の状態で判定して、
+        CustomerState を持っていない視認性モック（#44）の客だけ名札（MockCustomerTag）で判定する
+    */
     public static bool IsBlackCustomer(GameObject customer)
     {
         if (customer == null) return false;

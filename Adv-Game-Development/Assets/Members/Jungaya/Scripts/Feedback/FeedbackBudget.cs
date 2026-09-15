@@ -2,25 +2,24 @@ using System;
 
 namespace Toufuku.Feedback
 {
-    /// <summary>1 投のフィードバック予算の区分。</summary>
+    // 1投のフィードバックの時間の目標（予算）の区分
     public enum FeedbackCategory
     {
-        Swing = 0,  // 振りピーク → 投擲SE
-        Hit = 1,    // 着弾予定時刻 → 命中音
-        Rescue = 2  // 着弾予定時刻 → 救済音
+        Swing = 0,  // 振りのピーク → 投げる音
+        Hit = 1,    // 落ちる予定の時刻 → 命中音
+        Rescue = 2  // 落ちる予定の時刻 → 救済音
     }
 
-    /// <summary>
-    /// 1 投のフィードバック予算の計測 — Issue #64（仕様書 v8 1章）
-    ///
-    /// | 区分 | 起点 | 終点 | 予算 |
-    /// |---|---|---|---|
-    /// | Swing | 振りピークのサンプル受信時刻（SwingAccepted.Time） | 投擲SE の再生要求 | 80ms |
-    /// | Hit | 弾の着弾予定時刻（発射時刻 ＋ 飛翔時間） | 命中音の再生要求 | 50ms |
-    /// | Rescue | 同上 | 救済音の再生要求 | 250ms |
-    ///
-    /// オーディオ出力バッファ分の遅延は含まない（HUD に別途表示する）。MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        1投のフィードバックの遅れを測るクラス（#64 / 企画書 v8 1章）
+
+        目標の時間はこうなっている:
+        ・Swing: 振りピークのデータを受け取った時刻（SwingAccepted.Time）から投げる音を鳴らすまで 80ms
+        ・Hit: 弾が落ちる予定の時刻（発射時刻＋飛ぶ時間）から命中音を鳴らすまで 50ms
+        ・Rescue: 同じく落ちる予定の時刻から救済音を鳴らすまで 250ms
+
+        オーディオの出力バッファのぶんの遅れは入れていない（HUD に別で出す）。MonoBehaviour は使っていない
+    */
     public sealed class FeedbackBudget
     {
         public const double SwingBudgetSeconds = 0.080;
@@ -44,7 +43,7 @@ namespace Toufuku.Feedback
             }
         }
 
-        /// <summary>遅延を記録する。予算内なら true。負の遅延（時計の丸め）は 0 とみなす。</summary>
+        // 遅れを記録する。目標内なら true。マイナスの遅れ（時計の丸め）は 0 としてあつかう
         public bool Record(FeedbackCategory category, double latencySeconds)
         {
             if (double.IsNaN(latencySeconds) || latencySeconds < 0.0) latencySeconds = 0.0;

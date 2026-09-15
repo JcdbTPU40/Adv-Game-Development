@@ -2,26 +2,26 @@ using UnityEngine;
 
 namespace Toufuku.Feedback
 {
-    /// <summary>
-    /// 福の連なり（連続命中）→ 命中音の音階と和音 — Issue #64（仕様書 v8 15章）
-    ///
-    /// ・連なりが 1 伸びるごとに音階を 1 段上げる。音階はメジャーペンタトニック（ド・レ・ミ・ソ・ラ）で、
-    ///   どこで途切れても不協和にならず、数字を読まなくても「上がっている」ことが分かる。
-    /// ・上がりすぎて耳に痛くならないよう、<c>maxStep</c> 段で頭打ちにする。
-    /// ・3・6・10 連続の節目では根音に和音を足す（節目ごとに厚くする）。
-    /// </summary>
+    /*
+        福の連なり（連続で当てた数）から、命中音の音の高さと和音を決めるクラス（#64 / 企画書 v8 15章）
+
+        ・連なりが1つのびるごとに、音を1段上げる。音階はメジャーペンタトニック（ド・レ・ミ・ソ・ラ）なので、
+          どこで止まっても変な音にならないし、数字を見なくても「上がってる」のがわかる
+        ・上がりすぎて耳が痛くならないように、maxStep 段で止める
+        ・3・6・10 連続のきりのいいところでは、和音を足して音を厚くする
+    */
     public static class ComboScale
     {
-        /// <summary>1 オクターブ内の音階（根音からの半音数）。</summary>
+        // 1オクターブの中の音階（根音から何半音か）
         static readonly int[] s_degrees = { 0, 2, 4, 7, 9 };
 
-        /// <summary>既定の頭打ち段数（10 段 = 2 オクターブ）。</summary>
+        // ふつうの上限の段数（10段 = 2オクターブ）
         public const int DefaultMaxStep = 10;
 
-        /// <summary>既定の節目。</summary>
+        // ふつうのきりのいいところ
         public static readonly int[] DefaultMilestones = { 3, 6, 10 };
 
-        /// <summary>節目ごとに足す和音（根音からの半音数）。1 つ目の節目 = 5 度、2 つ目 = 3 度＋5 度、3 つ目以降 = 3 度＋5 度＋オクターブ。</summary>
+        // きりのいいところで足す和音（根音から何半音か）。1つ目は5度、2つ目は3度と5度、3つ目からは3度と5度とオクターブ
         static readonly int[][] s_chords =
         {
             new[] { 7 },
@@ -31,34 +31,32 @@ namespace Toufuku.Feedback
 
         static readonly int[] s_noChord = new int[0];
 
-        /// <summary>連なり数 → 音階の段（1 連なり目 = 0 段）。</summary>
+        // 連なりの数から音の段を出す（1つ目の連なりは0段）
         public static int StepOf(int combo, int maxStep = DefaultMaxStep)
         {
             return Mathf.Clamp(combo - 1, 0, Mathf.Max(0, maxStep));
         }
 
-        /// <summary>音階の段 → 根音からの半音数。</summary>
+        // 音の段から、根音から何半音かを出す
         public static int SemitoneOfStep(int step)
         {
             if (step < 0) step = 0;
             return 12 * (step / s_degrees.Length) + s_degrees[step % s_degrees.Length];
         }
 
-        /// <summary>連なり数 → 根音からの半音数。</summary>
+        // 連なりの数から、根音から何半音かを出す
         public static int SemitoneOf(int combo, int maxStep = DefaultMaxStep)
         {
             return SemitoneOfStep(StepOf(combo, maxStep));
         }
 
-        /// <summary>半音数 → AudioSource.pitch に渡す再生速度。</summary>
+        // 半音の数から、AudioSource.pitch に入れる再生速度を出す
         public static float PitchOf(int semitones)
         {
             return Mathf.Pow(2f, semitones / 12f);
         }
 
-        /// <summary>
-        /// 連なり数がちょうど節目なら、何番目の節目か（1 始まり）。節目でなければ 0。
-        /// </summary>
+        // 連なりの数がちょうどきりのいいところなら、何番目か（1から数える）を返す。ちがったら 0
         public static int MilestoneLevelOf(int combo, int[] milestones = null)
         {
             milestones = milestones ?? DefaultMilestones;
@@ -69,9 +67,7 @@ namespace Toufuku.Feedback
             return 0;
         }
 
-        /// <summary>
-        /// この連なり数で根音に足す和音（根音からの半音数）。節目でなければ空。
-        /// </summary>
+        // この連なりの数で根音に足す和音（根音から何半音か）を返す。きりのいいところじゃなければ空
         public static int[] ChordOf(int combo, int[] milestones = null)
         {
             int level = MilestoneLevelOf(combo, milestones);

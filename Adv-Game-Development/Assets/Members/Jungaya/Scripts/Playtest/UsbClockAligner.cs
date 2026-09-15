@@ -3,19 +3,19 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// コントローラ側の時計（ESP32 の millis）を Unity の時計へ合わせる — Issue #52
-    ///
-    /// 受信行ごとに「Unity 受信時刻 − コントローラ時刻」を溜める。この差は
-    /// 「時計の原点の差 ＋ その行が送られてから読まれるまでの遅れ」なので、<b>近くの行の最小値</b>を時計の差とみなす
-    /// （いちばん待たされなかった行の遅れを 0 と置く）。水晶のずれ（数十 ppm）で 3 分に数 ms 動くので、
-    /// 全体の最小ではなく前後 <see cref="UsbGatePlan.ClockWindowSeconds"/> 秒の最小を使う。
-    ///
-    /// ・USB の転送そのもの（最小でも数 ms）は 0 と置くので、推定した入力遅延は<b>実際より短めに出る</b>。
-    ///   その差は外部動画で数投だけ確かめる（Docs/52 §5）。
-    /// ・受信時刻は昇順に届く前提（Time.realtimeSinceStartupAsDouble）。逆行した行は捨てる。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        コントローラー側の時計（ESP32 の millis）を Unity の時計に合わせるクラス（#52）
+
+        受け取った行ごとに「Unity が受け取った時刻 − コントローラーの時刻」をためておく。この差は
+        「時計のスタート地点の差 ＋ その行が送られてから読まれるまでの遅れ」なので、近くの行のいちばん小さい値を時計の差とする
+        （いちばん待たされなかった行の遅れを 0 とする）。水晶のずれ（数十 ppm）で3分に数 ms 動くので、
+        全体のいちばん小さい値じゃなくて、前後 UsbGatePlan.ClockWindowSeconds 秒のいちばん小さい値を使う
+
+        ・USB で送る時間そのもの（少なくても数 ms）は 0 にしてしまうので、出てくる入力の遅れは実際より短めになる
+          その差は外で撮った動画で何投かだけ確かめる（Docs/52 §5）
+        ・受け取った時刻は小さい順に届くことにしている（Time.realtimeSinceStartupAsDouble）。時刻がもどっている行はすてる
+        MonoBehaviour は使っていない
+    */
     public sealed class UsbClockAligner
     {
         readonly List<double> _receive = new List<double>(20000);
@@ -29,7 +29,7 @@ namespace Toufuku.Playtest
             _offset.Clear();
         }
 
-        /// <summary>受信 1 行ぶん。コントローラ時刻が無い（NaN）行は無視する。</summary>
+        // 受け取った1行ぶん。コントローラーの時刻がない（NaN）行は無視する
         public void Add(double receiveTime, double deviceTime)
         {
             if (double.IsNaN(receiveTime) || double.IsNaN(deviceTime)) return;
@@ -38,7 +38,7 @@ namespace Toufuku.Playtest
             _offset.Add(receiveTime - deviceTime);
         }
 
-        /// <summary>受信時刻 receiveTime の前後 window 秒にある行から、時計の差（Unity − コントローラ）を推定する。無ければ null。</summary>
+        // 受け取った時刻 receiveTime の前後 window 秒にある行から、時計の差（Unity − コントローラー）を出す。なければ null
         public double? OffsetAt(double receiveTime, double window = UsbGatePlan.ClockWindowSeconds)
         {
             if (_receive.Count == 0 || double.IsNaN(receiveTime)) return null;
@@ -50,7 +50,7 @@ namespace Toufuku.Playtest
             return double.IsPositiveInfinity(best) ? (double?)null : best;
         }
 
-        /// <summary>コントローラ時刻 deviceTime（受信は receiveTime）を Unity の時計へ直す。</summary>
+        // コントローラーの時刻 deviceTime（受け取ったのは receiveTime）を Unity の時計に直す
         public double? ToUnity(double deviceTime, double receiveTime, double window = UsbGatePlan.ClockWindowSeconds)
         {
             if (double.IsNaN(deviceTime)) return null;

@@ -6,20 +6,20 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 投擲SE・軌跡出現・振動開始に時刻差を付ける — Issue #49（仕様書 v8 17章）
-    ///
-    /// <see cref="ThrowInputController.throwFeedbackSource"/> にこれを挿し、GameFeedbackDirector の代わりに受け取る。
-    /// 受けた <see cref="OnThrowAccepted"/> で 3 つの出口をそれぞれの時刻差で出す。
-    /// ・投擲SE: <see cref="GameFeedbackDirector.PlayThrowSe"/>
-    /// ・振動  : <see cref="GameFeedbackDirector.PlayThrowHaptic"/>
-    /// ・軌跡  : <see cref="OnusaThrower.VisualDelaySeconds"/>（この直後に作られる弾へ効く）
-    ///
-    /// 時刻差 0 の出口はその場で（＝本番と同じ呼び出しの中で）出す。
-    /// 0 より大きい出口は Update で出すのでフレーム単位に丸まる（60fps なら最大 16ms）。
-    /// 実測値は <see cref="LastOffsetMs"/> に残るので、HUD と記録で確かめる。
-    /// </summary>
-    [DefaultExecutionOrder(-90)] // ThrowInputController(-100) の直後
+    /*
+        投げる音・軌跡が出る・振動が始まる、に時間差を付けるクラス（#49 / 企画書 v8 17章）
+
+        ThrowInputController.throwFeedbackSource にこれを入れて、GameFeedbackDirector のかわりに受け取る
+        受け取った OnThrowAccepted で、3つの出口をそれぞれの時間差で出す
+        ・投げる音: GameFeedbackDirector.PlayThrowSe
+        ・振動: GameFeedbackDirector.PlayThrowHaptic
+        ・軌跡: OnusaThrower.VisualDelaySeconds（このすぐあとに作られる弾に効く）
+
+        時間差が 0 の出口はその場で（＝本番と同じ呼び出しの中で）出す
+        0 より大きい出口は Update で出すので、フレーム単位に丸められる（60fps なら最大 16ms）
+        実際の値は LastOffsetMs に残るので、HUD と記録で確かめる
+    */
+    [DefaultExecutionOrder(-90)] // ThrowInputController(-100) のすぐあと
     public class FeedbackTimingShifter : MonoBehaviour, IThrowFeedbackSink
     {
         [Header("参照（未設定ならシーン内から探す）")]
@@ -42,7 +42,7 @@ namespace Toufuku.Playtest
 
         FeedbackVariant _variant = FeedbackVariant.DefaultA();
 
-        /// <summary>今あてているフィードバック案。</summary>
+        // 今使っているフィードバックの案
         public FeedbackVariant Variant
         {
             get => _variant;
@@ -53,14 +53,14 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>受け取った有効スイングの数。</summary>
+        // 受け取った有効スイングの数
         public int ThrowCount { get; private set; }
 
-        /// <summary>直近の実測時刻差（ms）。振りピークから実際に出すまで。軌跡は設定値をそのまま返す。</summary>
+        // いちばん新しい実際の時間差（ms）。振りピークから実際に出すまで。軌跡は設定した値をそのまま返す
         public float LastOffsetMs(FeedbackChannel channel) =>
             channel == FeedbackChannel.Trail ? _variant.trailDelayMs : _lastOffsetMs[(int)channel];
 
-        /// <summary>設定値からのずれの最大（ms）。フレーム単位の丸めがどれくらいかを見る。</summary>
+        // 設定した値からずれた最大（ms）。フレーム単位の丸めがどれくらいかを見る
         public float MaxErrorMs(FeedbackChannel channel) => _maxErrorMs[(int)channel];
 
         static double Now => Time.realtimeSinceStartupAsDouble;
@@ -79,12 +79,12 @@ namespace Toufuku.Playtest
             _pending.Clear();
         }
 
-        /// <summary>ThrowInputController が SwingAccepted を配る前に呼ぶ。</summary>
+        // ThrowInputController が SwingAccepted を配る前に呼ぶ
         public void OnThrowAccepted(SwingAcceptedArgs e)
         {
             ThrowCount++;
 
-            // 軌跡はこの直後に作られる弾へ効く（ThrowInputController → OnusaThrower の順に呼ばれる）
+            // 軌跡はこのすぐあとに作られる弾に効く（ThrowInputController → OnusaThrower の順に呼ばれる）
             if (thrower != null) thrower.VisualDelaySeconds = _variant.trailDelayMs / 1000f;
 
             Dispatch(FeedbackChannel.ThrowSe, _variant.throwSeDelayMs, e);
@@ -133,7 +133,7 @@ namespace Toufuku.Playtest
                 Debug.Log($"[TimingShifter] {channel} 設定 {_variant.DelayMsOf(channel):0} ms → 実測 {offsetMs:0} ms", this);
         }
 
-        /// <summary>試技の切り替えで数え直す。</summary>
+        // テストを切りかえるときに数えなおす
         public void ResetCounters()
         {
             ThrowCount = 0;

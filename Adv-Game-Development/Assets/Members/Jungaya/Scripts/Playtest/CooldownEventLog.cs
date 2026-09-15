@@ -4,17 +4,17 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>今どちらのブロックか。</summary>
+    // 今どっちのブロックか
     public enum CooldownBlock
     {
         None = 0,
-        /// <summary>単発（1 回振って止まる）。</summary>
+        // 1回振り（1回振って止まる）
         Single = 1,
-        /// <summary>「自分の最速で 2 回振る」。</summary>
+        // 「自分の最速で2回振る」
         Pair = 2
     }
 
-    /// <summary>生ログの行の種類。</summary>
+    // そのままのログの行の種類
     public enum CooldownEventKind
     {
         SessionStart,
@@ -25,21 +25,21 @@ namespace Toufuku.Playtest
         Rejected
     }
 
-    /// <summary>
-    /// 発射 1 件 = 1 行の生ログ — Issue #50
-    ///
-    /// <b>外部動画の振りピークが意図の正本</b>なので、このログ単体では合否を決めない。
-    /// ログと動画を同じ時間軸に乗せるために、
-    ///
-    /// ・1 列目の「経過秒」は <see cref="CooldownTestDirector"/> の開始からの秒で、画面にも同じ値を大きく出す
-    ///   （動画にその数字が映るので、コマ送りしながら行と突き合わせられる）。
-    /// ・V キーの同期マーク（画面全体が 1 回光る）も <see cref="CooldownEventKind.SyncMark"/> として残す。
-    ///   光った瞬間のコマとこの行の経過秒を合わせれば、あとはフレーム数で換算できる。
-    ///
-    /// 動画を見返して数えるのは 4 つだけ:
-    /// 単発の振り数／連投の組数／余分な発射／2 発目が出なかった組数（<see cref="CooldownConditionRecord"/> の video 列）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        発射1回を1行にしたそのままのログ（#50）
+
+        「振ろうとした」のは外の動画に映った振りで決めるので、このログだけでは合格かどうかは決めない
+        ログと動画を同じ時間のものさしで見られるように、
+
+        ・1列目の「経過秒」は CooldownTestDirector が始まってからの秒で、画面にも同じ値を大きく出す
+          （動画にその数字が映るので、コマ送りしながら行と照らし合わせられる）
+        ・Vキーの同期マーク（画面全体が1回光る）も CooldownEventKind.SyncMark として残す
+          光ったコマとこの行の経過秒を合わせれば、あとはフレーム数で計算できる
+
+        動画を見返して数えるのは4つだけ:
+        1回振りの回数、連投の組の数、よけいな発射、2発目が出なかった組の数（CooldownConditionRecord の video の列）
+        MonoBehaviour は使っていない
+    */
     public static class CooldownEventLog
     {
         public const string Header =

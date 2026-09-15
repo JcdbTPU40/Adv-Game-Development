@@ -5,14 +5,14 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 計測ログの CSV 書式 — Issue #63
-    ///
-    /// ・UTF-8（BOM 付き・CRLF）。Excel でそのまま開いても日本語が化けない。
-    /// ・先頭に <c>#meta,キー,値</c> の行（テストID・日付・ビルド番号・シード値・パラメータ）を並べ、そのあとに列名の行とデータ行。
-    ///   pandas なら <c>read_csv(path, comment='#')</c> でメタ行を飛ばせる。
-    /// ・数値は小数点ピリオド固定（OS の地域設定に左右されない）。未設定の値は空欄、真偽は 1 / 0。
-    /// </summary>
+    /*
+        計測ログの CSV の書き方（#63）
+
+        ・UTF-8（BOM 付き・CRLF）。Excel でそのまま開いても日本語が文字化けしない
+        ・先頭に #meta,キー,値 の行（テストID・日付・ビルド番号・シード値・パラメータ）をならべて、そのあとに列名の行とデータの行
+          pandas なら read_csv(path, comment='#') でメタの行をとばせる
+        ・数字の小数点はピリオドで固定（OS の地域の設定で変わらないように）。決まっていない値は空欄、true/false は 1 / 0
+    */
     public static class PlaytestCsv
     {
         public const string FormatVersion = "1";
@@ -22,7 +22,7 @@ namespace Toufuku.Playtest
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
         static readonly char[] s_special = { ',', '"', '\r', '\n' };
 
-        /// <summary>イベントログの列。<see cref="PlaytestEvent"/> のフィールドと同じ並び。</summary>
+        // イベントログの列。PlaytestEvent のフィールドと同じならび
         public static readonly string[] EventColumns =
         {
             "t", "realtime", "frame", "event", "throw_no", "target_id", "category", "color", "omamori", "black",
@@ -113,7 +113,7 @@ namespace Toufuku.Playtest
                 sb.Append(Line(MetaMarker, pair.Key, pair.Value)).Append(NewLine);
         }
 
-        /// <summary>BOM 付き UTF-8 で書く。フォルダが無ければ作る。</summary>
+        // BOM 付きの UTF-8 で書く。フォルダがなければ作る
         public static void WriteFile(string path, string content)
         {
             string folder = Path.GetDirectoryName(path);

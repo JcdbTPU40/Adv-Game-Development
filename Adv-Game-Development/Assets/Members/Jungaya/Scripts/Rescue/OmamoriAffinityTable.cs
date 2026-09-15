@@ -4,33 +4,33 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// お守り5種 × 客タイプ の相性テーブル（ScriptableObject）— Issue #12
-    ///
-    /// 仕様:
-    ///   健康・学業成就・厄除け安全・縁結び・金運の5種と客タイプの相性を「データ」として保持する。
-    ///   各マスは相性◯/✗（<see cref="Affinity"/>）の2値。
-    ///   ◯＝その客に効くお守り（突破）、✗＝効かないお守り（誤投擲）。
-    ///
-    /// 使い方:
-    ///   1) Project ウィンドウで右クリック → Create → Toufuku → 相性テーブル(OmamoriAffinityTable)
-    ///   2) 生成したアセットを選択し、Inspector の「デフォルト(1:1)で埋める」ボタンで初期化
-    ///      （客タイプと同名のお守りだけ◯になる基本形）
-    ///   3) 必要なマスを編集して相性を調整
-    ///   4) CustomerRescue にこのアセットを割り当てる
-    ///
-    /// 設計メモ:
-    ///   ・客タイプごとに「◯になるお守りの集合」を持つ（リストに無い＝✗）。
-    ///     2次元 bool グリッドより編集が直感的で、◯セルが少ない前提に合う。
-    ///   ・enum の値が増減してもテーブルは壊れない（未定義の客は既定で✗扱い）。
-    /// </summary>
+    /*
+        お守り5種 × 客のタイプ の相性の表（ScriptableObject）（#12）
+
+        仕様:
+          健康・学業成就・厄除け安全・縁結び・金運の5種類と客のタイプの相性を「データ」として持つ
+          1つ1つのマスは相性◯か✗（Affinity）の2つだけ
+          ◯＝その客に効くお守り（突破）、✗＝効かないお守り（まちがい）
+
+        使い方:
+          1) Project ウィンドウで右クリック → Create → Toufuku → 相性テーブル(OmamoriAffinityTable)
+          2) 作ったアセットを選んで、Inspector の「デフォルト(1:1)で埋める」ボタンで初期化する
+             （客のタイプと同じ名前のお守りだけ◯になる基本の形）
+          3) 必要なマスを変えて相性を調整する
+          4) CustomerRescue にこのアセットを入れる
+
+        作るときのメモ:
+          ・客のタイプごとに「◯になるお守りの集まり」を持つ（リストにない＝✗）
+            2次元の bool のマス目より編集しやすいし、◯のマスが少ないという前提にも合う
+          ・enum の値が増えたり減ったりしても表はこわれない（決まっていない客はふつう✗あつかい）
+    */
     [CreateAssetMenu(
         fileName = "OmamoriAffinityTable",
         menuName = "Toufuku/相性テーブル (OmamoriAffinityTable)",
         order = 0)]
     public class OmamoriAffinityTable : ScriptableObject
     {
-        /// <summary>1客タイプぶんの相性（◯になるお守りの集合）。</summary>
+        // 客のタイプ1つぶんの相性（◯になるお守りの集まり）
         [Serializable]
         public class Row
         {
@@ -44,10 +44,10 @@ namespace Toufuku.Rescue
         [Tooltip("客タイプごとの相性行。客タイプ1種につき1行を推奨。")]
         [SerializeField] private List<Row> rows = new List<Row>();
 
-        /// <summary>
-        /// 「この客に、このお守りは相性◯か✗か」を返す。
-        /// 行が未登録／goodに含まれない場合は <see cref="Affinity.Bad"/>。
-        /// </summary>
+        /*
+            「この客に、このお守りは相性◯か✗か」を返す
+            行が登録されていない、または good に入っていないときは Affinity.Bad
+        */
         public Affinity GetAffinity(CustomerType customer, OmamoriType hit)
         {
             for (int i = 0; i < rows.Count; i++)
@@ -56,12 +56,12 @@ namespace Toufuku.Rescue
                 if (r == null || r.customer != customer) continue;
                 if (r.goodOmamori != null && r.goodOmamori.Contains(hit))
                     return Affinity.Good;
-                return Affinity.Bad; // 行はあるが◯リストに無い
+                return Affinity.Bad; // 行はあるけど◯のリストにない
             }
-            return Affinity.Bad; // 行そのものが未登録
+            return Affinity.Bad; // 行そのものが登録されていない
         }
 
-        /// <summary>指定客タイプの行を取得（無ければ null）。</summary>
+        // 指定した客のタイプの行を取る（なければ null）
         public Row GetRow(CustomerType customer)
         {
             for (int i = 0; i < rows.Count; i++)
@@ -70,10 +70,10 @@ namespace Toufuku.Rescue
             return null;
         }
 
-        /// <summary>
-        /// 全客タイプぶんの行を、客タイプと同名のお守りだけ◯にして初期化する。
-        /// 既存の行はクリアされるので注意。
-        /// </summary>
+        /*
+            ぜんぶの客のタイプぶんの行を、客のタイプと同じ名前のお守りだけ◯にして初期化する
+            今ある行は消えるので注意
+        */
         [ContextMenu("デフォルト(1:1)で埋める")]
         public void FillDefaultOneToOne()
         {
@@ -81,7 +81,7 @@ namespace Toufuku.Rescue
             foreach (CustomerType c in (CustomerType[])Enum.GetValues(typeof(CustomerType)))
             {
                 var row = new Row { customer = c };
-                // 客タイプと同名のお守りがあれば◯にする（enum名で対応付け）。
+                // 客のタイプと同じ名前のお守りがあれば◯にする（enum の名前で合わせる）
                 if (Enum.TryParse(c.ToString(), out OmamoriType matched))
                     row.goodOmamori.Add(matched);
                 rows.Add(row);

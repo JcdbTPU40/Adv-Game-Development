@@ -2,24 +2,24 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 参拝客の「定位置に着いてから消えるまで」の動き — Issue #62
-    ///
-    ///   ・移動客の往復（<see cref="PatrolPath"/>）。定位置に着いたら歩き出し、active の間だけ往復する。
-    ///     速度は <see cref="PatrolSpeed"/> で実行中に変えられる（T2 の変数変更テスト用）。
-    ///   ・救済・黒客化したら、その場で往復をやめ、退場秒数（救済3秒／黒客4秒）かけて出口まで歩く（<see cref="ExitRoute"/>）。
-    ///     移動客も通常客と同じ扱いで、歩いていた途中の位置から退場経路に入る。rescued／black は終端なので往復へは戻らない。
-    ///     黒客の当たり判定は <see cref="CustomerState"/> が残すので、退場中も邪魔になる（企画書 v8 6章）。
-    ///   ・出口が設定されていなければ退場歩行はせず、従来どおりその場で消える。
-    ///
-    /// 入場の歩行（鳥居 → 定位置）はスポーン側（MockCrowdDirector / MockCustomerWalker）の担当で、
-    /// 着いたら <see cref="NotifyArrived"/> を呼んでもらう。位置は LateUpdate で書くので、入場歩行の途中で
-    /// 救済されても退場経路が勝つ。
-    ///
-    /// コインプッシャー（#35 Customer_Move）とは両立しない。Customer_Move は Rigidbody の速度を毎 FixedUpdate 上書きして
-    /// +Z へ押し続けるが、ここは transform を直接動かす。実際に動かし始めるときに Customer_Move を止め、
-    /// Rigidbody を kinematic にする（ApplyVisibilityMockToTestGame の客プレハブ Variant と同じ扱い）。
-    /// </summary>
+    /*
+        客が定位置に着いてから、いなくなるまでの動きを担当するクラス（#62）
+
+          ・移動客の往復（PatrolPath）。定位置に着いたら歩き出して、active の間だけ行ったり来たりする
+            速さは PatrolSpeed でプレイ中でも変えられる（T2 で数値を変えるテスト用）
+          ・救われたり黒客になったりしたら、その場で往復をやめて、決まった秒数（救済は3秒、黒客は4秒）で出口まで歩く（ExitRoute）
+            移動客もふつうの客と同じあつかいで、歩いていたとちゅうの位置から帰り道に入る。rescued と black は終わりの状態なので、往復にはもどらない
+            黒客の当たり判定は CustomerState が残すので、帰っている間もじゃまになる（企画書 v8 6章）
+          ・出口が設定されていなければ歩いて帰らずに、前と同じでその場で消える
+
+        入ってくるとき（鳥居 → 定位置）に歩かせるのは出す側（MockCrowdDirector / MockCustomerWalker）の仕事で、
+        着いたら NotifyArrived を呼んでもらう。位置は LateUpdate で書いているので、入ってくるとちゅうで
+        救われても帰り道のほうが優先される
+
+        コインプッシャー（#35 Customer_Move）とはいっしょに使えない。Customer_Move は FixedUpdate のたびに Rigidbody の速さを上書きして
+        +Z に押しつづけるけど、こっちは transform を直接動かすから。なので実際に動かし始めるときに Customer_Move を止めて、
+        Rigidbody を kinematic にする（ApplyVisibilityMockToTestGame の客プレハブの Variant と同じあつかい）
+    */
     [DisallowMultipleComponent]
     public class CustomerMotion : MonoBehaviour
     {
@@ -48,20 +48,20 @@ namespace Toufuku.Rescue
 
         bool _pusherGuarded;
 
-        /// <summary>往復が設定されている（移動客）。</summary>
+        // 往復が設定されているか（移動客）
         public bool HasPatrol => _hasPatrol;
-        /// <summary>いま往復している。</summary>
+        // 今往復しているか
         public bool IsPatrolling => _patrolling;
-        /// <summary>いま退場経路を歩いている。</summary>
+        // 今帰り道を歩いているか
         public bool IsExiting => _exiting;
-        /// <summary>往復の中心（定位置）。</summary>
+        // 往復の真ん中（定位置）
         public Vector3 PatrolCenter => _patrolCenter;
-        /// <summary>往復の幅（m、端から端）。</summary>
+        // 往復のはば（m、はしからはしまで）
         public float PatrolWidth => patrolWidth;
-        /// <summary>退場の出口（歩いていなければ意味を持たない）。</summary>
+        // 帰るときの出口（歩いていなければ意味はない）
         public Vector3 ExitTarget => _exitTo;
 
-        /// <summary>歩行速度（m/秒）。往復中に変えると次のフレームから反映する。</summary>
+        // 歩く速さ（m/秒）。往復している途中に変えると、次のフレームから反映される
         public float PatrolSpeed
         {
             get => patrolSpeed;
@@ -83,11 +83,13 @@ namespace Toufuku.Rescue
             CustomerState.AnyFinished -= HandleFinished;
         }
 
-        /// <summary>移動客の往復を設定する（スポーン直後に呼ぶ）。歩き出すのは <see cref="NotifyArrived"/> から。</summary>
-        /// <param name="center">往復の中心（定位置）。</param>
-        /// <param name="width">往復の幅（m、端から端）。</param>
-        /// <param name="speed">歩行速度（m/秒）。</param>
-        /// <param name="startSign">+1 なら右（+X）へ、-1 なら左（-X）へ歩き出す。固定シードから決める。</param>
+        /*
+            移動客の往復を設定する（出てきた直後に呼ぶ）。歩き出すのは NotifyArrived から
+            center: 往復の真ん中（定位置）
+            width: 往復のはば（m、はしからはしまで）
+            speed: 歩く速さ（m/秒）
+            startSign: +1 なら右（+X）へ、-1 なら左（-X）へ歩き出す。決まったシードから決める
+        */
         public void ConfigurePatrol(Vector3 center, float width, float speed, int startSign)
         {
             _hasPatrol = true;
@@ -97,13 +99,13 @@ namespace Toufuku.Rescue
             _startSign = startSign >= 0 ? 1 : -1;
         }
 
-        /// <summary>退場の出口を設定する。null や空なら退場歩行をしない。</summary>
+        // 帰るときの出口を設定する。null か空なら歩いて帰らない
         public void SetExitPoints(Vector3[] exits)
         {
             _exitPoints = exits;
         }
 
-        /// <summary>定位置に着いた。移動客なら往復を始める。</summary>
+        // 定位置に着いた。移動客なら往復を始める
         public void NotifyArrived()
         {
             if (!_hasPatrol || _exiting || _patrolling) return;
@@ -122,7 +124,7 @@ namespace Toufuku.Rescue
 
         void BeginExit(float seconds)
         {
-            // 終端状態になった瞬間に往復をやめる。以後 active へは戻らない。
+            // 終わりの状態になった瞬間に往復をやめる。このあと active にはもどらない
             _patrolling = false;
 
             int index = ExitRoute.Choose(transform.position, _exitPoints);
@@ -149,7 +151,7 @@ namespace Toufuku.Rescue
 
             if (!_patrolling) return;
 
-            // 入場中・終端状態では往復しない（終端は HandleFinished で止まるが、念のため状態でも見る）。
+            // 入ってくる途中や終わりの状態のときは往復しない（終わりは HandleFinished で止まるけど、念のため状態でも見ておく）
             if (_state != null && !_state.IsActive) return;
 
             _travelled += patrolSpeed * Time.deltaTime;

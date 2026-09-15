@@ -1,21 +1,21 @@
 using UnityEngine;
 
-/// <summary>
-/// 加点のランタイム数値表（企画書 v8 付録B B-2 の写し）— Issue #55
-///
-/// 付録B が Phase 1 の唯一の数値マスターなので、コードに数値を直書きせずこの ScriptableObject へ集める
-/// （B-1 の客種数値を <c>CustomerKindTable</c> に集めたのと同じ作り）。
-///
-/// ここに置く理由（優先救済 +50）:
-///   付録B B-2 は優先救済を「+50 ／ T2 で支配的なら +30 へ」と書いている（v8 7章「二重円だけを追う」が
-///   支配戦略になった場合の調整）。値をこの表に出しておけば、<b>コードを直さずアセットの数字だけで</b>
-///   +50 → +30 に下げて T2 を回し直せる。
-///
-/// 使い方:
-///   Project で右クリック → Create → Toufuku → 加点数値表 (ScoreBonusTable)。
-///   シーンの <see cref="ScoreManager"/> に割り当てる。割り当てが無ければ ScoreManager 側の
-///   フォールバック値（付録B と同じ既定値）を使う。
-/// </summary>
+/*
+    ボーナスの点数の、プレイ中に使う数値の表（企画書 v8 付録B B-2 を写したもの）（#55）
+
+    付録B が Phase 1 でただ1つの数値の元なので、コードに数値を直接書かないでこの ScriptableObject に集める
+    （B-1 の客の種類の数値を CustomerKindTable に集めたのと同じ作り方）
+
+    ここに置く理由（優先救済の +50）:
+      付録B B-2 には優先救済が「+50 ／ T2 で支配的なら +30 へ」と書いてある（v8 7章「二重円だけを追う」が
+      いちばん強い作戦になってしまったときの調整）。値をこの表に出しておけば、コードを直さないでアセットの数字だけで
+      +50 → +30 に下げて T2 をやりなおせる
+
+    使い方:
+      Project で右クリック → Create → Toufuku → 加点数値表 (ScoreBonusTable)
+      シーンの ScoreManager に入れる。入っていなければ ScoreManager のほうの
+      予備の値（付録B と同じふつうの値）を使う
+*/
 [CreateAssetMenu(
     fileName = "ScoreBonusTable",
     menuName = "Toufuku/加点数値表 (ScoreBonusTable)",
@@ -35,15 +35,15 @@ public class ScoreBonusTable : ScriptableObject
              "既定 +50。T2 で「二重円だけを追う」が支配戦略と判定されたら +30 へ下げる（v8 7章）。")]
     [SerializeField] int priorityRescueBonus = 50;
 
-    /// <summary>命中精度の加点（中心 / 中間 / 外周）。</summary>
+    // 命中精度のボーナス（中心 / 中 / 外側）
     public int AccuracyCenterBonus => accuracyCenterBonus;
     public int AccuracyInnerBonus => accuracyInnerBonus;
     public int AccuracyOuterBonus => accuracyOuterBonus;
 
-    /// <summary>優先救済の加点（付録B B-2）。</summary>
+    // 優先救済のボーナス（付録B B-2）
     public int PriorityRescueBonus => priorityRescueBonus;
 
-    /// <summary>命中ゾーンごとの命中精度の加点。</summary>
+    // 命中ゾーンごとの命中精度のボーナス
     public int AccuracyBonusOf(HitZone zone)
     {
         switch (zone)
@@ -56,7 +56,7 @@ public class ScoreBonusTable : ScriptableObject
     }
 
 #if UNITY_EDITOR
-    /// <summary>付録B に無い値に気づけるようにする（エディタ専用）。</summary>
+    // 付録B にない値に気づけるようにする（エディタだけ）
     void OnValidate()
     {
         if (priorityRescueBonus != 50 && priorityRescueBonus != 30)

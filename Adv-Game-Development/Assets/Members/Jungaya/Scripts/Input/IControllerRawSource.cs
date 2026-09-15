@@ -1,42 +1,42 @@
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// 大幣コントローラの生入力 — Issue #51
-    ///
-    /// ボタンは「押されているか」のレベル値だけを返し、押した／離したのエッジ化と
-    /// 優先規則・キャンセル・クールダウンは <see cref="ThrowInputController"/>（InputStateMachine）が一括で行う。
-    /// 実装: <see cref="KeyboardMouseRawSource"/>（開発用）／<see cref="Esp32RawSource"/>（実機）。
-    /// </summary>
+    /*
+        大幣コントローラーからの入力そのもの（#51）
+
+        ボタンは「今押されているか」だけを返す。押した・はなしたの判定や、
+        優先のルール・キャンセル・クールダウンは ThrowInputController（InputStateMachine）がまとめてやる
+        これを使っているのは KeyboardMouseRawSource（開発用）と Esp32RawSource（実機）
+    */
     public interface IControllerRawSource
     {
-        /// <summary>入力を受け取れる状態か。</summary>
+        // 入力を受け取れる状態かどうか
         bool IsConnected { get; }
 
-        /// <summary>生のヨー角（度）。キャリブレーション前の値。</summary>
+        // そのままのヨー角（度）。キャリブレーションする前の値
         float Yaw { get; }
 
-        /// <summary>生のピッチ角（度）。照準の奥行き（#60: 地面上 3〜18m）に使う。</summary>
+        // そのままのピッチ角（度）。照準の奥行き（#60: 地面の 3〜18m）に使う
         float Pitch { get; }
 
-        /// <summary>色ボタン（0〜4、OmamoriType の並び＝ボタン箱の左→右）が押されているか。</summary>
+        // 色ボタン（0〜4、OmamoriType の順番＝ボタン箱の左から右）が押されているかどうか
         bool IsColorHeld(int index);
 
-        /// <summary>正面ボタンが押されているか。</summary>
+        // 正面ボタンが押されているかどうか
         bool IsFrontHeld { get; }
 
-        /// <summary>
-        /// 検出済みの振りピークを 1 つ取り出す。なければ false。
-        /// 1 フレームに複数溜まることがあるので、false が返るまで呼ぶ。
-        /// </summary>
+        /*
+            見つけた振りピークを1つ取り出す。なければ false
+            1フレームにいくつか貯まることがあるので、false が返ってくるまで呼ぶ
+        */
         bool TryConsumeSwingPeak(out float strength, out double time);
     }
 
-    /// <summary>
-    /// 直前に取り出した振りピークの「入力時刻」を返せる生入力 — Issue #63（T6-USB #52 と共用）
-    ///
-    /// <see cref="IControllerRawSource.TryConsumeSwingPeak"/> の直後（同じ呼び出しの中）に読む。
-    /// コントローラ側の時計なので Unity の時刻とは原点が違う。分からなければ NaN。
-    /// </summary>
+    /*
+        さっき取り出した振りピークの「入力時刻」を返せる入力（#63。T6-USB の #52 でも使う）
+
+        IControllerRawSource.TryConsumeSwingPeak のすぐあと（同じ呼び出しの中）で読む
+        コントローラー側の時計なので、Unity の時刻とはスタート地点がちがう。わからないときは NaN
+    */
     public interface ISwingPeakInputTime
     {
         double LastSwingPeakInputTime { get; }

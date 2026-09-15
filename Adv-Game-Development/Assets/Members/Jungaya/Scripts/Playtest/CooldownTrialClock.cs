@@ -1,39 +1,39 @@
 namespace Toufuku.Playtest
 {
-    /// <summary>1 人分の進行。値は表示の並びと同じ順。</summary>
+    // 1人ぶんの進み方。値は表示する順番と同じ
     public enum CooldownPhase
     {
-        Ready = 0,         // 説明・構え待ち
-        SingleBlock = 1,   // 単発 n 回
-        BlockRest = 2,     // ブロック間の短い休憩
-        PairBlock = 3,     // 「自分の最速で 2 回振る」m 組
-        Record = 4,        // この条件の記録（安全事象・所見）と保存
-        ConditionRest = 5, // 次の条件へ移る前の休憩
-        Done = 6           // 4 条件とも終わった
+        Ready = 0,         // 説明して、構えるのを待つ
+        SingleBlock = 1,   // 1回振りを n 回
+        BlockRest = 2,     // ブロックの間の短い休けい
+        PairBlock = 3,     // 「自分の最速で2回振る」を m 組
+        Record = 4,        // この条件の記録（安全のことや気づいたこと）と保存
+        ConditionRest = 5, // 次の条件にうつる前の休けい
+        Done = 6           // 4つの条件がぜんぶ終わった
     }
 
-    /// <summary>
-    /// 1 人分の進行時計 — Issue #50
-    ///
-    /// 4 条件 ×（単発ブロック → 休憩 → 連投ブロック → 記録 → 休憩）。
-    ///
-    /// ブロックは<b>時間ではなく実施者の合図で終わる</b>（回数で終わるテストなので）。
-    /// 受理数で自動終了させると、余分な発射が出たときにブロックが 1 回早く終わって
-    /// 母数が計りたい値そのものに引きずられるため、終わりは人が決める。
-    /// 休憩だけは時間で自動的に進む。
-    /// 時刻は秒で渡す（MonoBehaviour 非依存）。
-    /// </summary>
+    /*
+        1人ぶんの進み方を管理する時計（#50）
+
+        4つの条件 ×（1回振りのブロック → 休けい → 連投のブロック → 記録 → 休けい）
+
+        ブロックは時間じゃなくて、やる人の合図で終わる（回数で終わるテストなので）
+        受け付けた数で自動で終わるようにすると、よけいな発射が出たときにブロックが1回早く終わって、
+        わる数が測りたい値そのものに引きずられてしまうので、終わりは人が決める
+        休けいだけは時間で自動で進む
+        時刻は秒で渡す（MonoBehaviour は使っていない）
+    */
     public sealed class CooldownTrialClock
     {
         public double BlockRestSeconds = CooldownTestPlan.BlockRestSeconds;
         public double ConditionRestSeconds = CooldownTestPlan.ConditionRestSeconds;
-        /// <summary>試す条件の数。</summary>
+        // ためす条件の数
         public int ConditionCount = CooldownTestPlan.ConditionCount;
 
         double _phaseStart;
 
         public CooldownPhase Phase { get; private set; } = CooldownPhase.Ready;
-        /// <summary>今その人が何番目の条件を試しているか（0 始まり）。</summary>
+        // 今その人が何番目の条件をためしているか（0から）
         public int TrialIndex { get; private set; }
 
         public bool IsBlock => Phase == CooldownPhase.SingleBlock || Phase == CooldownPhase.PairBlock;
@@ -44,7 +44,7 @@ namespace Toufuku.Playtest
 
         public double ElapsedSeconds(double now) => now - _phaseStart;
 
-        /// <summary>このフェーズの残り秒数。時間で終わらないフェーズは 0。</summary>
+        // このフェーズの残りの秒数。時間で終わらないフェーズは 0
         public double RemainingSeconds(double now)
         {
             double duration = DurationOf(Phase);
@@ -53,7 +53,7 @@ namespace Toufuku.Playtest
             return remaining > 0.0 ? remaining : 0.0;
         }
 
-        /// <summary>単発ブロックを始める。trialIndex を渡すと途中の条件から再開できる（記録の続きから）。</summary>
+        // 1回振りのブロックを始める。trialIndex を渡すと、とちゅうの条件から始められる（記録の続きから）
         public void Begin(double now, int trialIndex = 0)
         {
             if (trialIndex < 0) trialIndex = 0;
@@ -63,7 +63,7 @@ namespace Toufuku.Playtest
             _phaseStart = now;
         }
 
-        /// <summary>実施者の合図で次へ。変わったら true。</summary>
+        // やる人の合図で次へ。変わったら true
         public bool Next(double now)
         {
             if (Phase == CooldownPhase.Ready)
@@ -77,7 +77,7 @@ namespace Toufuku.Playtest
             return true;
         }
 
-        /// <summary>時間で終わるフェーズ（休憩）を進める。変わったら true。</summary>
+        // 時間で終わるフェーズ（休けい）を進める。変わったら true
         public bool Advance(double now)
         {
             bool changed = false;
@@ -90,13 +90,13 @@ namespace Toufuku.Playtest
                 _phaseStart += duration;
                 double carried = _phaseStart;
                 Step(now);
-                _phaseStart = carried; // 溜まった遅れを次のフェーズへ持ち越す
+                _phaseStart = carried; // たまった遅れを次のフェーズに持ちこす
                 changed = true;
             }
             return changed;
         }
 
-        /// <summary>次の参加者へ。</summary>
+        // 次の参加者へ
         public void Reset()
         {
             Phase = CooldownPhase.Ready;
@@ -114,7 +114,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>この条件が最後か。</summary>
+        // この条件が最後かどうか
         public bool IsLastCondition => TrialIndex >= ConditionCount - 1;
 
         void Step(double now)

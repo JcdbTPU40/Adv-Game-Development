@@ -1,13 +1,13 @@
 using UnityEngine;
 using Toufuku.Rescue;
 
-/// <summary>
-/// 検証用の危険度D／残り必要発数R 表示（OnGUIオーバーレイ）。Canvas不要、シーンに1つ置くだけ。
-/// シーン上の全 CustomerState(#54) を探し、各客の頭上に表示する。
-///   ・バー   … 危険度 D（0〜100）。満ちる＝悪い（赤系）、100で黒客化。
-///   ・目盛り … 残り必要発数 R。企画書 v8 6章どおり R≧2 の客（欲張り・ボス）だけ表示する。
-/// 本番の表示は足元円＝D／頭上ゲージ＝R に分離する（v8 6章）。これはそれまでのテスト専用スクリプト。
-/// </summary>
+/*
+    検証用に、危険度D と残りの必要な発数R を表示するクラス（OnGUI で重ねて描く）。Canvas はいらなくて、シーンに1つ置くだけ
+    シーンにあるぜんぶの CustomerState（#54）をさがして、それぞれの客の頭の上に表示する
+      ・バー: 危険度 D（0〜100）。たまる＝悪い（赤っぽい色）、100 で黒客になる
+      ・目もり: 残りの必要な発数 R。企画書 v8 6章のとおり、R が2以上の客（欲張り・ボス）だけ表示する
+    本番の表示は、足元の円＝D、頭の上のゲージ＝R に分ける（v8 6章）。これはそれまでのテスト専用のスクリプト
+*/
 public class CustomerGaugeHud : MonoBehaviour
 {
     [Header("バー表示")]
@@ -25,8 +25,8 @@ public class CustomerGaugeHud : MonoBehaviour
     [SerializeField] private Color remainingColor = new Color(1f, 1f, 1f, 0.9f);
 
     [Header("色（赤系で統一：満ちる＝悪い）")]
-    [SerializeField] private Color emptyColor = new Color(1.0f, 0.75f, 0.4f); // 0付近＝救済間近（淡い暖色）
-    [SerializeField] private Color fullColor = new Color(0.95f, 0.15f, 0.15f); // 満タン＝失敗間近（濃い赤）
+    [SerializeField] private Color emptyColor = new Color(1.0f, 0.75f, 0.4f); // 0 の近く＝もうすぐ救える（うすい暖かい色）
+    [SerializeField] private Color fullColor = new Color(0.95f, 0.15f, 0.15f); // 満タン＝もうすぐ失敗（こい赤）
     [SerializeField] private Color backColor = new Color(0f, 0f, 0f, 0.6f);
 
     [Header("0で光る演出（解消時）")]
@@ -39,7 +39,7 @@ public class CustomerGaugeHud : MonoBehaviour
 
     private void Awake()
     {
-        // OnGUI で塗る単色テクスチャ（GUI.color と掛け合わせて使う）。
+        // OnGUI でぬる1色のテクスチャ（GUI.color とかけ合わせて使う）
         _tex = Texture2D.whiteTexture;
     }
 
@@ -48,19 +48,19 @@ public class CustomerGaugeHud : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null) return;
 
-        // 毎フレーム探索（テスト用途なので簡易優先）。
+        // 毎フレームさがす（テスト用なのでかんたんさを優先）
         CustomerState[] customers =
             Object.FindObjectsByType<CustomerState>(FindObjectsSortMode.None);
 
         foreach (CustomerState c in customers)
         {
-            if (c == null || c.IsBlack) continue; // 黒客はバーを描かない（頭上ゲージは消す。v8 6章）
+            if (c == null || c.IsBlack) continue; // 黒客はバーを描かない（頭の上のゲージは消す。v8 6章）
 
             Vector3 worldPos = c.transform.position + Vector3.up * worldHeightOffset;
             Vector3 sp = cam.WorldToScreenPoint(worldPos);
-            if (sp.z <= 0f) continue; // カメラ後方は描かない
+            if (sp.z <= 0f) continue; // カメラのうしろは描かない
 
-            // スクリーン座標 → GUI座標（Yを反転）
+            // スクリーン座標を GUI の座標に直す（Y を反対にする）
             float x = sp.x - barWidth * 0.5f;
             float y = (Screen.height - sp.y) - barHeight * 0.5f;
 
@@ -70,7 +70,7 @@ public class CustomerGaugeHud : MonoBehaviour
 
             if (c.IsRescued)
             {
-                // 救済完了＝光る演出：バー全体を発光色で点滅させる。
+                // 救えた＝光る演出: バー全体を光る色で点滅させる
                 float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * glowPulseSpeed * Mathf.PI * 2f);
                 Color g = glowColor;
                 g.a = Mathf.Lerp(0.4f, 1f, pulse);
@@ -79,12 +79,12 @@ public class CustomerGaugeHud : MonoBehaviour
             }
             else
             {
-                // 通常：危険度Dの満ち具合を赤系グラデで表示。
+                // ふつう: 危険度D のたまり具合を赤っぽいグラデーションで表示する
                 float t = Mathf.Clamp01(c.DangerNormalized);
                 GUI.color = Color.Lerp(emptyColor, fullColor, t);
                 GUI.DrawTexture(new Rect(x, y, barWidth * t, barHeight), _tex);
 
-                // 残り必要発数R：1発で救済できる客には出さない（v8 6章「表示しない：通常客・移動客・遠方客」）。
+                // 残りの必要な発数R: 1発で救える客には出さない（v8 6章「表示しない：通常客・移動客・遠方客」）
                 if (c.Remaining >= 2)
                 {
                     GUI.color = remainingColor;

@@ -2,20 +2,20 @@ using System;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-/// <summary>
-/// スコア（縁）とコンボの一元管理。シーンに1つだけ置く。— Issue #22 / #31
-/// ・命中精度ボーナス … #60: 判定半径の中心 40% 以内 +50 / 40〜70% +20 / 70〜100% +0
-/// ・連続コンボ倍率   … 連続命中で倍率上昇／1ミスで途切れる
-///
-/// #31: スコア変化を C# イベントで配信する。HUD/SE/ご加護(#29)/評価(#30)は
-///      ポーリングせず、これらのイベントを購読して結線する。
-///
-/// #55: 優先救済（二重円）の加点を足す。加点の数値は付録B B-2 の写しである
-///      <see cref="ScoreBonusTable"/>（未割り当てなら下のフォールバック値）から引く。
-///
-/// 獲得縁の計算式:
-///   獲得 = (基礎点 + 命中精度ボーナス + 優先救済ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
-/// </summary>
+/*
+    スコア（縁）とコンボをまとめて管理するクラス。シーンに1つだけ置く（#22 / #31）
+    ・命中精度のボーナス: #60 で、判定半径の中心 40% 以内 +50 / 40〜70% +20 / 70〜100% +0
+    ・連続コンボの倍率: 続けて当てると倍率が上がって、1回ミスすると切れる
+
+    #31: スコアの変化を C# のイベントで配る。HUD・効果音・ご加護（#29）・評価（#30）は
+         毎フレーム見に行かないで、これらのイベントを受け取ってつなぐ
+
+    #55: 優先救済（二重円）のボーナスを足す。ボーナスの数値は付録B B-2 を写した
+         ScoreBonusTable（入っていなければ下の予備の値）から取る
+
+    もらえる縁の計算:
+      もらえる縁 = (基礎点 + 命中精度ボーナス + 優先救済ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
+*/
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
@@ -49,49 +49,51 @@ public class ScoreManager : MonoBehaviour
     [Tooltip("倍率の上限")]
     [SerializeField] float maxMultiplier = 3.0f;
 
-    // ---------- 公開イベント（#31） ----------
-    /// <summary>縁が変化した（引数: 現在の累計縁）。</summary>
+    /*
+        ---------- 外に配るイベント（#31） ----------
+        縁が変わった（引数: 今の縁の合計）
+    */
     public event Action<int> onEnChanged;
-    /// <summary>コンボ数が変化した（引数: 現在のコンボ）。</summary>
+    // コンボの数が変わった（引数: 今のコンボ）
     public event Action<int> onComboChanged;
-    /// <summary>合計倍率が変化した（引数: コンボ×ご加護×評価 の合計倍率）。</summary>
+    // 合計の倍率が変わった（引数: コンボ×ご加護×評価 の合計の倍率）
     public event Action<float> onMultiplierChanged;
-    /// <summary>ミス（外し／相性✗）が起きた。コンボ途切れ演出・SE用。</summary>
+    // ミス（外れ・相性✗）が起きた。コンボが切れる演出や効果音用
     public event Action onMiss;
-    /// <summary>ResetAll が呼ばれた（リトライ用。#32 のセッションが購読）。</summary>
+    // ResetAll が呼ばれた（リトライ用。#32 のゲーム管理が受け取る）
     public event Action onReset;
 
-    /// <summary>累計スコア（縁）。減らずに増え続ける。</summary>
+    // 合計のスコア（縁）。減らないで増えつづける
     public int En { get; private set; }
-    /// <summary>現在の連続コンボ数。1ミスで0に戻る。</summary>
+    // 今の連続コンボの数。1回ミスすると0にもどる
     public int Combo { get; private set; }
-    /// <summary>このプレイ中の最大コンボ（リザルト用）。</summary>
+    // このプレイ中のいちばん大きいコンボ（リザルト用）
     public int MaxCombo { get; private set; }
 
-    /// <summary>直近の命中ゾーン（HUD表示・確認用）。</summary>
+    // いちばん新しい命中ゾーン（HUD の表示・確認用）
     public HitZone LastZone { get; private set; }
-    /// <summary>直近の獲得点（HUD表示・確認用）。</summary>
+    // いちばん新しくもらった点（HUD の表示・確認用）
     public int LastGain { get; private set; }
-    /// <summary>直近の命中精度ボーナス（倍率を掛ける前。HUD表示・確認用）。</summary>
+    // いちばん新しい命中精度のボーナス（倍率をかける前。HUD の表示・確認用）
     public int LastBonus { get; private set; }
-    /// <summary>直近の優先救済ボーナス（倍率を掛ける前。0 なら二重円の客ではなかった。HUD表示・確認用）。</summary>
+    // いちばん新しい優先救済のボーナス（倍率をかける前。0 なら二重円の客じゃなかった。HUD の表示・確認用）
     public int LastPriorityBonus { get; private set; }
 
-    /// <summary>優先救済（二重円）の加点（付録B B-2）。数値表が割り当てられていればその値。</summary>
+    // 優先救済（二重円）のボーナス（付録B B-2）。数値の表が入っていればその値
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
 
-    /// <summary>現在のコンボ倍率。コンボ1で x1.0、以降 comboStep ずつ上昇。</summary>
+    // 今のコンボの倍率。コンボ1で x1.0、そこから comboStep ずつ上がる
     public float Multiplier =>
         Mathf.Min(1f + Mathf.Max(0, Combo - 1) * comboStep, maxMultiplier);
 
-    /// <summary>ご加護タイム(#29)の上乗せ倍率。GokagoTime が設定する。通常は1。</summary>
+    // ご加護タイム（#29）で上乗せする倍率。GokagoTime が設定する。ふつうは1
     public float GokagoMultiplier { get; private set; } = 1f;
 
-    /// <summary>神社評価(#30)による縁倍率。ShrineRating 未配置なら1。</summary>
+    // 神社の評価（#30）による縁の倍率。ShrineRating を置いていなければ1
     public float RatingMultiplier =>
         ShrineRating.Instance != null ? ShrineRating.Instance.EnMultiplier : 1f;
 
-    /// <summary>獲得計算に使う合計倍率（コンボ×ご加護×評価）。</summary>
+    // もらえる縁の計算に使う合計の倍率（コンボ×ご加護×評価）
     public float TotalMultiplier => Multiplier * GokagoMultiplier * RatingMultiplier;
 
     void Awake()
@@ -100,30 +102,28 @@ public class ScoreManager : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>
-    /// 正色命中を記録する（#54）。福の連なり C は正色命中のたびに伸びるが、
-    /// <b>縁は救済完了（R=0）のときだけ</b> (基礎点 + 命中精度ボーナス) × 合計倍率で入る。
-    ///
-    /// 企画書 v8 変更点5／付録B B-2：欲張り客の途中命中は 0 点、救済完了時に 300 点を1回で確定する。
-    /// 途中点を先払いしないので、複数発客の得点は「最終弾の精度・倍率が1回だけ乗った値」に一意に決まる。
-    /// </summary>
-    /// <param name="zone">命中精度のゾーン（Miss ならミス扱い）。</param>
-    /// <param name="rescued">この命中で救済が完了したか（R=0 になったか）。</param>
-    /// <param name="rescueBaseScore">救済完了時の基礎点（客種ごと。付録B B-1）。</param>
-    /// <param name="priorityRescue">
-    /// 優先救済か（#55）。発射（SwingAccepted）時に弾へ保存した二重円の客を、その弾で救済完了させたときだけ true。
-    /// 飛翔中に二重円が別の客へ移っても、この値は発射時の判断のまま変わらない。
-    /// </param>
+    /*
+        正しい色で当たったのを記録する（#54）。福の連なり C は正しい色で当たるたびにのびるけど、
+        縁は救えた（R=0）ときだけ (基礎点 + 命中精度ボーナス) × 合計の倍率 で入る
+
+        企画書 v8 の変更点5、付録B B-2: 欲張り客のとちゅうの当たりは 0 点で、救えたときに 300 点を1回で決める
+        とちゅうの点を先に払わないので、何発も必要な客の点は「最後の弾の精度と倍率が1回だけかかった値」に1つに決まる
+        zone: 命中精度のゾーン（Miss ならミスあつかい）
+        rescued: この当たりで救えたか（R=0 になったか）
+        rescueBaseScore: 救えたときの基礎点（客の種類ごと。付録B B-1）
+        priorityRescue: 優先救済か（#55）。発射（SwingAccepted）したときに弾に保存した二重円の客を、その弾で救えたときだけ true
+          飛んでいる間に二重円が別の客に移っても、この値は発射したときの判断のまま変わらない
+    */
     public void RegisterCorrectHit(HitZone zone, bool rescued, int rescueBaseScore, bool priorityRescue = false)
     {
-        // Miss が渡されたら命中扱いにしない（コンボ途切れへ）
+        // Miss が来たら当たりにしない（コンボが切れるほうへ）
         if (zone == HitZone.Miss) { RegisterMiss(); return; }
 
         Combo++;
         if (Combo > MaxCombo) MaxCombo = Combo;
 
         int bonus = rescued ? AccuracyBonusOf(zone) : 0;
-        // 優先救済は救済完了した弾にだけ乗る（途中命中は付録B B-2 どおり 0 点）。
+        // 優先救済は救えた弾にだけのる（とちゅうの当たりは付録B B-2 のとおり 0 点）
         int priorityBonus = rescued && priorityRescue ? PriorityRescueBonus : 0;
         int gained = rescued ? Mathf.RoundToInt((rescueBaseScore + bonus + priorityBonus) * TotalMultiplier) : 0;
         En += gained;
@@ -140,21 +140,19 @@ public class ScoreManager : MonoBehaviour
         else
             Debug.Log($"[Score] 正色命中（救済途中）: 縁は入らない (連なり {Combo} / 縁 {En})");
 
-        // #31: ポーリング廃止。変化をイベントで配信（HUD/SE/ご加護#29/評価#30 が購読）。
+        // #31: 毎フレーム見に行くのはやめた。変わったことをイベントで配る（HUD・効果音・ご加護 #29・評価 #30 が受け取る）
         onComboChanged?.Invoke(Combo);
         onMultiplierChanged?.Invoke(TotalMultiplier);
         onEnChanged?.Invoke(En);
     }
 
-    /// <summary>
-    /// 旧API（#22）。1発で救済が完了する客だけ正しい。#54 以降は
-    /// <see cref="RegisterCorrectHit(HitZone,bool,int)"/> を使い、基礎点は客種ごとの値を渡すこと。
-    /// </summary>
+    /*
+        古いメソッド（#22）。1発で救える客のときだけ正しい。#54 からは
+        RegisterCorrectHit(HitZone,bool,int) を使って、基礎点は客の種類ごとの値を渡すこと
+    */
     public void RegisterHit(HitZone zone) => RegisterCorrectHit(zone, rescued: true, rescueBaseScore: hitScore);
 
-    /// <summary>
-    /// ミス（外し／相性の合わないお守り）を記録する。コンボが途切れる。
-    /// </summary>
+    // ミス（外れ・相性の合わないお守り）を記録する。コンボが切れる
     public void RegisterMiss()
     {
         if (Combo > 0)
@@ -162,21 +160,23 @@ public class ScoreManager : MonoBehaviour
 
         Combo = 0;
 
-        // 「渋る」リアクション（#14）は客ごとの CustomerReluctance が CustomerRescue.onBadHit を
-        // 購読して再生する（誤投擲＝相性✗ヒット時のみ）。ここは「外し」も含む全ミス共通の処理。
+        /*
+            「渋る」リアクション（#14）は客ごとの CustomerReluctance が CustomerRescue.onBadHit を
+            受け取って再生する（まちがい＝相性✗で当たったときだけ）。ここは「外れ」も入れた、ぜんぶのミスで共通の処理
+        */
         onComboChanged?.Invoke(Combo);
         onMultiplierChanged?.Invoke(TotalMultiplier);
-        onMiss?.Invoke(); // ミスSE・コンボ途切れ演出（HUD点滅など）はここを購読する
+        onMiss?.Invoke(); // ミスの効果音やコンボが切れる演出（HUD の点滅など）はここを受け取る
     }
 
-    /// <summary>ご加護タイム(#29)から呼ぶ。上乗せ倍率の設定/解除。</summary>
+    // ご加護タイム（#29）から呼ぶ。上乗せする倍率を設定したり、やめたりする
     public void SetGokagoMultiplier(float multiplier)
     {
         GokagoMultiplier = Mathf.Max(1f, multiplier);
         onMultiplierChanged?.Invoke(TotalMultiplier);
     }
 
-    /// <summary>スコアとコンボを初期化（テスト・リトライ用）。</summary>
+    // スコアとコンボを最初にもどす（テスト・リトライ用）
     public void ResetAll()
     {
         En = 0;
@@ -195,7 +195,7 @@ public class ScoreManager : MonoBehaviour
         onReset?.Invoke();
     }
 
-    /// <summary>命中ゾーンごとの命中精度ボーナス（#60 / 付録B B-2）。数値表があればその値を使う。</summary>
+    // 命中ゾーンごとの命中精度のボーナス（#60 / 付録B B-2）。数値の表があればその値を使う
     public int AccuracyBonusOf(HitZone zone)
     {
         if (bonusTable != null) return bonusTable.AccuracyBonusOf(zone);

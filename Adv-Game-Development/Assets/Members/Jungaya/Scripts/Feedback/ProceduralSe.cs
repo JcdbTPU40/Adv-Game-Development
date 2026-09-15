@@ -3,20 +3,20 @@ using UnityEngine;
 
 namespace Toufuku.Feedback
 {
-    /// <summary>
-    /// 素材が届くまでの仮SE を実行時に合成する — Issue #64
-    ///
-    /// どれも立ち上がり 2〜3ms で鳴り始める（発音タイミングの確認に使うため、頭に無音を置かない）。
-    /// 正式素材を GameFeedbackDirector に設定すれば使われなくなる。
-    /// </summary>
+    /*
+        ちゃんとした素材が来るまでの仮の効果音を、実行中に作るクラス（#64）
+
+        どの音も鳴り始めまで 2〜3ms にしてある（音が鳴るタイミングを確認するのに使うので、最初に無音を入れない）
+        ちゃんとした素材を GameFeedbackDirector に入れたら、こっちは使われなくなる
+    */
     public static class ProceduralSe
     {
         const int SampleRate = 44100;
 
-        /// <summary>命中音の根音（C5）。音階はここから AudioSource.pitch で上げる。</summary>
+        // 命中音の根音（C5）。ここから AudioSource.pitch で音を上げていく
         public const float HitRootFrequency = 523.25f;
 
-        /// <summary>発射: 低域へ抜けるノイズの「シュッ」。</summary>
+        // 発射の音: 低いほうにぬけていくノイズの「シュッ」
         public static AudioClip Throw()
         {
             const float seconds = 0.14f;
@@ -30,7 +30,7 @@ namespace Toufuku.Feedback
             });
         }
 
-        /// <summary>命中: 短い「ポン」。</summary>
+        // 命中の音: 短い「ポン」
         public static AudioClip Hit()
         {
             const float seconds = 0.22f;
@@ -38,7 +38,7 @@ namespace Toufuku.Feedback
                 (Sine(HitRootFrequency, t) * 0.7f + Sine(HitRootFrequency * 2f, t) * 0.2f) * Envelope(t, seconds, 0.002f, 3f));
         }
 
-        /// <summary>救済: 上がる 2 音の「ピロン」。</summary>
+        // 救済の音: 上がっていく2音の「ピロン」
         public static AudioClip Rescue()
         {
             const float seconds = 0.5f;
@@ -50,7 +50,7 @@ namespace Toufuku.Feedback
             });
         }
 
-        /// <summary>失敗（黒客化）: 下がる濁った低音。</summary>
+        // 失敗（黒客になった）の音: 下がっていくにごった低い音
         public static AudioClip Fail()
         {
             const float seconds = 0.45f;
@@ -64,7 +64,7 @@ namespace Toufuku.Feedback
             });
         }
 
-        /// <summary>黒客ヒット: 鈍い「ドッ」。</summary>
+        // 黒客に当たった音: にぶい「ドッ」
         public static AudioClip BlackHit()
         {
             const float seconds = 0.16f;
@@ -78,7 +78,7 @@ namespace Toufuku.Feedback
             });
         }
 
-        /// <summary>カウントダウン: 短い「ピッ」。accent なら高い音（残り数秒の強調）。</summary>
+        // カウントダウンの音: 短い「ピッ」。accent なら高い音（残り数秒をめだたせる）
         public static AudioClip CountdownTick(bool accent)
         {
             const float seconds = 0.08f;
@@ -87,7 +87,7 @@ namespace Toufuku.Feedback
                 Sine(hz, t) * Envelope(t, seconds, 0.002f, 1.5f) * 0.6f);
         }
 
-        /// <summary>鈴: 高い倍音を 3 回細かく鳴らす「シャラン」。</summary>
+        // 鈴の音: 高い倍音を3回こまかく鳴らす「シャラン」
         public static AudioClip Bell()
         {
             const float seconds = 0.7f;
@@ -120,7 +120,7 @@ namespace Toufuku.Feedback
             return clip;
         }
 
-        /// <summary>立ち上がり attack 秒・seconds 秒で 0 へ減衰する包絡。</summary>
+        // attack 秒で立ち上がって、seconds 秒で 0 まで小さくなる音量のカーブ
         static float Envelope(float t, float seconds, float attack, float curve)
         {
             if (t < 0f || seconds <= 0f) return 0f;

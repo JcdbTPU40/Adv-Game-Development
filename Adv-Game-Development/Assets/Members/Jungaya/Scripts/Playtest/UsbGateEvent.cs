@@ -1,44 +1,44 @@
 namespace Toufuku.Playtest
 {
-    /// <summary>T6-USB の記録の「event」列に入る種別。</summary>
+    // T6-USB の記録の「event」列に入る種類
     public static class UsbGateEventType
     {
-        /// <summary>区間の開始。</summary>
+        // 区間が始まった
         public const string SectionStart = "section_start";
-        /// <summary>区間の終わり（flag = 1 最後まで行った / 0 中断）。中断した区間は合否に使わない。</summary>
+        // 区間が終わった（flag = 1 最後までやった / 0 やめた）。やめた区間は合格かどうかに使わない
         public const string SectionEnd = "section_end";
-        /// <summary>計測条件（label = 項目名、detail = 値）。区間の開始時に書く。</summary>
+        // 測ったときの条件（label = 項目の名前、detail = 値）。区間が始まったときに書く
         public const string Env = "env";
-        /// <summary>安全チェック 1 項目（label = 項目 id、flag = 1 適合）。</summary>
+        // 安全チェックの1項目（label = 項目の id、flag = 1 OK）
         public const string SafetyItem = "safety_item";
-        /// <summary>安全事象（label = contact 接触 / deviation 領域からの逸脱）。</summary>
+        // 安全のこと（label = contact ぶつかった / deviation 安全な場所からはみ出た）
         public const string Incident = "incident";
-        /// <summary>意図的 100 投の合図（seq = 合図番号 1〜、t = 合図の秒）。</summary>
+        // わざと100投の合図（seq = 合図の番号 1から、t = 合図の秒）
         public const string Cue = "cue";
-        /// <summary>合図を無効にした（振らなかった・合図を見ていなかった）。seq = 合図番号。</summary>
+        // 合図をなしにした（振らなかった・合図を見ていなかった）。seq = 合図の番号
         public const string CueVoid = "cue_void";
-        /// <summary>
-        /// 発射確定（seq = 区間内の発射番号）。
-        /// input_time = コントローラの時計、input_unity = それを Unity の時計へ合わせた推定、
-        /// receive_time = Unity 受信、fire_time = 発射確定、visible_time = 弾が画面に出た（その描画の present 後）。
-        /// value = 振りの強さ。
-        /// </summary>
+        /*
+            発射が決まった（seq = 区間の中の発射の番号）
+            input_time = コントローラーの時計、input_unity = それを Unity の時計に合わせて出した値、
+            receive_time = Unity が受け取った時刻、fire_time = 発射が決まった時刻、visible_time = 弾が画面に出た時刻（その絵の present のあと）
+            value = 振りの強さ
+        */
         public const string Fire = "fire";
-        /// <summary>振りピークを却下した（label = 理由、receive_time = 受信）。</summary>
+        // 振りピークをはじいた（label = 理由、receive_time = 受け取った時刻）
         public const string Reject = "reject";
-        /// <summary>子どもの着弾（seq = 発射番号、label = near / far、value = 的の中心からの距離 m、flag = 1 命中）。</summary>
+        // 子どもの着弾（seq = 発射の番号、label = near / far、value = 的の中心からの距離 m、flag = 1 当たり）
         public const string Landing = "landing";
-        /// <summary>子どもの区間の段落（label = practice / near / far、t = 始まった秒）。</summary>
+        // 子どもの区間の区切り（label = practice / near / far、t = 始まった秒）
         public const string Block = "block";
-        /// <summary>受信の途絶（value = 途絶秒。区間の終わりまで戻らなければ終わりまでの秒）。</summary>
+        // 受け取りがとぎれた（value = とぎれた秒。区間の終わりまでもどらなければ、終わりまでの秒）
         public const string Disconnect = "disconnect";
-        /// <summary>ドリフトの標本（label = start / end / track、value = 照準の画面 X ÷ 画面幅、flag = 1 静止を確認）。</summary>
+        // ドリフトのデータ（label = start / end / track、value = 照準の画面 X ÷ 画面のはば、flag = 1 止まっているのを確認した）
         public const string DriftSample = "drift_sample";
-        /// <summary>区間の集計値（label = 指標名、value = 値）。</summary>
+        // 区間の集計の値（label = 指標の名前、value = 値）
         public const string Metric = "metric";
     }
 
-    /// <summary><see cref="UsbGateEventType.Metric"/> の label。</summary>
+    // UsbGateEventType.Metric の label
     public static class UsbGateMetric
     {
         public const string AverageFps = "avg_fps";
@@ -52,32 +52,32 @@ namespace Toufuku.Playtest
         public const string Samples = "samples";
         public const string SampleRateHz = "sample_rate_hz";
         public const string MaxGapMs = "max_gap_ms";
-        /// <summary>区間の開始時に実機（ESP32）とつながっていたか（1 / 0）。</summary>
+        // 区間が始まったときに実機（ESP32）とつながっていたか（1 / 0）
         public const string Connected = "connected";
-        /// <summary>5 項目目（millis）つきの受信行の数。0 なら入力時刻は測れていない。</summary>
+        // 5つ目（millis）付きで受け取った行の数。0 なら入力時刻は測れていない
         public const string DeviceTimeSamples = "device_time_samples";
     }
 
-    /// <summary>
-    /// T6-USB の記録 1 行 — Issue #52
-    ///
-    /// 区間（安全チェック・意図的 100 投・ドリフト・30 体負荷・子ども）をまたいで、1 つの縦長の CSV に 1 イベント 1 行で残す。
-    /// 数値の空欄は欠測（null）で、0 とは区別する。MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T6-USB の記録の1行（#52）
+
+        区間（安全チェック・わざと100投・ドリフト・30人の負荷・子ども）をまたいで、1つのたて長の CSV に1イベント1行で残す
+        数字の空欄はデータなし（null）で、0 とは分ける。MonoBehaviour は使っていない
+    */
     public sealed class UsbGateEvent
     {
         public string TestId = UsbGatePlan.DefaultTestId;
-        /// <summary>実施日（yyyy-MM-dd）。</summary>
+        // やった日（yyyy-MM-dd）
         public string Date = "";
-        /// <summary>区間を始めるたびに 1 つ進む通し番号。同じ区間をやり直したときは、最後に最後まで行った回を使う。</summary>
+        // 区間を始めるたびに1つ進む通し番号。同じ区間をやりなおしたときは、最後に最後までやった回を使う
         public int Run;
-        /// <summary><see cref="UsbGatePlan.KeyOf"/> の値。</summary>
+        // UsbGatePlan.KeyOf の値
         public string Section = "";
-        /// <summary>子どもの参加者番号（1〜）。ほかの区間は 0。氏名は書かない。</summary>
+        // 子どもの参加者の番号（1から）。ほかの区間は 0。名前は書かない
         public int Participant;
         public int Seq;
         public string Event = "";
-        /// <summary>区間の開始からの秒。</summary>
+        // 区間が始まってからの秒
         public double T;
 
         public double? InputTime;

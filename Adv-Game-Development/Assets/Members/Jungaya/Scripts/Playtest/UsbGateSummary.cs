@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>完了条件 1 つと、不合格だったときの処置（仕様書 17章 T6-USB の不合格時の処置）。</summary>
+    // 完了条件1つと、不合格だったときにどうするか（企画書 17章 T6-USB の不合格のときの対応）
     public readonly struct UsbGateCriterion
     {
         public readonly AbCriterion Criterion;
@@ -19,29 +19,29 @@ namespace Toufuku.Playtest
         public override string ToString() => Criterion.Passed ? Criterion.ToString() : $"{Criterion} → {Remedy}";
     }
 
-    /// <summary>
-    /// 意図的 100 投の入力遅延 — Issue #52
-    ///
-    /// 1 投の遅延 = 弾が画面に出た時刻（visible_time）− 入力時刻を Unity の時計へ合わせた推定（input_unity）。
-    /// 入力時刻が無い投擲（5 項目目を送らないファームウェア・マウス代用）は、受信時刻（receive_time）から測る。
-    /// そのときは USB の転送と ESP32 内の待ちが入らないので<b>暫定</b>（<see cref="InputBased"/> = false）。
-    /// </summary>
+    /*
+        わざと100投の入力の遅れ（#52）
+
+        1投の遅れ = 弾が画面に出た時刻（visible_time）− 入力時刻を Unity の時計に合わせて出した値（input_unity）
+        入力時刻がない投げ（5つ目を送らないファームウェアやマウスのとき）は、受け取った時刻（receive_time）から測る
+        そのときは USB で送る時間と ESP32 の中の待ちが入らないので、とりあえずの値（InputBased = false）
+    */
     public sealed class UsbLatencyStats
     {
-        /// <summary>発射確定の数。</summary>
+        // 発射が決まった数
         public int Fires { get; private set; }
-        /// <summary>画面に出た時刻が取れて遅延を出せた数。</summary>
+        // 画面に出た時刻が取れて、遅れを出せた数
         public int Count { get; private set; }
-        /// <summary>そのうち入力時刻から測れた数。</summary>
+        // そのうち入力時刻から測れた数
         public int WithInput { get; private set; }
-        /// <summary>全件を入力時刻から測れたか。</summary>
+        // ぜんぶ入力時刻から測れたかどうか
         public bool InputBased => Count > 0 && WithInput == Count;
 
         public double? P50Ms { get; private set; }
         public double? P95Ms { get; private set; }
         public double? MaxMs { get; private set; }
 
-        /// <summary>内訳（p95）: 入力 → Unity 受信 / 受信 → 発射確定 / 発射確定 → 画面。</summary>
+        // 中身（p95）: 入力 → Unity が受け取る / 受け取り → 発射が決まる / 発射が決まる → 画面
         public double? InputToReceiveP95Ms { get; private set; }
         public double? ReceiveToFireP95Ms { get; private set; }
         public double? FireToVisibleP95Ms { get; private set; }
@@ -106,26 +106,25 @@ namespace Toufuku.Playtest
         static string Ms(double? value) => value.HasValue ? $"{value.Value:0.0}ms" : "-";
     }
 
-    /// <summary>
-    /// T6-USB 1 回分の合否 — Issue #52（仕様書 v8 17章）
-    ///
-    /// 記録 CSV（1 イベント 1 行）から、区間ごとに<b>最後まで行った最後の回</b>を選んで判定する。
-    /// 子どもは参加者ごとに最後まで行った最後の回を使う。中断した回は合否に使わない（安全事象だけは中断した回も数える）。
-    ///
-    /// | 完了条件 | 判定 |
-    /// |---|---|
-    /// | 安全チェック全項目適合 | 最後の安全チェックで全項目が適合 |
-    /// | 接触／逸脱 0 件 | その日のすべての回の安全事象（中断した回を含む） |
-    /// | 遅延 p95 ≤ 80ms・最大 ≤ 100ms | 意図的 100 投の各投の「入力 → 画面に弾」（<see cref="UsbLatencyStats"/>） |
-    /// | 意図的入力欠落 &lt; 2%・誤発射 ≤ 2% | 合図との突き合わせ（<see cref="UsbIntentMatcher"/>）。意図した投擲が 100 未満なら不合格 |
-    /// | 切断 0 | 実機を使う全区間の受信の途絶。実機につながっていない区間が 1 つでもあれば不合格 |
-    /// | 3 分ドリフト ≤ 画面幅 5% | 静止と操作の両方。置き台での照準の画面 X の差 ÷ 画面幅 |
-    /// | 60fps・1% low ≥ 55fps | 30 体負荷の計測区間。描画体数の最小が 30 未満なら負荷条件を満たしていない |
-    /// | 近 7/10・遠 6/10 命中 | 子ども全員の合計（5 人 × 10 投 = 50 投で近 35・遠 30 以上）。参加者 5 人未満は不合格 |
-    ///
-    /// 「2 回連続合格してから MVP 固定」（19章）は 1 回分では判定できないので、テスト記録で 2 回並べる。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T6-USB 1回ぶんの合格・不合格を出すクラス（#52 / 企画書 v8 17章）
+
+        記録の CSV（1イベント1行）から、区間ごとに「最後までやった最後の回」を選んで判定する
+        子どもは参加者ごとに最後までやった最後の回を使う。やめた回は合格かどうかに使わない（安全のことだけは、やめた回も数える）
+
+        完了条件と判定のしかた:
+        ・安全チェックがぜんぶ OK → 最後の安全チェックでぜんぶの項目が OK
+        ・ぶつかった・はみ出たが0件 → その日のすべての回の安全のこと（やめた回も入れる）
+        ・遅れの p95 が 80ms 以下、最大が 100ms 以下 → わざと100投のそれぞれの「入力 → 画面に弾」（UsbLatencyStats）
+        ・わざと入力の抜けが 2% 未満、まちがい発射が 2% 以下 → 合図と照らし合わせる（UsbIntentMatcher）。振ろうとした投げが100より少なければ不合格
+        ・切断0 → 実機を使うぜんぶの区間の受け取りのとぎれ。実機につながっていない区間が1つでもあれば不合格
+        ・3分のドリフトが画面のはばの 5% 以下 → 止めたままと、さわったあとの両方。置き台での照準の画面 X の差 ÷ 画面のはば
+        ・60fps、1% low が 55fps 以上 → 30人の負荷を測った区間。描いている人数のいちばん少ないのが30より少なければ、負荷の条件を満たしていない
+        ・近いのは 7/10、遠いのは 6/10 当たる → 子ども全員の合計（5人 × 10投 = 50投で、近いのは35、遠いのは30以上）。参加者が5人より少なければ不合格
+
+        「2回連続合格してから MVP を決める」（19章）は1回ぶんでは判定できないので、テスト記録に2回ならべる
+        MonoBehaviour は使っていない
+    */
     public sealed class UsbGateSummary
     {
         public const string RemedySafety = "該当項目を直してからチェックし直す。安全事象はその場で止め、原因を除くまで再開しない（12章）";
@@ -143,7 +142,7 @@ namespace Toufuku.Playtest
         public bool Passed { get; private set; }
         public int PlannedChildren { get; private set; }
 
-        // ── 詳細（実施者パネル・テスト記録用）──
+        // ---- くわしい中身（やる人のパネルやテスト記録用） ----
         public bool SafetyChecked { get; private set; }
         public int SafetyItemsOk { get; private set; }
         public int Incidents { get; private set; }
@@ -189,7 +188,7 @@ namespace Toufuku.Playtest
                 if (e != null && e.Is(UsbGateEventType.Incident)) s.Incidents++;
             }
 
-            // ── 安全チェック ──
+            // ---- 安全チェック ----
             List<UsbGateEvent> safety = LatestCompletedRun(events, UsbGateSection.Safety);
             if (safety != null)
             {
@@ -205,7 +204,7 @@ namespace Toufuku.Playtest
                 }
             }
 
-            // ── 意図的 100 投 ──
+            // ---- わざと100投 ----
             List<UsbGateEvent> throws = LatestCompletedRun(events, UsbGateSection.Throws100);
             if (throws != null)
             {
@@ -224,7 +223,7 @@ namespace Toufuku.Playtest
                 s.Intent = UsbIntentMatcher.Match(cues, voided, fires);
             }
 
-            // ── 切断（実機を使う全区間の最後の回）──
+            // ---- 切断（実機を使うぜんぶの区間の最後の回） ----
             var controllerRuns = new List<List<UsbGateEvent>>();
             foreach (UsbGateSection section in new[] { UsbGateSection.Throws100, UsbGateSection.DriftStatic, UsbGateSection.DriftOperate, UsbGateSection.Load })
             {
@@ -245,11 +244,11 @@ namespace Toufuku.Playtest
                 }
             }
 
-            // ── ドリフト ──
+            // ---- ドリフト ----
             s.DriftStatic = DriftOf(LatestCompletedRun(events, UsbGateSection.DriftStatic));
             s.DriftOperate = DriftOf(LatestCompletedRun(events, UsbGateSection.DriftOperate));
 
-            // ── 30 体負荷 ──
+            // ---- 30人の負荷 ----
             List<UsbGateEvent> load = LatestCompletedRun(events, UsbGateSection.Load);
             if (load != null)
             {
@@ -258,7 +257,7 @@ namespace Toufuku.Playtest
                 s.RenderedMin = MetricOf(load, UsbGateMetric.RenderedMin);
             }
 
-            // ── 子ども ──
+            // ---- 子ども ----
             s.Children = children.Count;
             foreach (List<UsbGateEvent> run in children.Values)
             {
@@ -357,9 +356,9 @@ namespace Toufuku.Playtest
         void Add(string name, string actual, string required, bool passed, string remedy) =>
             _criteria.Add(new UsbGateCriterion(new AbCriterion(name, actual, required, passed), remedy));
 
-        // ── 回の選び方（テストから使う）──
+        // ---- どの回を使うかの選び方（テストから使う） ----
 
-        /// <summary>その区間で最後まで行った（section_end の flag = 1）最後の回の行。無ければ null。</summary>
+        // その区間で最後までやった（section_end の flag = 1）最後の回の行。なければ null
         public static List<UsbGateEvent> LatestCompletedRun(IReadOnlyList<UsbGateEvent> events, UsbGateSection section)
         {
             int run = -1;
@@ -371,7 +370,7 @@ namespace Toufuku.Playtest
             return run < 0 ? null : RowsOf(events, key, run);
         }
 
-        /// <summary>参加者ごとに、最後まで行った最後の回の行。</summary>
+        // 参加者ごとの、最後までやった最後の回の行
         public static Dictionary<int, List<UsbGateEvent>> LatestCompletedRunPerParticipant(IReadOnlyList<UsbGateEvent> events, UsbGateSection section)
         {
             string key = UsbGatePlan.KeyOf(section);
@@ -409,7 +408,7 @@ namespace Toufuku.Playtest
             return value;
         }
 
-        /// <summary>置き台での照準の画面 X の差（終わり − 始め、画面幅に対する割合）。どちらかが無ければ null。</summary>
+        // 置き台での照準の画面 X の差（終わり − 始め、画面のはばに対するわりあい）。どっちかがなければ null
         public static double? DriftOf(IReadOnlyList<UsbGateEvent> run)
         {
             if (run == null) return null;
@@ -431,7 +430,7 @@ namespace Toufuku.Playtest
             value.HasValue ? (value.Value * 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%" : "-";
     }
 
-    /// <summary>label 列に入る区切りの名前。</summary>
+    // label 列に入る区切りの名前
     public static class UsbGateBlock
     {
         public const string Practice = "practice";

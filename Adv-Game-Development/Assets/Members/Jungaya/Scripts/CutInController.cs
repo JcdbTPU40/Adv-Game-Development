@@ -6,15 +6,15 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
-/// <summary>
-/// 元素爆発風カットイン → 鬼滅の刃風の抜刀一閃 の連続演出プロトタイプ。
-/// Tキーで発動:
-///  時間停止 → 詠唱 → カットインカメラ(回り込みズーム+歪み) → バースト+フラッシュ+集中線 → 帯
-///  → スロー(構えの沈み込み) → 一閃ダッシュ(剣閃トレイル+三日月斬撃) → 残心(超スロー+Vignette強)
-///  → 敵が斜めに両断されて崩れる(フラッシュライン+シェイク) → 復帰。
-/// timeScale操作で演出するため、全Tweenは SetUpdate(true)、
-/// CinemachineBrain は IgnoreTimeScale、ParticleSystem は useUnscaledTime を使用。
-/// </summary>
+/*
+    元素爆発っぽいカットインから、鬼滅の刃っぽい抜刀の一閃につなげる演出のプロトタイプ
+    Tキーで発動する:
+      時間停止 → 詠唱 → カットインカメラ（回りこみズーム＋ゆがみ） → バースト＋フラッシュ＋集中線 → 帯
+      → スロー（構えてしずむ） → 一閃ダッシュ（剣のトレイル＋三日月の斬撃） → 残心（すごくスロー＋Vignette強め）
+      → 敵がななめに真っ二つになってくずれる（フラッシュライン＋シェイク） → もとにもどる
+    timeScale をいじって演出するので、Tween はぜんぶ SetUpdate(true)、
+    CinemachineBrain は IgnoreTimeScale、ParticleSystem は useUnscaledTime を使っている
+*/
 public class CutInController : MonoBehaviour
 {
     [Header("カメラ")]
@@ -85,7 +85,7 @@ public class CutInController : MonoBehaviour
         if (cutInVolume != null)
         {
             cutInVolume.weight = 0f;
-            // volume.profile は実行時に複製が作られるため、アセット本体は変更されない
+            // volume.profile は実行中にコピーが作られるので、アセット本体は変わらない
             cutInVolume.profile.TryGet(out _chromatic);
             cutInVolume.profile.TryGet(out _lensDistortion);
             cutInVolume.profile.TryGet(out _vignette);
@@ -111,7 +111,7 @@ public class CutInController : MonoBehaviour
         {
             _enemyTopStartLocalPos = enemyTop.localPosition;
             _enemyTopStartLocalRot = enemyTop.localRotation;
-            // フェード用にマテリアルの実行時インスタンスを取得(アセットは汚さない)
+            // フェード用に、マテリアルの実行中のコピーを取る（アセットをよごさないため）
             _enemyTopMat = enemyTop.GetComponent<Renderer>().material;
         }
         if (cutFlashLine != null)
@@ -119,7 +119,7 @@ public class CutInController : MonoBehaviour
             _cutFlashMat = cutFlashLine.GetComponent<Renderer>().material;
         }
 
-        // timeScale操作中もパーティクルが動くよう保険としてここでも設定
+        // timeScale をいじっている間もパーティクルが動くように、念のためここでも設定しておく
         SetUnscaled(chargeRise);
         SetUnscaled(chargeRing);
         SetUnscaled(burstFx);
@@ -136,7 +136,7 @@ public class CutInController : MonoBehaviour
         }
     }
 
-    /// <summary>カットイン+一閃演出を発動する（スキル発動から呼ぶ想定）。</summary>
+    // カットインと一閃の演出を始める（スキルを使ったときに呼ぶつもり）
     public void Play()
     {
         if (_isPlaying)
@@ -147,40 +147,40 @@ public class CutInController : MonoBehaviour
 
         Time.timeScale = 0f;
 
-        // 開始状態にリセット
+        // 最初の状態にもどす
         cutInRig.position = player.position;
         cutInRig.rotation = Quaternion.Euler(0f, startYaw, 0f);
         SetFov(startFov);
         ResetUi();
         ResetSlashState();
 
-        // 詠唱パーティクル開始
+        // 詠唱のパーティクルを始める
         if (chargeRise != null) chargeRise.Play();
         if (chargeRing != null) chargeRing.Play();
 
-        // ---- タイムライン(絶対時刻・実時間) ----
-        float tCam = chargeDuration;                            // カットインカメラ切替
-        float tBurst = tCam + 0.35f;                            // バースト+フラッシュ
-        float tBand = tBurst + 0.05f;                           // 帯イン
+        // ---- タイムライン（開始からの時刻、実時間） ----
+        float tCam = chargeDuration;                            // カットインカメラに切りかえ
+        float tBurst = tCam + 0.35f;                            // バースト＋フラッシュ
+        float tBand = tBurst + 0.05f;                           // 帯が入ってくる
         float tBandOut = tBand + bandSlideDuration + holdDuration;
-        float tSlow = tBandOut + bandSlideDuration * 0.5f;      // スロー突入(帯アウト中)
-        float tDash = tSlow + crouchDuration;                   // 一閃開始
-        float tPass = tDash + dashDuration * 0.6f;              // すれ違い(斬撃)
+        float tSlow = tBandOut + bandSlideDuration * 0.5f;      // スローに入る（帯が出ていく途中）
+        float tDash = tSlow + crouchDuration;                   // 一閃スタート
+        float tPass = tDash + dashDuration * 0.6f;              // すれちがい（斬撃）
         float tZanshin = tDash + dashDuration + 0.05f;          // 残心
-        float tCut = tZanshin + zanshinHold;                    // 敵切断
-        float tRestore = tCut + 1.1f;                           // 復帰開始
+        float tCut = tZanshin + zanshinHold;                    // 敵が切れる
+        float tRestore = tCut + 1.1f;                           // もとにもどし始める
         float tEnd = tRestore + returnBlendDuration + 0.15f;
 
         _sequence = DOTween.Sequence().SetUpdate(true);
 
-        // ---- ポストプロセス立ち上げ ----
+        // ---- ポストプロセスを立ち上げる ----
         if (cutInVolume != null)
         {
             _sequence.Insert(0f, DOTween
                 .To(() => cutInVolume.weight, w => cutInVolume.weight = w, 1f, 0.3f));
         }
 
-        // ---- カットイン: カメラ回り込みズーム + レンズ歪みパルス ----
+        // ---- カットイン: カメラの回りこみズームとレンズのゆがみ ----
         _sequence.InsertCallback(tCam, () => cutInCamera.Priority = 20);
         _sequence.Insert(tCam, cutInRig
             .DORotate(new Vector3(0f, endYaw, 0f), cameraMoveDuration)
@@ -198,7 +198,7 @@ public class CutInController : MonoBehaviour
                 .SetEase(Ease.InOutSine));
         }
 
-        // ---- バースト + 色収差スパイク ----
+        // ---- バーストと色収差を一気に上げる ----
         _sequence.InsertCallback(tBurst, () =>
         {
             if (chargeRise != null) chargeRise.Stop();
@@ -213,7 +213,7 @@ public class CutInController : MonoBehaviour
                 .SetEase(Ease.OutQuad));
         }
 
-        // ---- フラッシュ: 白 → アクセント → 透明 ----
+        // ---- フラッシュ: 白 → アクセント色 → 透明 ----
         Color accentFlash = accentColor;
         accentFlash.a = 0.7f;
         _sequence.Insert(tBurst, flash.DOFade(0.9f, 0.06f));
@@ -233,7 +233,7 @@ public class CutInController : MonoBehaviour
             _sequence.Insert(tBandOut, speedLines.DOFade(0f, 0.2f));
         }
 
-        // ---- 帯 イン → ホールド → アウト ----
+        // ---- 帯が入る → 止まる → 出ていく ----
         _sequence.Insert(tBand, band
             .DOAnchorPosX(0f, bandSlideDuration)
             .SetEase(Ease.OutCubic));
@@ -241,7 +241,7 @@ public class CutInController : MonoBehaviour
             .DOAnchorPosX(bandOffscreenX, bandSlideDuration)
             .SetEase(Ease.InCubic));
 
-        // ---- 構え: スロー突入 + 沈み込みの溜め ----
+        // ---- 構え: スローに入って、しずみこんでためる ----
         _sequence.InsertCallback(tSlow, () => Time.timeScale = slowTimeScale);
         _sequence.Insert(tSlow, player
             .DOScaleY(_playerStartScale.y * 0.85f, crouchDuration * 0.7f)
@@ -250,7 +250,7 @@ public class CutInController : MonoBehaviour
             .DOMoveY(_playerStartPos.y - 0.12f, crouchDuration * 0.7f)
             .SetEase(Ease.OutQuad));
 
-        // ---- 一閃: 横引きカメラへカットし、敵を突き抜けて背後へ ----
+        // ---- 一閃: 横から撮るカメラに切りかえて、敵をつきぬけてうしろへ ----
         Vector3 dashDir = enemyRoot != null
             ? (enemyRoot.position + Vector3.up * _playerStartPos.y - _playerStartPos).normalized
             : Vector3.forward;
@@ -278,13 +278,13 @@ public class CutInController : MonoBehaviour
             .DOMove(dashTarget, dashDuration)
             .SetEase(Ease.InExpo));
 
-        // すれ違いざまの三日月斬撃
+        // すれちがうときの三日月の斬撃
         _sequence.InsertCallback(tPass, () =>
         {
             if (slashArc != null) slashArc.Play();
         });
 
-        // ---- 残心: 超スロー + 背中越しの寄り + Vignette強 ----
+        // ---- 残心: すごくスロー＋背中ごしに寄る＋Vignette強め ----
         _sequence.InsertCallback(tZanshin, () =>
         {
             Time.timeScale = zanshinTimeScale;
@@ -297,7 +297,7 @@ public class CutInController : MonoBehaviour
                 .To(() => _vignette.intensity.value, v => _vignette.intensity.value = v, 0.6f, 0.3f));
         }
 
-        // ---- 遅れて敵が斬れる ----
+        // ---- ちょっと遅れて敵が切れる ----
         _sequence.InsertCallback(tCut, () =>
         {
             if (_cutFlashMat != null)
@@ -330,7 +330,7 @@ public class CutInController : MonoBehaviour
         }
         if (enemyTop != null)
         {
-            // 斜め上へずれてから落下、フェードで消える
+            // ななめ上にずれてから落ちて、フェードで消える
             _sequence.Insert(tCut + 0.05f, enemyTop
                 .DOLocalMove(_enemyTopStartLocalPos + new Vector3(0.35f, 0.12f, 0f), 0.25f)
                 .SetEase(Ease.OutCubic));
@@ -347,7 +347,7 @@ public class CutInController : MonoBehaviour
             _sequence.Insert(tCut + 0.45f, _enemyTopMat.DOFade(0f, "_BaseColor", 0.55f));
         }
 
-        // ---- 復帰 ----
+        // ---- もとにもどす ----
         _sequence.InsertCallback(tRestore, () =>
         {
             if (_brain != null) _brain.DefaultBlend = _defaultBlend;
@@ -403,7 +403,7 @@ public class CutInController : MonoBehaviour
         }
     }
 
-    /// <summary>プレイヤー・敵・トレイルを演出前の状態へ戻す。</summary>
+    // プレイヤーと敵とトレイルを、演出の前の状態にもどす
     private void ResetSlashState()
     {
         if (player != null)
@@ -450,7 +450,7 @@ public class CutInController : MonoBehaviour
         Time.timeScale = 1f;
         _isPlaying = false;
 
-        // カメラ・ポストプロセスを完全に元へ戻す
+        // カメラとポストプロセスを完全にもとにもどす
         if (_brain != null) _brain.DefaultBlend = _defaultBlend;
         cutInCamera.Priority = 0;
         if (slashSideCamera != null) slashSideCamera.Priority = 0;

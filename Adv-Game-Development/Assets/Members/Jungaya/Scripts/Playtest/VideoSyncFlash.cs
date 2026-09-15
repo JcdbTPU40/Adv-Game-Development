@@ -3,19 +3,19 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 外部動画とログを同じ時間軸に乗せる道具 — Issue #50
-    ///
-    /// T0-CD は「外部動画の振りピークを意図の正本にする」ので、動画のコマとログの行を
-    /// 突き合わせられないと何も数えられない。そのために 2 つ出す:
-    ///
-    /// ・<b>経過秒の表示</b>: 画面の隅に大きく出す。カメラの画角に画面を入れておけば、
-    ///   動画のコマ送りでそのままログの「経過秒」列が読める。
-    /// ・<b>同期マーク</b>: <see cref="Flash"/> で画面全体が一瞬光り、同時に短い音が鳴る。
-    ///   ログには同じ時刻の「同期」行が残る。画面が映っていない画角でも、光った壁や音で合わせられる。
-    ///
-    /// 参加者ごとの始めと終わりに 1 回ずつ打つ（撮り始めと撮り終わりのズレを吸収するため）。
-    /// </summary>
+    /*
+        外で撮った動画とログを、同じ時間のものさしで見られるようにする道具（#50）
+
+        T0-CD は「外の動画に映った振りを『振ろうとした』の正しい基準にする」ので、動画のコマとログの行を
+        照らし合わせられないと何も数えられない。そのために2つ出す:
+
+        ・経過秒の表示: 画面のすみに大きく出す。カメラに画面が映るようにしておけば、
+          動画をコマ送りするだけでログの「経過秒」の列が読める
+        ・同期マーク: Flash で画面全体が一瞬光って、同時に短い音が鳴る
+          ログには同じ時刻に「同期」の行が残る。画面が映っていなくても、光ったかべや音で合わせられる
+
+        参加者ごとの始めと終わりに1回ずつ打つ（撮り始めと撮り終わりのズレを吸収するため）
+    */
     public class VideoSyncFlash : MonoBehaviour
     {
         [Header("同期マーク")]
@@ -30,10 +30,10 @@ namespace Toufuku.Playtest
         [SerializeField] bool showTimecode = true;
         [SerializeField, Min(10)] int timecodeFontSize = 30;
 
-        /// <summary>表示する経過秒。進行側（<see cref="CooldownTestDirector"/>）が毎フレーム入れる。</summary>
+        // 表示する経過秒。進める側（CooldownTestDirector）が毎フレーム入れる
         public double ElapsedSeconds { get; set; }
 
-        /// <summary>これまでに打った同期マークの数。</summary>
+        // 今までに打った同期マークの数
         public int MarkCount { get; private set; }
 
         double _flashEnd = double.NegativeInfinity;
@@ -45,7 +45,7 @@ namespace Toufuku.Playtest
 
         public bool IsFlashing => Now < _flashEnd;
 
-        /// <summary>同期マークを打つ。</summary>
+        // 同期マークを打つ
         public void Flash()
         {
             MarkCount++;

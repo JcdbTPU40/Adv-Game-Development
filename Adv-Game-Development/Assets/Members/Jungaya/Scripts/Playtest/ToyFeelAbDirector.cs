@@ -4,18 +4,18 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 玩具の手応え A/B テストの進行と記録 — Issue #49（仕様書 v8 17章）
-    ///
-    /// 1 人分の流れ: 準備 → 1 回目 45 秒 → 休憩 60 秒 → 2 回目 45 秒 → 聞き取り → 保存。
-    /// ・参加者には「案1 / 案2」としか見せない（どちらが案A かは伏せる）。
-    /// ・参加者番号が奇数なら A→B、偶数なら B→A（<see cref="AbTestPlan.OrderOf"/>）。
-    /// ・自発投数は有効スイングの数。参加者に見せると回数を意識させるので、実施者パネル（Tab）にだけ出す。
-    /// ・休憩と聞き取りの間は <see cref="ThrowInputController"/> を止めるので、振っても何も起きない。
-    /// ・保存は 1 人 1 行の CSV 追記（<see cref="AbTestCsvFile"/>）。合否はその場で <see cref="AbTestSummary"/> が出す。
-    ///
-    /// 操作: Space = 開始 / 次へ、Tab = 実施者パネル、Backspace = 今のフェーズを飛ばす。
-    /// </summary>
+    /*
+        おもちゃの手ごたえの A/B テストを進めて記録するクラス（#49 / 企画書 v8 17章）
+
+        1人ぶんの流れ: 準備 → 1回目45秒 → 休けい60秒 → 2回目45秒 → 聞き取り → 保存
+        ・参加者には「案1 / 案2」としか見せない（どっちが案Aかはかくす）
+        ・参加者の番号が奇数なら A→B、偶数なら B→A（AbTestPlan.OrderOf）
+        ・自分から振った回数は有効スイングの数。参加者に見せると回数を気にしてしまうので、やる人のパネル（Tab）にだけ出す
+        ・休けいと聞き取りの間は ThrowInputController を止めるので、振っても何も起きない
+        ・保存は1人1行で CSV に足していく（AbTestCsvFile）。合格かどうかはその場で AbTestSummary が出す
+
+        操作: Space = スタート / 次へ、Tab = やる人のパネル、Backspace = 今のフェーズをとばす
+    */
     [DefaultExecutionOrder(-80)]
     public class ToyFeelAbDirector : MonoBehaviour
     {
@@ -148,7 +148,7 @@ namespace Toufuku.Playtest
 
         void EnterPhase(AbPhase phase)
         {
-            // 直前が試技なら、その案の投数を記録へ移す
+            // さっきまで本番だったら、その案の投げた数を記録にうつす
             if (_counting && phase != AbPhase.FirstTrial && phase != AbPhase.SecondTrial)
             {
                 _record.SetThrows(_countingVariant, _accepted, _rejected);
@@ -229,7 +229,7 @@ namespace Toufuku.Playtest
             _summary = AbTestSummary.Of(_saved, plannedParticipants);
         }
 
-        // ---- 投数 ----
+        // ---- 投げた数 ----
 
         void Subscribe()
         {
@@ -259,10 +259,10 @@ namespace Toufuku.Playtest
 
         // ---- 表示 ----
 
-        /// <summary>参加者に見せる呼び名（1 回目 = firstLabel）。</summary>
+        // 参加者に見せる呼び名（1回目 = firstLabel）
         public string SlotLabel(int slot) => slot == 0 ? firstLabel : secondLabel;
 
-        /// <summary>その呼び名が指す案。</summary>
+        // その呼び名がどの案か
         public VariantId VariantOfSlot(int slot) => AbTestPlan.VariantAt(_record.order, slot);
 
         void OnGUI()

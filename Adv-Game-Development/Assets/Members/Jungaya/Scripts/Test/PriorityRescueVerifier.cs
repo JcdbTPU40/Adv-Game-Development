@@ -4,28 +4,28 @@ using Toufuku.Aim;
 using Toufuku.Playtest;
 using Toufuku.Rescue;
 
-/// <summary>
-/// 二重円と優先救済の確認シーン進行 — Issue #55（完了条件「PlayMode で同値ケース・移動ケースが再現確認できる」）
-///
-/// 確認したいのは次の 2 つ。どちらもキー 1 つで再現できるようにする。
-///   ・同値ケース（F5）… 危険度 D も距離も同じ客を 3 人並べ、二重円が<b>必ず 1 人</b>に定まり、
-///                        フレームごとにちらちら移らないことを見る。
-///   ・移動ケース（F6）… 発射した直後に別の客の D を跳ね上げて二重円を移す。
-///                        それでも<b>発射時に狙った客</b>を救済すれば +50 が入ることを、得点の内訳で見る。
-///
-/// 客はこのコンポーネントが実行時に作る（F8 で作り直せる）。シーンには地面・カメラ・入力・スコアだけを置く。
-/// 操作: 1 キーで色（健康）を選び、クリック（＝振り）で投げる。F5 同値 / F6 移動 / F7 通常（D は時間で増える）/ F8 作り直し。
-/// </summary>
+/*
+    二重円と優先救済を確認するシーンを進めるクラス（#55。完了条件「PlayMode で同じ値のときと移ったときを確認できる」）
+
+    確認したいのは次の2つ。どっちもキー1つで同じ状況を作れるようにする
+      ・同じ値のとき（F5）: 危険度 D も距離も同じ客を3人ならべて、二重円が必ず1人に決まって、
+                           フレームごとにちらちら移らないことを見る
+      ・移ったとき（F6）: 発射した直後に別の客の D をいっきに上げて、二重円を移す
+                         それでも発射したときにねらった客を救えば +50 が入ることを、点数の中身で見る
+
+    客はこのコンポーネントがプレイ中に作る（F8 で作りなおせる）。シーンには地面・カメラ・入力・スコアだけを置く
+    操作: 1キーで色（健康）を選んで、クリック（＝振る）で投げる。F5 同じ値 / F6 移る / F7 ふつう（D は時間で増える）/ F8 作りなおす
+*/
 [DisallowMultipleComponent]
 public class PriorityRescueVerifier : MonoBehaviour
 {
     public enum Mode
     {
-        /// <summary>通常。D は時間で増える。</summary>
+        // ふつう。D は時間で増える
         Free,
-        /// <summary>同値ケース。全員の D を同じ値に固定する。</summary>
+        // 同じ値のとき。全員の D を同じ値に固定する
         Tie,
-        /// <summary>移動ケース。発射後に二重円が別の客へ移る。</summary>
+        // 移ったとき。発射したあとに二重円が別の客に移る
         Moving
     }
 
@@ -73,7 +73,7 @@ public class PriorityRescueVerifier : MonoBehaviour
     Material _bodyMaterial;
     Transform _origin;
 
-    // 直近の 1 投の記録（HUD 用）
+    // いちばん新しい1投の記録（HUD 用）
     int _savedAtSwing;
     int _priorityAtLanding;
     bool _hasThrow;
@@ -112,7 +112,7 @@ public class PriorityRescueVerifier : MonoBehaviour
 
     void LateUpdate()
     {
-        // CustomerState.Update が D を進めたあとに上書きする（固定したい値へ毎フレーム戻す）。
+        // CustomerState.Update が D を進めたあとに上書きする（固定したい値に毎フレームもどす）
         switch (_mode)
         {
             case Mode.Tie:
@@ -138,7 +138,7 @@ public class PriorityRescueVerifier : MonoBehaviour
         }
     }
 
-    /// <summary>移動ケースで二重円を移す先（狙わせる客以外の 1 人目）。</summary>
+    // 移ったときに二重円を移す先（ねらわせる客以外の1人目）
     int SwitchToIndex()
     {
         int aimIndex = Mathf.Clamp(movingTargetIndex, 0, Mathf.Max(0, _customers.Count - 1));
@@ -168,7 +168,7 @@ public class PriorityRescueVerifier : MonoBehaviour
 
     // ---- 客を作る ----
 
-    /// <summary>客を作り直す（F8）。</summary>
+    // 客を作りなおす（F8）
     public void Rebuild()
     {
         for (int i = 0; i < _customers.Count; i++)
@@ -185,8 +185,10 @@ public class PriorityRescueVerifier : MonoBehaviour
             float t = customerCount == 1 ? 0.5f : i / (float)(customerCount - 1);
             float angle = Mathf.Lerp(-spreadDegrees, spreadDegrees, t);
 
-            // 基準点から同じ距離の弧の上に置く。距離で差が付かないので、同値ケースでは
-            // 「active 化が早い方 → 生成IDが小さい方」まで進んで 1 人に決まる。
+            /*
+                基準点から同じ距離の弧の上に置く。距離で差がつかないので、同じ値のときは
+                「active になったのが早いほう → 生成IDが小さいほう」まで進んで1人に決まる
+            */
             Vector3 direction = Quaternion.Euler(0f, angle, 0f) * ForwardDirection();
             Vector3 position = center + direction * distance;
 
@@ -223,18 +225,20 @@ public class PriorityRescueVerifier : MonoBehaviour
         var state = go.AddComponent<CustomerState>();
         state.Setup(CustomerKind.Normal, kindTable);
 
-        // 全員に同じ色を求めさせる（この確認の主題は色の当てっこではない）。
-        // 相性テーブルを割り当てないので、CustomerRescue はフォールバックの正解色で判定する。
+        /*
+            全員に同じ色をほしがらせる（この確認で見たいのは色の当てっこじゃないから）
+            相性の表を入れないので、CustomerRescue は予備の正解の色で判定する
+        */
         var rescue = go.AddComponent<CustomerRescue>();
         SetPrivateField(rescue, "correctOmamori", correctOmamori);
 
-        // 優先対象の照合は生成ID で行う（#55）。ここで確定させておく。
+        // 優先の相手と照らし合わせるのは生成IDでやる（#55）。ここで決めておく
         CustomerSpawnId.Assign(go);
 
         return state;
     }
 
-    /// <summary>検証シーン限定：インスペクタ用の private 値を実行時に差し込む。</summary>
+    // 検証のシーンだけ: インスペクター用の private の値をプレイ中に入れる
     static void SetPrivateField(Object target, string field, object value)
     {
         if (target == null) return;
@@ -254,7 +258,7 @@ public class PriorityRescueVerifier : MonoBehaviour
         return state != null && state.IsRescueTarget;
     }
 
-    // ---- 1 投の記録 ----
+    // ---- 1投の記録 ----
 
     void HandleLaunched(OmamoriProjectile projectile)
     {
@@ -269,7 +273,7 @@ public class PriorityRescueVerifier : MonoBehaviour
         _lastAccuracyBonus = 0;
         _lastPriorityGain = 0;
 
-        // 移動ケース：飛翔の途中で二重円を別の客へ移す。
+        // 移ったとき: 飛んでいる途中で二重円を別の客に移す
         if (_mode == Mode.Moving) _switchAt = Time.time + switchDelaySeconds;
     }
 
@@ -290,7 +294,7 @@ public class PriorityRescueVerifier : MonoBehaviour
                   $"救済={_lastRescued} 優先救済加点={(_lastPriorityBonus ? _lastPriorityGain : 0)} 獲得={_lastGain}", this);
     }
 
-    /// <summary>客を並べる向き（カメラの前方）。カメラが無ければ基準点の前方。</summary>
+    // 客をならべる向き（カメラの前）。カメラがなければ基準点の前
     Vector3 ForwardDirection()
     {
         Camera cam = Camera.main;

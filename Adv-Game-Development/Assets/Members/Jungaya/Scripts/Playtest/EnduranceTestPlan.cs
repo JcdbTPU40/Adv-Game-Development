@@ -3,52 +3,52 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T0-3M 標準耐久テストの時間・合格ラインの数値 — Issue #53（仕様書 v8 17章）
-    ///
-    /// ・採用案（T0-A/B #49）・採用クールダウン（T0-CD #50）・USB を固定し、参拝客も得点もない標準ターゲットを 3 分振り続ける。
-    /// ・対象層 10 人。合格ラインは「10 人中」の割合で持ち、人数が変わっても同じ割合で判定する。
-    /// ・1 テスト 1 仮説。手応えの比較（T0-A/B）やクールダウン値の探索（T0-CD）は同時に行わない。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T0-3M のふつうの耐久テストの時間と合格ラインの数値（#53 / 企画書 v8 17章）
+
+        ・選んだ案（T0-A/B #49）・選んだクールダウン（T0-CD #50）・USB を固定して、客も得点もないふつうの的を3分振りつづける
+        ・対象は10人。合格ラインは「10人中何人」のわりあいで持って、人数が変わっても同じわりあいで判定する
+        ・1つのテストで調べることは1つだけ。手ごたえのくらべ（T0-A/B）やクールダウンの値さがし（T0-CD）はいっしょにやらない
+        MonoBehaviour は使っていない
+    */
     public static class EnduranceTestPlan
     {
         public const int DefaultParticipants = 10;
 
-        /// <summary>1 人が振り続ける秒数（3 分）。</summary>
+        // 1人が振りつづける秒数（3分）
         public const float TrialSeconds = 180f;
-        /// <summary>投数と命中率を区切る長さ（1 分ごと）。</summary>
+        // 投げた数と命中率を区切る長さ（1分ごと）
         public const float MinuteSeconds = 60f;
         public const int MinuteCount = 3;
 
-        /// <summary>3:00 で入力を締め切ってから記録へ移るまでの秒。飛翔中の弾（最長 0.65 秒）の着弾を待つ。</summary>
+        // 3:00 で入力をしめきってから、記録にうつるまでの秒。飛んでいる弾（いちばん長くて 0.65 秒）が落ちるのを待つ
         public const float SettleSeconds = 1.0f;
 
-        /// <summary>3 分完走すべき人数の割合（9/10）。</summary>
+        // 3分最後までやってほしい人数のわりあい（9/10）
         public const double CompletionRatio = 0.9;
-        /// <summary>最終 1 分の投数低下の上限（初分比 20% 以内）。</summary>
+        // 最後の1分で投げた数が下がっていい上限（最初の分の 20% まで）
         public const double MaxThrowsDropRatio = 0.20;
-        /// <summary>疲労 5 段階の中央値の上限（2/5 以下）。</summary>
+        // 疲れの5段階の中央値の上限（2/5 以下）
         public const double MaxFatigueMedian = 2.0;
-        /// <summary>実際にもう一度を選ぶべき人数の割合（7/10）。</summary>
+        // 本当にもう一回を選んでほしい人数のわりあい（7/10）
         public const double RetryRatio = 0.7;
 
         public const int MinScale = 1;
         public const int MaxScale = 5;
 
-        /// <summary>8章の負荷算術が前提にしている実操作周期（1.0〜1.4 秒／投）。</summary>
+        // 8章の負荷の計算で、前提にしている実際に振る間かく（1投あたり 1.0〜1.4 秒）
         public const double ExpectedCycleMinSeconds = 1.0;
         public const double ExpectedCycleMaxSeconds = 1.4;
 
-        /// <summary>T0-CD が終わるまでの既定（付録B INPUT.CD の基準 0.50 秒）。採用値が出たらシーンで差し替える。</summary>
+        // T0-CD が終わるまでのふつうの値（付録B INPUT.CD の基準の 0.50 秒）。選んだ値が出たらシーンで入れかえる
         public const CooldownPreset DefaultCooldown = CooldownPreset.Sec050;
 
         const double Epsilon = 1e-9;
 
-        /// <summary>「9/10 以上」のような下限の人数（切り上げ）。</summary>
+        // 「9/10 以上」みたいな、一番少なくていい人数（切り上げ）
         public static int RequiredCount(int participants, double ratio) => AbTestPlan.RequiredCount(participants, ratio);
 
-        /// <summary>試技開始からの秒 → 何分目か（0〜2）。負なら -1。3:00 以降は最後の分に入れる。</summary>
+        // テストが始まってからの秒から、何分目か（0〜2）を出す。マイナスなら -1。3:00 をすぎたら最後の分に入れる
         public static int MinuteOf(double seconds)
         {
             if (double.IsNaN(seconds) || seconds < 0.0) return -1;
@@ -56,7 +56,7 @@ namespace Toufuku.Playtest
             return minute >= MinuteCount ? MinuteCount - 1 : minute;
         }
 
-        /// <summary>CSV の見出しなどに使う区間名（"0-60s" など）。</summary>
+        // CSV の見出しとかに使う区間の名前（"0-60s" など）
         public static string MinuteLabel(int minute)
         {
             int from = (int)(minute * MinuteSeconds);

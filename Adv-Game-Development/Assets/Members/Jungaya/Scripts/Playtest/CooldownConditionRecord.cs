@@ -4,80 +4,82 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 参加者 1 人 × クールダウン値 1 条件分の記録 — Issue #50（仕様書 v8 17章・19章）
-    ///
-    /// 「余分な発射」「意図的連投の欠落」「実連投間隔」を <b>別々に</b> 持つ。
-    /// 値は 2 系統ある:
-    ///
-    /// | 系統 | 誰が入れるか | 使いみち |
-    /// |---|---|---|
-    /// | ゲーム側（<c>single*</c> / <c>pair*</c> / <c>interval*</c>） | 実施中に自動 | その場の進行と、動画を見返すときの当たり |
-    /// | 動画側（<c>video*</c>） | あとから実施者 | <b>合否の正本</b>。外部動画の振りピークが意図 |
-    ///
-    /// ゲーム側だけでは「振ったのに出なかった」と「そもそも振っていない」が区別できないので、
-    /// 合否は動画側だけで数える。動画側が未入力（<see cref="NotEntered"/>）の行は集計に入らない。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        参加者1人 × クールダウンの値1つぶんの記録（#50 / 企画書 v8 17章・19章）
+
+        「よけいな発射」「わざと連続で投げたときの抜け」「実際の連投の間かく」を別々に持つ
+        値は2つのグループがある:
+
+        ・ゲーム側（single* / pair* / interval*）: テスト中に自動で入る。その場で進めるのと、動画を見返すときの目安に使う
+        ・動画側（video*）: あとからやる人が入れる。合格かどうかはこっちで決める。外の動画に映った振りを「振ろうとした」とする
+
+        ゲーム側だけだと「振ったのに出なかった」のか「そもそも振っていない」のか見分けられないので、
+        合格かどうかは動画側だけで数える。動画側がまだ入っていない（NotEntered）行は集計に入れない
+        MonoBehaviour は使っていない
+    */
     [Serializable]
     public class CooldownConditionRecord
     {
-        /// <summary>動画側が未入力であることを表す値。</summary>
+        // 動画側がまだ入っていないことを表す値
         public const int NotEntered = -1;
 
         public string testId = "T0-CD-1";
-        /// <summary>実施日（yyyy-MM-dd）。別日の再現はこの日付で見分ける。</summary>
+        // やった日（yyyy-MM-dd）。別の日にやったのかはこの日付で見分ける
         public string date = "";
         public string owner = "";
-        /// <summary>参加者番号（1 始まり）。4 で割った余りがラテン方格の行になる。</summary>
+        // 参加者の番号（1から）。4でわった余りがラテン方格の行になる
         public int participantNo = 1;
-        /// <summary>ラテン方格の行（0〜3）。</summary>
+        // ラテン方格の行（0〜3）
         public int orderIndex;
-        /// <summary>その人が何番目に試した条件か（0〜3）。</summary>
+        // その人が何番目にためした条件か（0〜3）
         public int trialIndex;
         public CooldownPreset preset = CooldownPreset.Sec050;
-        /// <summary>実際に適用していた秒数（Custom や途中変更を残すため実測値で持つ）。</summary>
+        // 実際に使っていた秒数（Custom やとちゅうで変えたときも残せるように、実際の値で持つ）
         public float cooldownSeconds = 0.50f;
 
-        // ── ゲーム側（自動）──
-        /// <summary>この条件で行う予定だった単発の回数。</summary>
+        /*
+            ---- ゲーム側（自動） ----
+            この条件でやる予定だった1回振りの回数
+        */
         public int singleTarget;
-        /// <summary>単発ブロックでゲームが受理した発射数。</summary>
+        // 1回振りのブロックで、ゲームが受け付けた発射の数
         public int singleAccepted;
-        /// <summary>単発ブロックでクールダウンにより却下された数。</summary>
+        // 1回振りのブロックで、クールダウンではじかれた数
         public int singleRejected;
-        /// <summary>この条件で行う予定だった連投の組数。</summary>
+        // この条件でやる予定だった連投の組の数
         public int pairTarget;
-        /// <summary>連投ブロックでゲームが受理した発射数。</summary>
+        // 連投のブロックで、ゲームが受け付けた発射の数
         public int pairAccepted;
-        /// <summary>連投ブロックでクールダウンにより却下された数。</summary>
+        // 連投のブロックで、クールダウンではじかれた数
         public int pairRejected;
-        /// <summary>連投ブロックで 2 発とも出たと見られる組数（間隔が判定窓に収まった組）。</summary>
+        // 連投のブロックで、2発とも出たと思われる組の数（間かくが判定のはんいに入った組）
         public int pairCompleted;
 
-        /// <summary>実連投間隔（秒）。ゲームが受理した 1 発目と 2 発目の差。</summary>
+        // 実際の連投の間かく（秒）。ゲームが受け付けた1発目と2発目の差
         public int intervalCount;
         public float intervalMin;
         public float intervalMedian;
         public float intervalP75;
 
-        // ── 動画側（あとから入れる。合否の正本）──
-        /// <summary>動画で数えた単発の振り数。</summary>
+        /*
+            ---- 動画側（あとから入れる。合格かどうかはこっちで決める） ----
+            動画で数えた1回振りの回数
+        */
         public int videoSingleSwings = NotEntered;
-        /// <summary>動画で数えた「2 回振った」組数。</summary>
+        // 動画で数えた「2回振った」組の数
         public int videoPairSets = NotEntered;
-        /// <summary>動画の振りに対応しない余分な発射（＝誤発射）。単発・連投の合計。</summary>
+        // 動画の振りに合わないよけいな発射（＝まちがい発射）。1回振りと連投の合計
         public int videoExtraFires = NotEntered;
-        /// <summary>動画では 2 回振っているのに 2 発目が出なかった組数。</summary>
+        // 動画では2回振っているのに2発目が出なかった組の数
         public int videoMissedSecond = NotEntered;
 
-        // ── 安全（全値で 0 件が完了条件）──
+        // ---- 安全（ぜんぶの値で0件が完了条件） ----
         public int strapDeviation;
         public int caseContact;
 
         public string note = "";
 
-        /// <summary>誤発射率の母数。意図した振りの合計（単発 1 回 + 連投 1 組 = 2 回）。</summary>
+        // まちがい発射のわりあいのわる数。振ろうとした回数の合計（1回振りは1回、連投1組は2回）
         public int IntendedSwings =>
             videoSingleSwings <= NotEntered || videoPairSets <= NotEntered
                 ? 0
@@ -85,7 +87,7 @@ namespace Toufuku.Playtest
 
         public bool HasSafetyIncident => strapDeviation > 0 || caseContact > 0;
 
-        /// <summary>動画側が 4 項目とも入っているか。合否に数えられる行か。</summary>
+        // 動画側の4つがぜんぶ入っているか。合格かどうかに数えていい行か
         public bool IsComplete =>
             participantNo > 0 &&
             videoSingleSwings > NotEntered &&
@@ -93,7 +95,7 @@ namespace Toufuku.Playtest
             videoExtraFires > NotEntered &&
             videoMissedSecond > NotEntered;
 
-        /// <summary>足りない項目（実施者パネルに出す）。すべてそろっていれば空文字。</summary>
+        // 足りない項目（やる人のパネルに出す）。ぜんぶそろっていれば空の文字
         public string MissingFields()
         {
             var sb = new StringBuilder();
@@ -105,7 +107,7 @@ namespace Toufuku.Playtest
             return sb.ToString();
         }
 
-        /// <summary>ゲーム側から見た暫定の余分な発射（動画を見返すときの当たりに使う。合否には使わない）。</summary>
+        // ゲーム側から見た、とりあえずのよけいな発射（動画を見返すときの目安。合格かどうかには使わない）
         public int ProvisionalExtraFires
         {
             get
@@ -116,7 +118,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>ゲーム側から見た暫定の 2 発目欠落（同上）。</summary>
+        // ゲーム側から見た、とりあえずの2発目の抜け（上と同じ）
         public int ProvisionalMissedSecond
         {
             get

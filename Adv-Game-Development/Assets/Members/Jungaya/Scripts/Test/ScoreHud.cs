@@ -1,14 +1,14 @@
 using UnityEngine;
 
-/// <summary>
-/// 検証用の簡易HUD（OnGUIオーバーレイ）。Canvas不要、シーンに1つ置くだけ。
-/// 縁・コンボ・倍率・最大コンボ・直近の命中ゾーンと獲得点を画面右上に表示する
-/// （企画書v3 §7：縁は HUD 右上に表示。上中央の月表示 SessionHud と重ならない配置）。
-///
-/// #31: ポーリングをやめ、ScoreManager のイベント購読で値を更新する版。
-/// 本番UI/SE も同じイベント（onEnChanged 等）を購読すればよい。
-/// 本番UIができたら不要になるテスト専用スクリプト。
-/// </summary>
+/*
+    検証用のかんたんな HUD（OnGUI で重ねて描く）。Canvas はいらなくて、シーンに1つ置くだけ
+    縁・コンボ・倍率・いちばん大きいコンボ・いちばん新しい命中ゾーンともらった点を、画面の右上に表示する
+    （企画書 v3 §7: 縁は HUD の右上に表示する。上の真ん中の月の表示 SessionHud と重ならない場所）
+
+    #31: 毎フレーム見に行くのをやめて、ScoreManager のイベントを受け取って値を更新するバージョン
+    本番の UI や効果音も、同じイベント（onEnChanged など）を受け取ればいい
+    本番の UI ができたらいらなくなる、テスト専用のスクリプト
+*/
 public class ScoreHud : MonoBehaviour
 {
     [SerializeField] int fontSize = 26;
@@ -20,11 +20,11 @@ public class ScoreHud : MonoBehaviour
     GUIStyle style;
     bool _subscribed;
 
-    // イベントで受け取った値をキャッシュして表示する（#31: ポーリング廃止）
+    // イベントで受け取った値をとっておいて表示する（#31: 毎フレーム見に行くのはやめた）
     int _en;
     int _combo;
     float _multiplier = 1f;
-    float _ratingNormalized = -1f; // 負なら未受信
+    float _ratingNormalized = -1f; // マイナスならまだ受け取っていない
     ShrineRank _rank = ShrineRank.B;
 
     void Start()
@@ -49,7 +49,7 @@ public class ScoreHud : MonoBehaviour
         sm.onMultiplierChanged += OnMultiplierChanged;
         sm.onMiss += OnMiss;
 
-        // 初期値を反映
+        // 最初の値を反映する
         _en = sm.En;
         _combo = sm.Combo;
         _multiplier = sm.TotalMultiplier;
@@ -89,17 +89,17 @@ public class ScoreHud : MonoBehaviour
         _subscribed = false;
     }
 
-    // ---------- イベント受信（#31） ----------
+    // ---------- イベントを受け取る（#31） ----------
     void OnEnChanged(int en) => _en = en;
     void OnComboChanged(int combo) => _combo = combo;
     void OnMultiplierChanged(float multiplier) => _multiplier = multiplier;
-    void OnMiss() { /* コンボ途切れ演出（HUD点滅など）を足すならここ */ }
+    void OnMiss() { /* コンボが切れる演出（HUD の点滅など）を足すならここ */ }
     void OnRatingChanged(float normalized) => _ratingNormalized = normalized;
     void OnRankChanged(ShrineRank rank) => _rank = rank;
 
     void Update()
     {
-        // 実行順の都合で Start 時に ScoreManager が未生成だった場合の保険
+        // 動く順番のせいで、Start のときに ScoreManager がまだ作られていなかったときのための予備
         if (!_subscribed) TrySubscribe();
     }
 
@@ -118,12 +118,14 @@ public class ScoreHud : MonoBehaviour
         }
         style.normal.textColor = color;
 
-        // 企画書v3 §7：縁は HUD 右上に表示する。左上のハードコードをやめ、
-        // 画面幅から右上基準で算出する（デバッグボタンも同じ基準で追従）。
+        /*
+            企画書 v3 §7: 縁は HUD の右上に表示する。左上に直接書いていたのをやめて、
+            画面のはばから右上を基準にして計算する（デバッグのボタンも同じ基準でついていく）
+        */
         float panelW = 400f;
         float panelX = Screen.width - panelW - 14f;
 
-        // 背景パネル
+        // 背景のパネル
         GUI.color = new Color(0f, 0f, 0f, 0.45f);
         GUI.DrawTexture(new Rect(panelX, 10, panelW, 300), Texture2D.whiteTexture);
         GUI.color = Color.white;
@@ -134,7 +136,7 @@ public class ScoreHud : MonoBehaviour
         GUI.Label(new Rect(x, y + h * 2, 400, h), $"倍率   : x{_multiplier:0.00}", style);
         GUI.Label(new Rect(x, y + h * 3, 400, h), $"直近   : {sm.LastZone}  +{sm.LastGain}（精度 +{sm.LastBonus}）", style);
 
-        // 神社評価（#30）
+        // 神社の評価（#30）
         if (_ratingNormalized >= 0f)
             GUI.Label(new Rect(x, y + h * 4, 400, h), $"神社評価 : {_ratingNormalized * 100f:0}  ランク {_rank}", style);
 
@@ -147,7 +149,7 @@ public class ScoreHud : MonoBehaviour
             style.normal.textColor = prev;
         }
 
-        // ボタン：テスト操作
+        // ボタン: テストの操作
         if (GUI.Button(new Rect(x, y + h * 6 + 6, 110, 34), "Reset"))
             sm.ResetAll();
         if (GUI.Button(new Rect(x + 120, y + h * 6 + 6, 130, 34), "Force Miss"))

@@ -6,13 +6,13 @@ using UnityEngine;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T0-3M の記録ファイル — Issue #53
-    ///
-    /// 保存先は #49 / #50 と同じ <see cref="AbTestCsvFile.FolderName"/>（Editor はプロジェクト直下、ビルドは persistentDataPath）。
-    /// ファイル名は <c>{テストID}_{日付}.csv</c>。1 人終わるたびに 1 行追記するので、途中で落ちてもそこまでは残る。UTF-8 BOM 付き。
-    /// 聞き取りの列を Excel で埋めるのは<b>その日の追記が終わってから</b>（開いたままだと書き込めない）。
-    /// </summary>
+    /*
+        T0-3M の記録ファイルを読み書きするクラス（#53）
+
+        保存する場所は #49 や #50 と同じ AbTestCsvFile.FolderName（エディタはプロジェクトのすぐ下、ビルドは persistentDataPath）
+        ファイル名は {テストID}_{日付}.csv。1人終わるたびに1行足すので、とちゅうで落ちてもそこまでは残る。UTF-8 BOM 付き
+        聞き取りの列を Excel でうめるのは、その日の書き足しが終わってから（開いたままだと書きこめない）
+    */
     public static class EnduranceCsvFile
     {
         public static string DefaultFolder => AbTestCsvFile.DefaultFolder;
@@ -21,7 +21,7 @@ namespace Toufuku.Playtest
             Path.Combine(string.IsNullOrEmpty(folder) ? DefaultFolder : folder,
                 $"{Sanitize(testId, "T0-3M")}_{Sanitize(date, "no-date")}.csv");
 
-        /// <summary>1 人分を追記する。ファイルが無ければ見出し行から作る。</summary>
+        // 1人ぶんを足す。ファイルがなければ見出しの行から作る
         public static bool Append(string path, EnduranceRecord record, out string error)
         {
             error = null;
@@ -43,7 +43,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>全文を書き直す（聞き取りの列をあとから入れ直したとき）。</summary>
+        // ぜんぶ書きなおす（聞き取りの列をあとから入れなおしたとき）
         public static bool WriteAll(string path, IReadOnlyList<EnduranceRecord> records, out string error)
         {
             error = null;

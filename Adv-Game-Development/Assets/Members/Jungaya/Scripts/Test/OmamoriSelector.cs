@@ -2,17 +2,17 @@ using UnityEngine;
 using Toufuku.Rescue;
 using Toufuku.GameInput;
 
-/// <summary>
-/// いま撃つお守りの「現在の種類」を保持する選択ソース（#9 の暫定実装 ＋ #10 のテスト足場）。
-///
-/// ・選択入力（数字キー 1〜5 相当）で種類を切り替え、画面左上に現在の種類を表示する。
-/// ・発射側（Shoot_Bullet / Shoot / TestShooter など）は <see cref="Current"/> を読み、
-///   生成した弾の <see cref="OmamoriBullet.SetType"/> に流し込む。
-///
-/// #20: 入力は IInputProvider 経由（未設定ならキーボード直読みにフォールバック）。
-/// 正式な選択UI（#9）が固まったら、この入力部分だけ差し替えればよい
-/// （発射側は Current を読むだけなので影響しない）。
-/// </summary>
+/*
+    今投げるお守りの「今の種類」を持っておくクラス（#9 のとりあえずの実装 ＋ #10 のテスト用の足場）
+
+    ・選ぶ入力（数字キー1〜5 みたいなもの）で種類を切りかえて、画面の左上に今の種類を表示する
+    ・発射する側（Shoot_Bullet / Shoot / TestShooter など）は Current を読んで、
+      作った弾の OmamoriBullet.SetType に入れる
+
+    #20: 入力は IInputProvider を通す（入っていなければキーボードを直接読む）
+    ちゃんとした選ぶUI（#9）が決まったら、この入力の部分だけ入れかえればいい
+    （発射する側は Current を読むだけなので、えいきょうはない）
+*/
 public class OmamoriSelector : MonoBehaviour
 {
     [Header("現在選択中のお守り（テスト時はInspectorからも変更可）")]
@@ -26,7 +26,7 @@ public class OmamoriSelector : MonoBehaviour
 
     private IInputProvider _input;
 
-    /// <summary>いま選択中のお守りの種類。発射側はこれを読んで弾に乗せる。</summary>
+    // 今選んでいるお守りの種類。発射する側はこれを読んで弾にのせる
     public OmamoriType Current => current;
 
     private void Awake()
@@ -36,7 +36,7 @@ public class OmamoriSelector : MonoBehaviour
             Debug.LogWarning("[OmamoriSelector] inputProviderSource が IInputProvider を実装していません", this);
     }
 
-    /// <summary>外部（UIボタン等）から種類を指定したい場合に呼ぶ。</summary>
+    // 外（UI のボタンなど）から種類を決めたいときに呼ぶ
     public void Select(OmamoriType t)
     {
         if (current == t) return;
@@ -48,14 +48,14 @@ public class OmamoriSelector : MonoBehaviour
     {
         if (_input != null)
         {
-            // #20: 抽象化された入力から選択番号（0〜4）を受け取る
+            // #20: まとめた入力から、選んだ番号（0〜4）を受け取る
             int index = _input.OmamoriSelectTriggered;
             if (index >= 0 && index <= 4)
                 Select((OmamoriType)index);
             return;
         }
 
-        // フォールバック：数字キーで切り替え（プロバイダ未設定時）。企画書v3 §3 の enum 順。
+        // 予備: 数字キーで切りかえる（プロバイダーが入っていないとき）。企画書 v3 §3 の enum の順番
         if (Input.GetKeyDown(KeyCode.Alpha1)) Select(OmamoriType.Kenkou);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) Select(OmamoriType.Gakugyou);
         else if (Input.GetKeyDown(KeyCode.Alpha3)) Select(OmamoriType.Yakuyoke);

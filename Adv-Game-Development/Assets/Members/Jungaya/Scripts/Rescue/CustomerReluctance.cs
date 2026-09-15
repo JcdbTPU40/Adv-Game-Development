@@ -4,28 +4,28 @@ using UnityEngine.Events;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 「渋る」リアクション — Issue #14
-    ///
-    /// 仕様（企画書 6章 / Issue #14）:
-    ///   相性外（誤投擲）のお守りが当たったとき、客が一瞬「渋い顔」をして嫌がる見た目フィードバック。
-    ///   ＝ プレイヤーに「今のは効いていない（コンボも途切れた）」と直感的に伝える演出。
-    ///
-    /// 担当範囲:
-    ///   ・このコンポーネントは “渋る見た目” だけを担当する。
-    ///   ・ゲージ微減・相性判定は CustomerRescue(#13)、コンボ途切れは ScoreManager(#15) が担当。
-    ///   ・相性✗ヒットの通知は CustomerRescue.onBadHit から受け取る（実行時に自動購読するので
-    ///     インスペクタでの配線は不要）。
-    ///
-    /// 演出（コード駆動・自己完結）:
-    ///   1) 回転ワブル … 首をかしげる/嫌がるように小さく左右に揺れる。
-    ///      ※ 位置ではなく回転で揺らす。Customer_Move が毎フレーム position を書き換えるため、
-    ///        位置揺れだと競合する。回転は誰も触らないので安全。
-    ///   2) 色フラッシュ … くすんだ色に一瞬染めてから元へ戻す（SpriteRenderer / 3D Renderer 両対応）。
-    ///
-    /// 外部接続:
-    ///   onReluctance(UnityEvent) … 「渋い…」SE やポップアップ文字などをインスペクタで後付けする用。
-    /// </summary>
+    /*
+        「渋る」リアクション（#14）
+
+        仕様（企画書 6章 / Issue #14）:
+          相性が合わない（まちがえた）お守りが当たったとき、客が一瞬「しぶい顔」をしていやがる見た目のフィードバック
+          ＝ プレイヤーに「今のは効いてない（コンボも切れた）」とパッと伝えるための演出
+
+        担当するところ:
+          ・このコンポーネントは「渋る見た目」だけを担当する
+          ・ゲージがちょっと減るのと相性の判定は CustomerRescue（#13）、コンボが切れるのは ScoreManager（#15）の担当
+          ・相性✗で当たったお知らせは CustomerRescue.onBadHit から受け取る（プレイ中に自動で受け取るようにするので、
+            インスペクターでつながなくていい）
+
+        演出（コードで動かしていて、これだけで完結している）:
+          1) 回転のゆれ: 首をかしげる・いやがるみたいに、小さく左右にゆれる
+             ※ 位置じゃなくて回転でゆらす。Customer_Move が毎フレーム position を書きかえるので、
+               位置でゆらすとぶつかる。回転はだれもさわらないので安全
+          2) 色のフラッシュ: くすんだ色に一瞬そめてから元にもどす（SpriteRenderer と 3D の Renderer の両方に対応）
+
+        外とつなぐところ:
+          onReluctance（UnityEvent）: 「しぶい…」の効果音やポップアップの文字などを、インスペクターであとから足す用
+    */
     [RequireComponent(typeof(CustomerRescue))]
     public class CustomerReluctance : MonoBehaviour
     {
@@ -56,7 +56,7 @@ namespace Toufuku.Rescue
         [Tooltip("渋った瞬間に発火。「渋い…」SE・ポップアップ文字などをここに繋ぐ。")]
         public UnityEvent onReluctance;
 
-        // 色プロパティ名（Built-in: _Color / URP: _BaseColor）。両方に書けば描画パイプライン非依存。
+        // 色のプロパティ名（Built-in: _Color / URP: _BaseColor）。両方に書けば、どっちの描画パイプラインでも動く
         private static readonly int ColorId = Shader.PropertyToID("_Color");
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -82,7 +82,7 @@ namespace Toufuku.Rescue
 
         private void OnEnable()
         {
-            // 相性✗ヒット通知に自動購読（インスペクタ配線不要）。
+            // 相性✗で当たったお知らせを自動で受け取る（インスペクターでつながなくていい）
             if (_rescue != null && _rescue.onBadHit != null)
                 _rescue.onBadHit.AddListener(Play);
         }
@@ -93,17 +93,17 @@ namespace Toufuku.Rescue
                 _rescue.onBadHit.RemoveListener(Play);
         }
 
-        /// <summary>
-        /// 「渋る」リアクションを再生する。通常は CustomerRescue.onBadHit から自動で呼ばれるが、
-        /// 外部から直接トリガしたい場合にも使える。
-        /// </summary>
+        /*
+            「渋る」リアクションを再生する。ふつうは CustomerRescue.onBadHit から自動で呼ばれるけど、
+            外から直接動かしたいときにも使える
+        */
         public void Play()
         {
-            // 揺れの再生（前の揺れが残っていれば差し替え）。
+            // ゆれを再生する（前のゆれが残っていたら入れかえる）
             if (_wobbleCo != null) StopCoroutine(_wobbleCo);
             _wobbleCo = StartCoroutine(WobbleRoutine());
 
-            // 色フラッシュ。
+            // 色のフラッシュ
             if (useColorFlash && HasColorTarget)
             {
                 if (_colorCo != null) StopCoroutine(_colorCo);
@@ -113,15 +113,15 @@ namespace Toufuku.Rescue
             onReluctance?.Invoke();
         }
 
-        /// <summary>
-        /// 渋り演出の“戻り先”となる基準色を更新する（#16）。
-        /// 代表カラー適用時に <see cref="CustomerProfileApplier"/> から呼ばれ、
-        /// フラッシュ後に元マテリアル色ではなく客タイプの代表カラーへ戻るようにする。
-        /// </summary>
+        /*
+            渋る演出の「もどる色」になる基準の色を変える（#16）
+            代表の色を入れたときに CustomerProfileApplier から呼ばれて、
+            フラッシュのあとにマテリアルの元の色じゃなくて、客のタイプの代表の色にもどるようにする
+        */
         public void SetBaseColor(Color c)
         {
             _baseColor = c;
-            // フラッシュ中でなければ即座に基準色へそろえておく。
+            // フラッシュ中じゃなければ、すぐに基準の色にそろえておく
             if (_colorCo == null && HasColorTarget)
                 ApplyColor(_baseColor);
         }
@@ -135,7 +135,7 @@ namespace Toufuku.Rescue
             {
                 t += Time.deltaTime;
                 float p = Mathf.Clamp01(t / wobbleDuration);
-                // 減衰しながら左右に往復（最初が一番大きく、終わりに収まる）。
+                // だんだん小さくなりながら左右に行ったり来たりする（最初がいちばん大きくて、最後に止まる）
                 float damp = 1f - p;
                 float angle = Mathf.Sin(p * Mathf.PI * 2f * wobbleOscillations) * wobbleAngle * damp;
                 wobbleTarget.localRotation = _baseLocalRot * Quaternion.AngleAxis(angle, axis);
@@ -200,7 +200,7 @@ namespace Toufuku.Rescue
             }
             else if (targetRenderer != null)
             {
-                // MaterialPropertyBlock で書く＝マテリアルを複製せず、他インスタンスにも影響しない。
+                // MaterialPropertyBlock で書く＝マテリアルをコピーしないので、ほかの客にもえいきょうしない
                 targetRenderer.GetPropertyBlock(_mpb);
                 _mpb.SetColor(ColorId, c);
                 _mpb.SetColor(BaseColorId, c);

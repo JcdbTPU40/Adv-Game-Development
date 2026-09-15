@@ -3,16 +3,16 @@ using UnityEngine;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// 実機（ESP32＋BNO055）の生入力 — Issue #51
-    ///
-    /// ConecteController が 1 行受信するたびに <see cref="ConecteController.SampleReceived"/> で受け取り、
-    /// ピッチ角速度から振りピークを検出してキューに積む。ボタンは 4 項目目のビットマスクを読む
-    /// （形式は <see cref="ControllerSample"/>）。
-    ///
-    /// ・現行ファームウェアはボタンを送らないので、その間は数字キー 1〜5／A キーで代用できる。
-    /// ・未接続時はマウス左クリックを振りピークとして扱える（机上での確認用）。
-    /// </summary>
+    /*
+        実機（ESP32＋BNO055）からの入力そのままを受け取るクラス（#51）
+
+        ConecteController が1行受け取るたびに ConecteController.SampleReceived でもらって、
+        ピッチの角速度から振りのピークを見つけて順番に貯めておく。ボタンは4つ目のビットの集まりを読む
+        （形は ControllerSample を見る）
+
+        ・今のファームウェアはボタンを送ってこないので、その間は数字キー1〜5とAキーで代わりにできる
+        ・つながっていないときは、マウスの左クリックを振りのピークとしてあつかえる（机の上で確認する用）
+    */
     public class Esp32RawSource : MonoBehaviour, IControllerRawSource, ISwingPeakInputTime
     {
         [SerializeField] ConecteController con;
@@ -41,7 +41,7 @@ namespace Toufuku.GameInput
         [SerializeField] KeyCode strongSwingKey = KeyCode.LeftShift;
         [SerializeField] float strongSwingStrength = 720f;
 
-        // 同一フレームにまとめて届いた行の受信時刻はほぼ同じになるため、間隔が詰まりすぎたら名目間隔で補う
+        // 同じフレームにまとめて届いた行は受け取った時刻がほとんど同じになるので、間かくがつまりすぎたら決まった間かくでおぎなう
         const double MinSampleInterval = 0.005;
 
         readonly SwingPeakDetector _detector = new SwingPeakDetector();
@@ -51,14 +51,14 @@ namespace Toufuku.GameInput
         double _detectorTime = double.NegativeInfinity;
         int _mouseConsumedFrame = -1;
 
-        /// <summary>#63: 直前に取り出した振りピークのコントローラ側時刻（秒）。ファームウェアが送らない・マウス代用なら NaN。</summary>
+        // #63: さっき取り出した振りピークの、コントローラー側の時刻（秒）。ファームウェアが送ってこないときやマウスのときは NaN
         public double LastSwingPeakInputTime { get; private set; } = double.NaN;
 
         public bool IsConnected => con != null && con.isConnected;
         public float Yaw => con != null ? con.yaw : 0f;
         public float Pitch => con != null ? con.pitch : 0f;
 
-        /// <summary>ファームウェアがボタンを送ってきているか。</summary>
+        // ファームウェアがボタンの情報を送ってきているかどうか
         public bool HasHardwareButtons => _latest.HasButtons;
 
         public bool IsFrontHeld => _latest.HasButtons
@@ -91,7 +91,7 @@ namespace Toufuku.GameInput
                 t = _detectorTime + nominalSampleInterval;
             _detectorTime = t;
 
-            // ピーク時刻は受信時刻で返す（遅延計測 #52 と揃える）
+            // ピークの時刻は受け取った時刻で返す（#52 の遅れの計測とそろえるため）
             if (_detector.AddSample(sample.Pitch, t, out float peakVelocity))
                 _peaks.Enqueue((peakVelocity, sample.Time, sample.DeviceTime));
         }

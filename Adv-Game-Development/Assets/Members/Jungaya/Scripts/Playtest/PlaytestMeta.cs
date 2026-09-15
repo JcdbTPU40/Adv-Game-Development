@@ -7,19 +7,19 @@ namespace Toufuku.Playtest
 {
     public enum PlaytestSeedMode
     {
-        /// <summary>毎プレイ同じシード（T2・T3・TA の比較用）。</summary>
+        // 毎回同じシード（T2・T3・TA でくらべる用）
         Fixed = 0,
-        /// <summary>プレイごとに新しいシード（使ったシードはログに残る）。</summary>
+        // プレイごとに新しいシード（使ったシードはログに残る）
         RandomEachPlay = 1
     }
 
-    /// <summary>
-    /// 計測プレイの識別情報 — Issue #63（仕様書 v8 17章: 数値変更にはテストID・日付・対象人数・責任者を必須）
-    ///
-    /// ・Inspector で設定し、Inspector の無いビルドでは起動引数で上書きする（<see cref="ApplyCommandLine"/>）。
-    ///   例: <c>Game.exe -playtestTestId T3 -playtestSeed 42 -playtestBuild 17 -playtestParticipant P05 -playtestOperator Jungaya</c>
-    /// ・テストID・日付・ビルド番号・シード値はファイル名（<see cref="FileStem"/>）とヘッダーの両方に入る。
-    /// </summary>
+    /*
+        計測プレイを見分けるための情報（#63 / 企画書 v8 17章: 数値を変えるときはテストID・日付・人数・責任者が必要）
+
+        ・Inspector で設定する。Inspector がないビルドでは、起動するときの引数で上書きする（ApplyCommandLine）
+          例: Game.exe -playtestTestId T3 -playtestSeed 42 -playtestBuild 17 -playtestParticipant P05 -playtestOperator Jungaya
+        ・テストID・日付・ビルド番号・シード値は、ファイル名（FileStem）とヘッダーの両方に入る
+    */
     [Serializable]
     public class PlaytestMeta
     {
@@ -40,10 +40,10 @@ namespace Toufuku.Playtest
             return (PlaytestMeta)MemberwiseClone();
         }
 
-        /// <summary>
-        /// <c>-playtestXxx 値</c> の組を読んで上書きする。適用したキー（小文字）を返す。
-        /// キー: TestId / Build / Seed（整数 or random）/ Participant / Operator / Hypothesis / Note / Out
-        /// </summary>
+        /*
+            「-playtestXxx 値」の組を読んで上書きする。使ったキー（小文字）を返す
+            キー: TestId / Build / Seed（整数か random）/ Participant / Operator / Hypothesis / Note / Out
+        */
         public List<string> ApplyCommandLine(IReadOnlyList<string> args)
         {
             var applied = new List<string>();
@@ -95,7 +95,7 @@ namespace Toufuku.Playtest
             return applied;
         }
 
-        /// <summary>ファイル名の共通部分: <c>{テストID}_{yyyyMMdd-HHmmss}_b{ビルド番号}_s{シード}[_{参加者ID}]</c>。</summary>
+        // ファイル名の共通の部分: {テストID}_{yyyyMMdd-HHmmss}_b{ビルド番号}_s{シード}[_{参加者ID}]
         public string FileStem(DateTime startedAt, string build, int seedUsed)
         {
             var sb = new StringBuilder();
@@ -108,7 +108,7 @@ namespace Toufuku.Playtest
             return sb.ToString();
         }
 
-        /// <summary>ファイル名に使えない文字・空白を '-' に置き換える。空なら "NA"。</summary>
+        // ファイル名に使えない文字や空白を '-' にかえる。空なら "NA"
         public static string SanitizeFilePart(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return "NA";

@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Outline
 {
-    /// <summary>
-    /// #45 負荷検証用の簡易群衆。MockCrowdDirector は触らず、計測シーン専用に独立実装。
-    /// 近/中/遠の3帯に最大16体を配置し、お守り5色を巡回で割り当てる。
-    /// </summary>
+    /*
+        #45 の重さを調べるための、かんたんな客の集団。MockCrowdDirector はさわらずに、計測シーン用に別で作った
+        近い・中・遠いの3つの帯に最大16人をならべて、お守り5色を順番に決める
+    */
     public class OutlinePerfDirector : MonoBehaviour
     {
         [System.Serializable]
@@ -27,11 +27,11 @@ namespace Toufuku.Rescue.Outline
         [SerializeField]
         Color[] omamoriColors =
         {
-            new Color(0.20f, 1.00f, 0.45f), // 健康：緑
-            new Color(0.30f, 0.65f, 1.00f), // 学業：青
-            new Color(1.00f, 0.40f, 0.70f), // 縁結び：桃
-            new Color(1.00f, 0.85f, 0.15f), // 金運：金
-            new Color(0.75f, 0.35f, 1.00f), // 厄除け：紫
+            new Color(0.20f, 1.00f, 0.45f), // 健康: 緑
+            new Color(0.30f, 0.65f, 1.00f), // 学業: 青
+            new Color(1.00f, 0.40f, 0.70f), // 縁結び: ピンク
+            new Color(1.00f, 0.85f, 0.15f), // 金運: 金
+            new Color(0.75f, 0.35f, 1.00f), // 厄除け: 紫
         };
 
         [Header("暗色検証（#45 B）")]
@@ -114,7 +114,7 @@ namespace Toufuku.Rescue.Outline
                 Color c = omamoriColors != null && omamoriColors.Length > 0
                     ? omamoriColors[i % omamoriColors.Length]
                     : Color.white;
-                // 先頭1体を暗色に差し替え、暗い輪郭でも A>0 で検出できることを常時検証できるようにする。
+                // 先頭の1人を暗い色にかえて、暗い輪郭でも A>0 で見つけられるかをいつも確かめられるようにする
                 if (includeDarkTestCustomer && i == 0)
                 {
                     c = darkTestColor;
@@ -123,7 +123,7 @@ namespace Toufuku.Rescue.Outline
                 outline.SetColor(c);
                 outline.SetPattern(OutlinePattern.Solid);
 
-                // 本体色をニュートラル灰に（輪郭を主役に）。
+                // 本体の色はグレーにする（輪郭を目立たせるため）
                 var rend = go.GetComponentInChildren<Renderer>();
                 if (rend != null)
                 {

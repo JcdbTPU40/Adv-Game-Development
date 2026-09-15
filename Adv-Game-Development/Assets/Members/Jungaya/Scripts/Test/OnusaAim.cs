@@ -1,16 +1,16 @@
 using UnityEngine;
 using Toufuku.GameInput;
 
-/// <summary>
-/// マウス操作時に、大幣（赤いキューブ）をカーソルの方向へ左右（ヨーのみ）に向ける。
-///
-/// ・照準地点の求め方は TestShooter.Fire() と同じ（レイキャスト→外れたら groundY 平面）。
-///   aimMask / groundY は TestShooter と同じ値にしておくと見た目と着弾が一致する。
-/// ・ESP32 コントローラ接続時は PlayerDirect（con.yaw）が回転を担当するので、
-///   このスクリプトは何もしない。
-/// ・PlayerDirect が Update で回転を書くため、こちらは LateUpdate で上書きする
-///   （未接続時に PlayerDirect が初期向きへ戻そうとするのを打ち消すため）。
-/// </summary>
+/*
+    マウスで操作するときに、大幣（赤いキューブ）をカーソルの方向に左右（ヨーだけ）に向けるクラス
+
+    ・ねらう場所の出し方は TestShooter.Fire() と同じ（レイキャスト → 当たらなかったら groundY の平面）
+      aimMask と groundY は TestShooter と同じ値にしておくと、見た目と落ちる場所がそろう
+    ・ESP32 のコントローラーがつながっているときは PlayerDirect（con.yaw）が回転を担当するので、
+      このスクリプトは何もしない
+    ・PlayerDirect が Update で回転を書くので、こっちは LateUpdate で上書きする
+      （つながっていないときに PlayerDirect が最初の向きにもどそうとするのを打ち消すため）
+*/
 public class OnusaAim : MonoBehaviour
 {
     [Header("入力の供給元（#20）。IInputProvider 実装をドラッグ。未設定ならマウス直読み")]
@@ -44,7 +44,7 @@ public class OnusaAim : MonoBehaviour
 
     void LateUpdate()
     {
-        // コントローラ接続中は PlayerDirect（実機の向き）を優先
+        // コントローラーがつながっているときは PlayerDirect（実機の向き）を優先する
         if (con != null && con.isConnected) return;
 
         if (cam == null)
@@ -53,7 +53,7 @@ public class OnusaAim : MonoBehaviour
             if (cam == null) return;
         }
 
-        // 照準が指すワールド地点を求める（TestShooter.Fire() と同じ手順）
+        // 照準が指しているワールドの場所を出す（TestShooter.Fire() と同じ手順）
         Vector3 aimScreenPos = _input != null ? _input.AimScreenPosition : Input.mousePosition;
         Ray ray = cam.ScreenPointToRay(aimScreenPos);
         Vector3 aimPoint;
@@ -67,10 +67,10 @@ public class OnusaAim : MonoBehaviour
             aimPoint = ground.Raycast(ray, out float d) ? ray.GetPoint(d) : ray.GetPoint(30f);
         }
 
-        // 高さは無視して、左右（ヨー）だけカーソル方向へ向ける
+        // 高さは見ないで、左右（ヨー）だけカーソルの方向に向ける
         Vector3 dir = aimPoint - transform.position;
         dir.y = 0f;
-        if (dir.sqrMagnitude < 0.0001f) return; // 真上/真下を指しているときは向きを維持
+        if (dir.sqrMagnitude < 0.0001f) return; // 真上や真下を指しているときは向きをそのままにする
 
         Quaternion targetRot = Quaternion.LookRotation(dir);
         transform.rotation =

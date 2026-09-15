@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace Toufuku.Rescue.Outline
 {
-    /// <summary>
-    /// アウトラインを出したいオブジェクトに付ける。Renderer Feature が読む登録エントリ。
-    ///
-    /// OnEnable/OnDisable で静的レジストリに自己登録する。色はマテリアル固定にせず
-    /// <see cref="SetColor"/> で客ごと（お守り5色）に差し替えられる。
-    /// パターンIDはマスクRTのA成分へ運び、Compose の拡張点へ渡す。
-    /// </summary>
+    /*
+        アウトラインを出したいオブジェクトに付けるクラス。Renderer Feature が読む登録のデータ
+
+        OnEnable/OnDisable で static のリストに自分を登録する。色はマテリアルで固定にしないで、
+        SetColor で客ごと（お守り5色）に変えられる
+        もようの番号はマスクRT の A に入れて、Compose の拡張する場所に渡す
+    */
     [DisallowMultipleComponent]
     public class OutlineTarget : MonoBehaviour
     {
@@ -24,7 +24,7 @@ namespace Toufuku.Rescue.Outline
         [Tooltip("描画対象の Renderer。未設定なら自分＋子から自動取得。")]
         [SerializeField] Renderer targetRenderer;
 
-        /// <summary>いま有効な OutlineTarget 一覧（Feature が毎フレーム読む）。</summary>
+        // 今有効な OutlineTarget の一覧（Feature が毎フレーム読む）
         public static IReadOnlyList<OutlineTarget> ActiveTargets => s_Active;
 
         public Color Color => color;
@@ -51,19 +51,19 @@ namespace Toufuku.Rescue.Outline
             s_Active.Remove(this);
         }
 
-        /// <summary>輪郭色を差し替える（MockCrowdDirector.omamoriColors をそのまま流し込める）。</summary>
+        // 輪郭の色を変える（MockCrowdDirector.omamoriColors をそのまま入れられる）
         public void SetColor(Color next)
         {
             color = next;
         }
 
-        /// <summary>線種を差し替える（色覚対応の拡張用。現状 Compose は Solid のみ）。</summary>
+        // 線の種類を変える（色覚対応で広げるとき用。今の Compose は Solid だけ）
         public void SetPattern(OutlinePattern next)
         {
             pattern = next;
         }
 
-        /// <summary>描画対象 Renderer を明示設定する。</summary>
+        // 描く Renderer をはっきり決める
         public void SetRenderer(Renderer renderer)
         {
             targetRenderer = renderer;

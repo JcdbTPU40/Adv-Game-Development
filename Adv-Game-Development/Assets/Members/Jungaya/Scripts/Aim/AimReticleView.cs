@@ -4,14 +4,14 @@ using UnityEngine.UI;
 
 namespace Toufuku.Aim
 {
-    /// <summary>
-    /// 照準の見た目 — Issue #60（仕様書 v8 4章）
-    ///
-    /// ・照準マーク: 紙垂（しで）モチーフの輪を、着弾予測点の画面位置に常時表示する。
-    /// ・着弾予測点: 地面に薄い光の輪を置く（輪の半径は参拝客の判定半径に合わせ、中心 40% の目安も薄く描く）。
-    /// ・クールダウン中の有効スイング: <see cref="FlashRejected"/> で 80ms だけ両方を灰色にする。
-    /// 正式な素材が届くまで、Canvas・テクスチャ・マテリアルは実行時に生成する。
-    /// </summary>
+    /*
+        照準の見た目を担当するクラス（#60 / 企画書 v8 4章）
+
+        ・照準マーク: 紙垂（しで）っぽい輪を、弾が落ちる予定の場所の画面上にずっと出しておく
+        ・着弾予測点: 地面にうすく光る輪を置く。輪の大きさは客の当たり判定と同じにして、中心40%の目安もうすく描く
+        ・クールダウン中に振ったとき: FlashRejected で 80ms だけ両方を灰色にする
+        ちゃんとした素材が来るまでは、Canvas もテクスチャもマテリアルも実行中に作っている
+    */
     public class AimReticleView : MonoBehaviour
     {
         [Tooltip("未設定なら同じ GameObject → シーン内の順に探す")]
@@ -53,14 +53,14 @@ namespace Toufuku.Aim
         double _rejectUntil = double.NegativeInfinity;
         bool _visible = true;
 
-        /// <summary>灰色表示の最中か。</summary>
+        // 今、灰色になっている最中かどうか
         public bool IsRejectFlashing => Time.realtimeSinceStartupAsDouble < _rejectUntil;
-        /// <summary>照準マークの現在色（確認用）。</summary>
+        // 照準マークの今の色（確認用）
         public Color CurrentReticleColor => _reticleImage != null ? _reticleImage.color : reticleColor;
-        /// <summary>何回灰色表示したか（確認用）。</summary>
+        // 灰色にした回数（確認用）
         public int RejectFlashCount { get; private set; }
 
-        /// <summary>クールダウン中の有効スイングを受けたときに呼ぶ。照準と地面の輪を短時間だけ灰色にする。</summary>
+        // クールダウン中に振られたときに呼ぶ。照準と地面の輪をちょっとだけ灰色にする
         public void FlashRejected()
         {
             _rejectUntil = Time.realtimeSinceStartupAsDouble + rejectFlashSeconds;
@@ -144,7 +144,7 @@ namespace Toufuku.Aim
             if (_ringRoot != null) _ringRoot.gameObject.SetActive(visible);
         }
 
-        // ---- 生成 ----
+        // ---- ここから作る処理 ----
 
         void BuildReticle()
         {
@@ -163,7 +163,7 @@ namespace Toufuku.Aim
             _reticleTexture = CreateShideRingTexture(TextureSize);
             _reticleImage = imageGo.GetComponent<RawImage>();
             _reticleImage.texture = _reticleTexture;
-            _reticleImage.raycastTarget = false; // クリックを奪わない
+            _reticleImage.raycastTarget = false; // クリックをじゃましないようにする
             _reticleImage.color = reticleColor;
         }
 
@@ -187,7 +187,7 @@ namespace Toufuku.Aim
         {
             var go = new GameObject(name);
             go.transform.SetParent(_ringRoot, false);
-            // 線を XY 平面で作り、X 軸まわりに 90 度倒して地面（XZ 平面）に寝かせる
+            // 線は XY 平面で作って、X軸まわりに90度たおして地面（XZ平面）に寝かせている
             go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
             var line = go.AddComponent<LineRenderer>();
@@ -208,10 +208,10 @@ namespace Toufuku.Aim
             return line;
         }
 
-        /// <summary>
-        /// 紙垂モチーフの照準テクスチャ。中央の点・輪・斜め 4 方向に稲妻形の紙垂。
-        /// 白い本体に暗い縁取りを付け、明るい地面でも見えるようにする（色は RawImage.color で乗算）。
-        /// </summary>
+        /*
+            紙垂っぽい照準のテクスチャを作る。真ん中の点と輪と、ななめ4方向のギザギザの紙垂
+            白い本体に暗いふちを付けて、明るい地面の上でも見えるようにしている（色は RawImage.color でかける）
+        */
         static Texture2D CreateShideRingTexture(int size)
         {
             const float ringRadius = 0.46f;

@@ -2,18 +2,18 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>大負荷ウェーブの人数案 1 つ分の処理負荷。</summary>
+    // 大きい負荷ウェーブの人数の案1つぶんの、処理の大変さ
     public readonly struct WaveCandidate
     {
-        /// <summary>基準上限への加算人数（+3 / +4 / +5）。</summary>
+        // 基準の上限に足す人数（+3 / +4 / +5）
         public readonly int Added;
-        /// <summary>総同時上限（基準 10 人 + 加算）。</summary>
+        // 同時にいていい人数の合計（基準の10人 + 足した人数）
         public readonly int TotalCap;
-        /// <summary>定常状態で必要な救済数／秒。</summary>
+        // ずっと同じ状態のときに必要な、1秒あたりの救済の数
         public readonly double RequiredRescuesPerSecond;
-        /// <summary>定常状態で必要な命中数／秒。</summary>
+        // ずっと同じ状態のときに必要な、1秒あたりの命中の数
         public readonly double RequiredHitsPerSecond;
-        /// <summary>全命中・待ち時間なしのとき許される 1 投周期（秒）。これより遅いと追いつかない。</summary>
+        // 全部当たって待ち時間もないときに許される1投の間かく（秒）。これより遅いと追いつかない
         public readonly double AllowedCycleSeconds;
 
         public WaveCandidate(int added, int totalCap, double rescuesPerSecond, double hitsPerSecond, double allowedCycleSeconds)
@@ -28,30 +28,29 @@ namespace Toufuku.Playtest
         public string Label => $"+{Added}（総上限{TotalCap}人）";
     }
 
-    /// <summary>
-    /// 8章「大負荷ウェーブ候補の処理負荷比較」の算術 — Issue #53（仕様書 v8 8章・17章 T0-3M）
-    ///
-    /// | 手順 | 式 |
-    /// |---|---|
-    /// | 必要救済/秒 | 総同時上限 ÷ D が 100 になる加重平均秒（約 20.94 秒） |
-    /// | 必要命中/秒 | 必要救済/秒 × 救済 1 人に必要な平均命中数（約 1.094 発） |
-    /// | 許容される 1 投周期 | 1 ÷ 必要命中/秒 |
-    ///
-    /// 20.94 秒と 1.094 発は、T3 の比率（ボス OFF・負荷ウェーブ中 通常 75% / 移動 6.25% / 遠方 9.375% / 欲張り 9.375%）から
-    /// 仕様書が出した値。付録B の比率・秒数が変わったらここも合わせる。
-    /// 全命中・待ち時間なしの定常近似なので、成立の証明ではなく<b>棄却のための上限</b>として使う。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        8章「大負荷ウェーブ候補の処理負荷比較」の計算（#53 / 企画書 v8 8章・17章 T0-3M）
+
+        計算の手順:
+        ・必要な救済/秒 = 同時にいていい人数の合計 ÷ D が 100 になるまでの加重平均の秒（20.94 秒くらい）
+        ・必要な命中/秒 = 必要な救済/秒 × 1人救うのに必要な平均の命中数（1.094 発くらい）
+        ・許される1投の間かく = 1 ÷ 必要な命中/秒
+
+        20.94 秒と 1.094 発は、T3 のわりあい（ボス OFF・負荷ウェーブ中は 通常 75% / 移動 6.25% / 遠方 9.375% / 欲張り 9.375%）から
+        企画書で出した値。付録B のわりあいや秒数が変わったらここも合わせる
+        全部当たって待ち時間もない、ずっと同じ状態を考えた計算なので、「できる」と証明するものじゃなくて「無理」と判断するための上限として使う
+        MonoBehaviour は使っていない
+    */
     public static class WaveLoadArithmetic
     {
-        /// <summary>MVP の基準同時上限（人）。</summary>
+        // MVP の基準の同時にいていい人数（人）
         public const int BaseCap = 10;
-        /// <summary>D が 100 になるまでの加重平均秒。</summary>
+        // D が 100 になるまでの加重平均の秒
         public const double SecondsToDanger100 = 20.94;
-        /// <summary>救済 1 人に必要な平均命中数。</summary>
+        // 1人救うのに必要な平均の命中数
         public const double HitsPerRescue = 1.094;
 
-        /// <summary>T3 で比べる大負荷ウェーブの加算人数。</summary>
+        // T3 でくらべる、大きい負荷ウェーブで足す人数
         public static readonly int[] FinalWaveAdds = { 3, 4, 5 };
 
         public static WaveCandidate Of(int added)

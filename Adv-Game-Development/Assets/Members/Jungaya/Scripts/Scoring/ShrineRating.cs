@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-/// <summary>神社ランク（低→高）。評価値から算出する。</summary>
+// 神社のランク（低い → 高い）。評価の値から出す
 public enum ShrineRank
 {
     C = 0,
@@ -10,20 +10,20 @@ public enum ShrineRank
     S = 3,
 }
 
-/// <summary>
-/// 神社評価メーター（長期通信簿）— Issue #30
-///
-/// 企画書1章。救済で評価が溜まり、怒らせると減る。リザルトで神社ランク確定。
-/// 縁＝瞬間スコア、評価＝プレイ全体の通信簿。評価が縁に倍率としてかかる。
-///
-/// ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を保持）。
-/// ・客の救済成功/黒客化は <see cref="ShrineRatingHook"/> が CustomerState(#54) の
-///   onRescued / onBlack を購読して Register○○() を呼んでくる。増減量は客種ごと（付録B B-1）。
-/// ・評価→縁倍率(EnMultiplier)は ScoreManager の獲得計算に自動で乗る。
-///
-/// ※ 展示ビルドでは毎プレイ必ずランクCスタート（v3 §7）。
-/// ※ 展示ビルドでは「評価低下で早期終了」は不採用（回転率優先）。
-/// </summary>
+/*
+    神社の評価メーター（長い目で見た通知表）（#30）
+
+    企画書1章。救うと評価がたまって、怒らせると減る。リザルトで神社のランクが決まる
+    縁＝その場のスコア、評価＝プレイ全体の通知表。評価が縁に倍率としてかかる
+
+    ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を持っておく）
+    ・客を救えた・黒客になったは、ShrineRatingHook が CustomerState（#54）の
+      onRescued / onBlack を受け取って Register○○() を呼んでくる。増やす量・減らす量は客の種類ごと（付録B B-1）
+    ・評価から出した縁の倍率（EnMultiplier）は、ScoreManager のもらえる縁の計算に自動でかかる
+
+    ※ 展示用のビルドでは、毎回必ずランクCからスタートする（v3 §7）
+    ※ 展示用のビルドでは「評価が下がったら早く終わる」はやらない（回転を優先する）
+*/
 public class ShrineRating : MonoBehaviour
 {
     public static ShrineRating Instance { get; private set; }
@@ -43,7 +43,7 @@ public class ShrineRating : MonoBehaviour
     [SerializeField] float rankSThreshold = 80f;
     [SerializeField] float rankAThreshold = 60f;
     [SerializeField] float rankBThreshold = 40f;
-    // それ未満は C
+    // それより低ければ C
 
     [Header("ランク別 縁倍率（獲得計算に乗る）")]
     [SerializeField] float multiplierC = 0.8f;
@@ -60,14 +60,14 @@ public class ShrineRating : MonoBehaviour
     float _rating;
     ShrineRank _rank;
 
-    /// <summary>現在の評価値（0〜maxRating）。</summary>
+    // 今の評価の値（0〜maxRating）
     public float Rating => _rating;
-    /// <summary>現在の評価値（0〜1 正規化。HUD用）。</summary>
+    // 今の評価の値（0〜1 に直したもの。HUD 用）
     public float RatingNormalized => maxRating > 0f ? _rating / maxRating : 0f;
-    /// <summary>現在の神社ランク。リザルト(#32)がこれを表示する。</summary>
+    // 今の神社のランク。リザルト（#32）がこれを表示する
     public ShrineRank Rank => _rank;
 
-    /// <summary>評価による縁倍率。ScoreManager の獲得計算に乗る（コンボ倍率と乗算）。</summary>
+    // 評価による縁の倍率。ScoreManager のもらえる縁の計算にかかる（コンボの倍率とかけ算）
     public float EnMultiplier
     {
         get
@@ -90,16 +90,16 @@ public class ShrineRating : MonoBehaviour
         _rating = Mathf.Clamp(startRating, 0f, maxRating);
         _rank = RankOf(_rating);
 
-        // 企画書v3 §7：毎プレイ必ずランクCスタートの実行時ガード。
+        // 企画書 v3 §7: 毎回必ずランクCからスタート、をプレイ中にもチェックする
         if (RankOf(_rating) != ShrineRank.C)
             Debug.LogError($"[Rating] 開始ランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
     }
 
 #if UNITY_EDITOR
-    /// <summary>
-    /// Inspector で設定値を変えたときのチェック（エディタ専用）。
-    /// 企画書v3 §7「毎プレイ必ずランクCスタート」を満たさない値を早期に警告する。
-    /// </summary>
+    /*
+        Inspector で設定の値を変えたときのチェック（エディタだけ）
+        企画書 v3 §7「毎回必ずランクCからスタート」を満たさない値を、早めに警告する
+    */
     void OnValidate()
     {
         if (startRating >= rankBThreshold)
@@ -109,28 +109,34 @@ public class ShrineRating : MonoBehaviour
 
     void Start()
     {
-        // 初期値をHUDへ通知
+        // 最初の値を HUD に知らせる
         onRatingChanged?.Invoke(RatingNormalized);
         onRankChanged?.Invoke(_rank);
     }
 
-    /// <summary>救済成功 → 加点。ShrineRatingHook から呼ばれる。</summary>
-    /// <param name="gain">客種ごとの加点（付録B B-1）。0以下ならこのコンポーネントの既定値を使う。</param>
+    /*
+        救えた → 評価を増やす。ShrineRatingHook から呼ばれる
+        gain: 客の種類ごとの増やす量（付録B B-1）。0以下ならこのコンポーネントのふつうの値を使う
+    */
     public void RegisterResolved(float gain = 0f) => Modify(+(gain > 0f ? gain : resolveGain), "救済成功");
 
-    /// <summary>黒客化（救済失敗）→ 減点。ShrineRatingHook から呼ばれる。</summary>
-    /// <param name="loss">客種ごとの減点（正の値。付録B B-1）。0以下ならこのコンポーネントの既定値を使う。</param>
+    /*
+        黒客になった（救えなかった）→ 評価を減らす。ShrineRatingHook から呼ばれる
+        loss: 客の種類ごとの減らす量（プラスの値。付録B B-1）。0以下ならこのコンポーネントのふつうの値を使う
+    */
     public void RegisterAngry(float loss = 0f) => Modify(-(loss > 0f ? loss : angryLoss), "黒客化");
 
-    /// <summary>評価を初期値へ戻す（リトライ用。GameSession #32 が呼ぶ）。</summary>
+    // 評価を最初の値にもどす（リトライ用。GameSession #32 が呼ぶ）
     public void ResetAll()
     {
         _rating = Mathf.Clamp(startRating, 0f, maxRating);
         Debug.Log("[Rating] Reset");
         ApplyChange();
 
-        // 企画書v3 §7：リトライ経路（GameSession.Retry → ResetAll）でも
-        // 必ずランクCに戻ることを保証する実行時ガード。
+        /*
+            企画書 v3 §7: リトライのとき（GameSession.Retry → ResetAll）でも
+            必ずランクCにもどるように、プレイ中にチェックする
+        */
         if (RankOf(_rating) != ShrineRank.C)
             Debug.LogError($"[Rating] リセット後のランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
     }
