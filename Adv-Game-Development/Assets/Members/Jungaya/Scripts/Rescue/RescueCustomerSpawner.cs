@@ -56,7 +56,8 @@ namespace Toufuku.Rescue
             // ゲームが終わっている間（リザルト）は客を出さない（#32）
             if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
 
-            _timer -= Time.deltaTime;
+            // #65: スポーンの間かくもセッションの時計で数える（ポーズ・通信の復帰中は進まない）
+            _timer -= GameSession.PlayDeltaTime;
             if (_timer <= 0f)
             {
                 Spawn();

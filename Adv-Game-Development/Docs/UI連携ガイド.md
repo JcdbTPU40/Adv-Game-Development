@@ -156,6 +156,12 @@ int score = ScoreManager.Instance.En;   // どこからでも読める
 | `CurrentMonth` | `int` | 現在の月（1〜3） | 「2ヶ月目」表示 |
 | `TotalMonths` | `int` | 総月数（3） | 「2 / 3ヶ月」表示 |
 | `RemainingSeconds` | `float` | 終了までの残り秒数 | タイマー表示（※`Update()`で読んでOK） |
+| `IsHeld` / `HoldReasons` | `bool` / `SessionHoldReason` | 時計を止めているか・その理由（`Paused` アテンドの一時停止、`LinkRecovery` 通信の復帰中）（#65） | 「一時停止中」表示。止めている間は残り時間も減らない |
+| `IsLearning` | `bool` | 0:00〜0:30 の学習中か（#65。段階学習そのものは #58） | 学習中の表示 |
+
+> #65: 時計は単調増加時計です。ポーズ・通信の復帰中は `RemainingSeconds` も止まり、`Time.timeScale` が 0 になります。
+> UI のアニメは `Time.unscaledDeltaTime` で動かしてください（止めている間も表示を動かすため）。
+> 「通信が切れました」「一時停止中」の表示は `SessionHoldOverlay`（Jungaya）が出します。
 
 ### 購読できるイベント（**UnityEvent**）
 
@@ -172,6 +178,7 @@ int score = ScoreManager.Instance.En;   // どこからでも読める
 |---|---|
 | `Retry()` | **リトライボタンから呼ぶ**。スコア/評価リセット→客一掃→再スタートまで全部やってくれる |
 | `StartSession()` | セッション開始（`autoStart=ON` なら不要。タイトル→プレイの開始制御に使える） |
+| `TogglePause()` | アテンドの一時停止の切りかえ（#65。F9 キーと同じ）。`Hold` / `Release` はゲームプレイ側（通信の見張り）が使うので、UI からは呼ばない |
 
 ---
 

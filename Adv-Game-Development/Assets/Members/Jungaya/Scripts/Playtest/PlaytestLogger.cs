@@ -789,6 +789,14 @@ namespace Toufuku.Playtest
             Put("completed", completed ? "1" : "0");
             Put("duration_sec", F(endTime));
             Put("session_total_sec", GameSession.Instance != null ? F(GameSession.Instance.TotalSeconds) : "");
+            // #65: 時計に足さなかった引っかかりの秒と、3:00境界ログ（19章。3:00 を通ってスコアを固定したプレイだけ）
+            Put("session_stalled_sec", GameSession.Instance != null ? F(GameSession.Instance.StalledSeconds) : "");
+            SessionBoundaryReport boundary = GameSession.Instance != null ? GameSession.Instance.LastBoundaryReport : null;
+            if (boundary != null && boundary.IsComplete)
+            {
+                foreach (KeyValuePair<string, string> kv in boundary.ToHeaderValues())
+                    Put("boundary." + kv.Key, kv.Value);
+            }
             Put("event_count", _events.Count.ToString(CultureInfo.InvariantCulture));
             Put("command_line", string.Join(" ", _commandLineKeys));
             Put("metrics.segment_sec", F(metrics.segmentSeconds));

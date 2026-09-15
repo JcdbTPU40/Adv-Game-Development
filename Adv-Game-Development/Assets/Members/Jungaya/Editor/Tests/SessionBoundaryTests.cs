@@ -56,5 +56,24 @@ namespace Toufuku.Scoring.Tests
             Assert.IsFalse(SessionBoundary.ShouldLock(181.14, Total, 1, Grace));
             Assert.IsTrue(SessionBoundary.ShouldLock(181.15, Total, 1, Grace));
         }
+
+        // ── #65 ─────────────────────────────
+
+        [Test]
+        public void 伝播は接触が180秒未満だけ有効()
+        {
+            Assert.IsTrue(SessionBoundary.AcceptsPropagation(179.999, Total));
+            Assert.IsFalse(SessionBoundary.AcceptsPropagation(180.0, Total));
+            Assert.IsFalse(SessionBoundary.AcceptsPropagation(180.3, Total), "3:00 以後の退場歩行");
+        }
+
+        [Test]
+        public void 時計が進んだうち区間と重なる秒()
+        {
+            Assert.AreEqual(10.0, SessionBoundary.Overlap(170.0, 181.0, 0.0, Total), 1e-9, "3:00 をまたいだフレームは 3:00 まで");
+            Assert.AreEqual(5.0, SessionBoundary.Overlap(25.0, 35.0, 30.0, Total), 1e-9, "0:30 をまたいだフレームは 0:30 から");
+            Assert.AreEqual(0.0, SessionBoundary.Overlap(181.0, 182.0, 0.0, Total), "3:00 以後");
+            Assert.AreEqual(0.0, SessionBoundary.Overlap(10.0, 10.0, 0.0, Total), "止めている");
+        }
     }
 }

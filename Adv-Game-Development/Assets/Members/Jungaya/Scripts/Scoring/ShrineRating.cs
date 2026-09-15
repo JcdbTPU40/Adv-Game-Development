@@ -24,6 +24,9 @@ public enum ShrineRank
         終盤の負荷ウェーブで黒客が続いて評価が下がっても、山場の崩れで達成の記録を消さないため
       ・3:00 でスコアを固定したら、評価も固定する（Lock）
 
+    #65: ランクC停滞タイマー（11章）。ランク C のままの秒を、競技中（0:30〜3:00）に時計が進んだぶんだけ数える
+      学習中・ポーズ・リザルト・通信の復帰中は足さない。B 以上に上がった瞬間に 0。動的難易度（×1.2）はまだ使わない（MVP 後の追加）
+
     ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を持っておく）
     ・客を救えた・黒客になったは、ShrineRatingHook が CustomerState（#54）の
       onRescued / onBlack を受け取って Register○○() を呼んでくる
@@ -76,6 +79,12 @@ public class ShrineRating : MonoBehaviour
     public bool IsLocked { get; private set; }
     // ランクのしきい値
     public RankThresholds Thresholds => thresholds;
+    // ランクC停滞タイマーの秒（#65 / 11章）。動的難易度を足すときはここを読む
+    public float RankCStallSeconds => (float)_stall.Seconds;
+    // ランク C で 30秒以上停滞しているか（7章「見えない救済」の条件。今は読めるだけで、難易度は変えない）
+    public bool IsRankCStalled => _stall.IsStalled();
+
+    readonly RankCStallTimer _stall = new RankCStallTimer();
 
     void Awake()
     {
@@ -103,6 +112,13 @@ public class ShrineRating : MonoBehaviour
     {
         // 最初の値を HUD に知らせる
         NotifyAll();
+    }
+
+    void Update()
+    {
+        // #65: GameSession が「競技中に時計が進んだ秒」を渡してくる（学習中・ポーズ・リザルト・通信の復帰中は 0）
+        GameSession session = GameSession.Instance;
+        if (!IsLocked) _stall.Tick(session != null ? session.CompetitionDeltaSeconds : Time.deltaTime, _rank);
     }
 
     /*
@@ -143,6 +159,7 @@ public class ShrineRating : MonoBehaviour
         _rank = RankLadder.Next(ShrineRank.C, _rating, thresholds);
         MaxRank = _rank;
         MaxRankReachedSeconds = 0f;
+        _stall.Reset();
     }
 
     void Modify(float delta, string reason)
@@ -161,6 +178,7 @@ public class ShrineRating : MonoBehaviour
         if (newRank != _rank)
         {
             _rank = newRank;
+            _stall.OnRankChanged(_rank);
             Debug.Log($"[Rating] ランク変化 → {_rank}");
             onRankChanged?.Invoke(_rank);
         }

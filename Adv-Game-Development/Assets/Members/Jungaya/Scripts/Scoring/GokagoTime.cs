@@ -62,7 +62,8 @@ public class GokagoTime : MonoBehaviour
 
         if (!IsActive) return;
 
-        Remaining -= Time.deltaTime;
+        // #65: 残り時間はセッションの時計で減らす（3:00 以後・ポーズ・通信の復帰中は止まる。7章「3:00で天候・ご加護の時計を停止」）
+        Remaining -= GameSession.PlayDeltaTime;
         if (Remaining <= 0f)
             Deactivate();
     }

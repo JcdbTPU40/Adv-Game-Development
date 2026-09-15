@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Toufuku.Rescue;
 using Toufuku.Aim;
+using Toufuku.Playtest;
 
 namespace Toufuku.GameInput
 {
@@ -39,6 +40,9 @@ namespace Toufuku.GameInput
         ・投げる音: SwingAccepted を受け取ったその場（振りピークを見つけたのと同じフレーム）で鳴らす
         ・キャリブレーション: 正面ボタン1秒長押しで、基準のヨー角を取りなおす。向きは RelativeYaw を読む
         ・発射する側より先にこのフレームの入力を決めておきたいので、実行の順番を早くしている
+        ・#65: 振りを受け付けるかは、その振りを受け取った時刻で GameSession に聞く（180.000秒未満だけ・時計を止めている間は受け付けない）
+          3:00 をまたいだフレームでも、フレームの粗さで結果が変わらないようにするため
+        ・#65: ボタン箱の受信が 100ms とぎれたら（IButtonLinkState）、とぎれた時刻でぜんぶのボタンをはなす（押している入力・ため・正面の長押しをキャンセル）
     */
     [DefaultExecutionOrder(-100)]
     public class ThrowInputController : MonoBehaviour, IInputProvider
@@ -98,6 +102,8 @@ namespace Toufuku.GameInput
         public event Action<SwingRejectedArgs> SwingRejected;
         public event Action<float> YawCalibrated;
         public event Action<int> SelectionChanged;
+        // #65: ボタン箱の受信が 100ms とぎれて、ぜんぶのボタンをはなしたことにした（引数: はなした時刻）
+        public event Action<double> ButtonLinkLost;
 
         InputStateMachine _machine;
         IControllerRawSource _raw;
@@ -108,6 +114,8 @@ namespace Toufuku.GameInput
         int _fireFrame = -1;
         int _selectFrame = -1;
         AudioClip _synthesizedRejectSe;
+        IButtonLinkState _buttonLink;
+        bool _buttonLinkLost;
 
         readonly int[] _rejectCounts = new int[Enum.GetValues(typeof(SwingRejectReason)).Length];
         int _acceptedCount;
@@ -121,6 +129,8 @@ namespace Toufuku.GameInput
         public float RelativeYaw => _raw != null ? Mathf.DeltaAngle(_yawOffset, _raw.Yaw) : 0f;
         public int AcceptedCount => _acceptedCount;
         public int GetRejectedCount(SwingRejectReason reason) => _rejectCounts[(int)reason];
+        // #65: ボタン箱の受信がとぎれた回数
+        public int ButtonLinkLossCount { get; private set; }
 
         public CooldownPreset Preset
         {
@@ -160,6 +170,7 @@ namespace Toufuku.GameInput
                 Debug.LogWarning("[ThrowInputController] 生入力の供給元がありません（KeyboardMouseRawSource か Esp32RawSource を付けてください）", this);
 
             _yawOffset = initialYawOffset;
+            _buttonLink = _raw as IButtonLinkState;
 
             if (aim == null)
                 aim = FindAnyObjectByType<OnusaAimController>();
@@ -207,30 +218,62 @@ namespace Toufuku.GameInput
             ApplySettings();
 
             double now = Time.realtimeSinceStartupAsDouble;
-            _machine.IsActive = !requireSessionPlaying || GameSession.Instance == null || GameSession.Instance.IsPlaying;
+            _machine.IsActive = AcceptsSwingAt(now);
+
+            // #65: ボタン箱の受信がとぎれていたら、とぎれた時刻（最後に受け取った時刻 + 100ms）で「はなした」にする
+            double buttonTime = now;
+            if (_buttonLink != null && _buttonLink.IsButtonLinkLost(now))
+            {
+                buttonTime = Math.Min(now, _buttonLink.ButtonLinkLostTime);
+                if (!_buttonLinkLost)
+                {
+                    _buttonLinkLost = true;
+                    ButtonLinkLossCount++;
+                    Log($"ボタン箱の受信がとぎれた → 全ボタン解放 t={buttonTime:0.000}");
+                    PlaytestLog.Marker("button_link_lost", null, buttonTime);
+                    ButtonLinkLost?.Invoke(buttonTime);
+                }
+            }
+            else
+            {
+                _buttonLinkLost = false;
+            }
 
             // 同じフレームの中では「ボタン → 振りピーク → 時間」の順で見る（色を押してから振った、という気持ちを優先する）
             for (int i = 0; i < InputStateMachine.ColorCount; i++)
             {
                 bool held = _raw.IsColorHeld(i);
                 if (held == _prevColorHeld[i]) continue;
-                if (held) _machine.PressColor(i, now);
-                else _machine.ReleaseColor(i, now);
+                if (held) _machine.PressColor(i, buttonTime);
+                else _machine.ReleaseColor(i, buttonTime);
                 _prevColorHeld[i] = held;
             }
 
             bool front = _raw.IsFrontHeld;
             if (front != _prevFrontHeld)
             {
-                if (front) _machine.PressFront(now);
-                else _machine.ReleaseFront(now);
+                if (front) _machine.PressFront(buttonTime);
+                else _machine.ReleaseFront(buttonTime);
                 _prevFrontHeld = front;
             }
 
+            // #65: 振りごとに、その振りを受け取った時刻で受け付けるかを決める
             while (_raw.TryConsumeSwingPeak(out float strength, out double time))
+            {
+                _machine.IsActive = AcceptsSwingAt(time);
                 _machine.SwingPeak(strength, time);
+            }
+            _machine.IsActive = AcceptsSwingAt(now);
 
             _machine.Tick(now);
+        }
+
+        // #65: time に受け取った振りを受け付けてよいか。GameSession がないシーンや requireSessionPlaying が OFF なら、いつも受け付ける
+        bool AcceptsSwingAt(double time)
+        {
+            if (!requireSessionPlaying) return true;
+            GameSession session = GameSession.Instance;
+            return session == null || session.AcceptsSwingAt(time);
         }
 
         void ApplySettings()
@@ -339,7 +382,7 @@ namespace Toufuku.GameInput
 
             string text =
                 $"[入力状態機械 #51] {_machine.GetPhase(now)}  選択={_machine.SelectedColor + 1}  押下={held}  正面={(_machine.IsFrontHeld ? $"{_machine.FrontHoldProgress(now) * 100f:0}%" : "-")}\n" +
-                $"CD={CooldownSeconds:0.00}s（残り {_machine.CooldownRemaining(now):0.00}s / F1-F4 切替）  相対ヨー={RelativeYaw:0.0}°  接続={(_raw != null && _raw.IsConnected ? "○" : "×")}\n" +
+                $"CD={CooldownSeconds:0.00}s（残り {_machine.CooldownRemaining(now):0.00}s / F1-F4 切替）  相対ヨー={RelativeYaw:0.0}°  接続={(_raw != null && _raw.IsConnected ? "○" : "×")}{(_buttonLink != null && _buttonLink.IsButtonLinkLost(now) ? "  ボタン箱=とぎれ（全解放）" : "")}\n" +
                 $"確定={_acceptedCount}  却下: CD={GetRejectedCount(SwingRejectReason.Cooldown)} 正面={GetRejectedCount(SwingRejectReason.FrontHeld)} 未選択={GetRejectedCount(SwingRejectReason.NoSelection)} 停止中={GetRejectedCount(SwingRejectReason.Inactive)}\n" +
                 $"最後: {_lastEvent}";
 
