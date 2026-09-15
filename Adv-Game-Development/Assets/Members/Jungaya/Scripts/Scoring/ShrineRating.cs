@@ -11,175 +11,184 @@ public enum ShrineRank
 }
 
 /*
-    神社の評価メーター（長い目で見た通知表）（#30）
+    神社の評価とランク（#30 / #61）
 
-    企画書1章。救うと評価がたまって、怒らせると減る。リザルトで神社のランクが決まる
-    縁＝その場のスコア、評価＝プレイ全体の通知表。評価が縁に倍率としてかかる
+    企画書1章。救うと評価がたまって、怒らせると減る。縁＝その場のスコア、評価＝プレイ全体の通知表
+
+    #61: 企画書 v8 7章「神社の評価・ランク表示」、付録B RANK.* にそろえた
+      ・評価値は 0〜300（下限0・上限300で止まる）。展示ビルドでは毎プレイ評価値 0・ランク C から始める
+      ・救済成功 +10/+15/+25、黒客化 −20/−30（客の種類ごと。付録B B-1）、黒客に通常弾を当てた −15、誤投擲 0
+      ・ランクは昇格と降格で別のしきい値（RankLadder）。境界でランク表示がちらつかない
+      ・ランクは得点の倍率・人数・D の進み方に使わない（付録B「ランク すべて×1.0」）。前にあった縁の倍率はなくした
+      ・HUD には今のランク、リザルトの称号には「プレイ中の最高ランク」（MaxRank）を出す
+        終盤の負荷ウェーブで黒客が続いて評価が下がっても、山場の崩れで達成の記録を消さないため
+      ・3:00 でスコアを固定したら、評価も固定する（Lock）
 
     ・シーンに1つ置くシングルトン（1セッション＝1ゲームの間、値を持っておく）
     ・客を救えた・黒客になったは、ShrineRatingHook が CustomerState（#54）の
-      onRescued / onBlack を受け取って Register○○() を呼んでくる。増やす量・減らす量は客の種類ごと（付録B B-1）
-    ・評価から出した縁の倍率（EnMultiplier）は、ScoreManager のもらえる縁の計算に自動でかかる
-
-    ※ 展示用のビルドでは、毎回必ずランクCからスタートする（v3 §7）
-    ※ 展示用のビルドでは「評価が下がったら早く終わる」はやらない（回転を優先する）
+      onRescued / onBlack を受け取って Register○○() を呼んでくる
 */
 public class ShrineRating : MonoBehaviour
 {
     public static ShrineRating Instance { get; private set; }
 
-    [Header("評価値")]
-    [SerializeField] float maxRating = 100f;
-    [Tooltip("ゲーム開始時の評価値。企画書v3 §7により、必ずランクC圏（rankBThreshold 未満）にすること。")]
-    [SerializeField] float startRating = 30f;
+    [Header("評価値（付録B RANK.VALUE）")]
+    [Tooltip("評価値の上限。付録B RANK.VALUE は 0〜300。")]
+    [SerializeField] float ratingMax = 300f;
+    [Tooltip("ゲーム開始時の評価値。展示ビルドでは毎プレイ 0・ランクCスタート（7章）。")]
+    [SerializeField] float initialRating = 0f;
 
-    [Header("増減量")]
-    [Tooltip("救済成功1人あたりの加点（客種ごとの値が渡されなかったときの既定値）。")]
-    [SerializeField] float resolveGain = 5f;
-    [Tooltip("黒客化1人あたりの減点（客種ごとの値が渡されなかったときの既定値）。")]
-    [SerializeField] float angryLoss = 10f;
+    [Header("増減量（客種ごとの値が渡されなかったときの予備。付録B B-1）")]
+    [Tooltip("救済成功1人あたりの加点（通常客の値）。")]
+    [SerializeField] float fallbackRescueGain = 10f;
+    [Tooltip("黒客化1人あたりの減点（通常客の値。プラスで書く）。")]
+    [SerializeField] float fallbackBlackLoss = 20f;
+    [Tooltip("黒客に通常弾を当てたときの減点（7章 評価値の増減。プラスで書く）。")]
+    [SerializeField] float blackShotLoss = 15f;
 
-    [Header("ランク閾値（この値以上でそのランク）")]
-    [SerializeField] float rankSThreshold = 80f;
-    [SerializeField] float rankAThreshold = 60f;
-    [SerializeField] float rankBThreshold = 40f;
-    // それより低ければ C
-
-    [Header("ランク別 縁倍率（獲得計算に乗る）")]
-    [SerializeField] float multiplierC = 0.8f;
-    [SerializeField] float multiplierB = 1.0f;
-    [SerializeField] float multiplierA = 1.2f;
-    [SerializeField] float multiplierS = 1.5f;
+    [Header("ランクのしきい値（付録B RANK.UP / RANK.DOWN）")]
+    [SerializeField] RankThresholds thresholds = RankThresholds.Default;
 
     [Header("イベント（HUD/SE/演出用）")]
     [Tooltip("評価が変化した（引数: 0〜1 の正規化評価値）。")]
     public UnityEvent<float> onRatingChanged;
-    [Tooltip("ランクが変化した（引数: 新しいランク）。")]
+    [Tooltip("今のランクが変化した（引数: 新しいランク）。")]
     public UnityEvent<ShrineRank> onRankChanged;
+    [Tooltip("プレイ中の最高ランクが上がった（引数: 新しい最高ランク）。リザルトの称号になる。")]
+    public UnityEvent<ShrineRank> onMaxRankChanged;
 
     float _rating;
     ShrineRank _rank;
 
-    // 今の評価の値（0〜maxRating）
+    // 今の評価の値（0〜RatingMax）
     public float Rating => _rating;
-    // 今の評価の値（0〜1 に直したもの。HUD 用）
-    public float RatingNormalized => maxRating > 0f ? _rating / maxRating : 0f;
-    // 今の神社のランク。リザルト（#32）がこれを表示する
+    // 評価の値の上限
+    public float RatingMax => ratingMax;
+    // 今の評価の値（0〜1 に直したもの。HUD のゲージ用）
+    public float RatingNormalized => ratingMax > 0f ? _rating / ratingMax : 0f;
+    // 今の神社のランク。HUD はこれを表示する
     public ShrineRank Rank => _rank;
-
-    // 評価による縁の倍率。ScoreManager のもらえる縁の計算にかかる（コンボの倍率とかけ算）
-    public float EnMultiplier
-    {
-        get
-        {
-            switch (_rank)
-            {
-                case ShrineRank.S: return multiplierS;
-                case ShrineRank.A: return multiplierA;
-                case ShrineRank.B: return multiplierB;
-                default:           return multiplierC;
-            }
-        }
-    }
+    // プレイ中にとどいたいちばん高いランク。リザルトの称号はこれを表示する（7章 v7の変更）
+    public ShrineRank MaxRank { get; private set; }
+    // 最高ランクにとどいた時刻（セッション開始からの秒。19章の記録用）。C のままなら 0
+    public float MaxRankReachedSeconds { get; private set; }
+    // 評価を固定したか（3:00 の解決が終わった）
+    public bool IsLocked { get; private set; }
+    // ランクのしきい値
+    public RankThresholds Thresholds => thresholds;
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
 
-        _rating = Mathf.Clamp(startRating, 0f, maxRating);
-        _rank = RankOf(_rating);
+        ApplyInitial();
+        CheckSettings();
+    }
 
-        // 企画書 v3 §7: 毎回必ずランクCからスタート、をプレイ中にもチェックする
-        if (RankOf(_rating) != ShrineRank.C)
-            Debug.LogError($"[Rating] 開始ランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
 #if UNITY_EDITOR
-    /*
-        Inspector で設定の値を変えたときのチェック（エディタだけ）
-        企画書 v3 §7「毎回必ずランクCからスタート」を満たさない値を、早めに警告する
-    */
+    // Inspector で設定の値を変えたときのチェック（エディタだけ）
     void OnValidate()
     {
-        if (startRating >= rankBThreshold)
-            Debug.LogWarning($"[Rating] startRating ({startRating}) がランクC圏を外れています（v3 §7 違反）。rankBThreshold ({rankBThreshold}) 未満にしてください。", this);
+        CheckSettings();
     }
 #endif
 
     void Start()
     {
         // 最初の値を HUD に知らせる
-        onRatingChanged?.Invoke(RatingNormalized);
-        onRankChanged?.Invoke(_rank);
+        NotifyAll();
     }
 
     /*
         救えた → 評価を増やす。ShrineRatingHook から呼ばれる
-        gain: 客の種類ごとの増やす量（付録B B-1）。0以下ならこのコンポーネントのふつうの値を使う
+        gain: 客の種類ごとの増やす量（付録B B-1）。0以下ならこのコンポーネントの予備の値を使う
     */
-    public void RegisterResolved(float gain = 0f) => Modify(+(gain > 0f ? gain : resolveGain), "救済成功");
+    public void RegisterResolved(float gain = 0f) => Modify(+(gain > 0f ? gain : fallbackRescueGain), "救済成功");
 
     /*
         黒客になった（救えなかった）→ 評価を減らす。ShrineRatingHook から呼ばれる
-        loss: 客の種類ごとの減らす量（プラスの値。付録B B-1）。0以下ならこのコンポーネントのふつうの値を使う
+        loss: 客の種類ごとの減らす量（プラスの値。付録B B-1）。0以下ならこのコンポーネントの予備の値を使う
     */
-    public void RegisterAngry(float loss = 0f) => Modify(-(loss > 0f ? loss : angryLoss), "黒客化");
+    public void RegisterAngry(float loss = 0f) => Modify(-(loss > 0f ? loss : fallbackBlackLoss), "黒客化");
 
-    // 評価を最初の値にもどす（リトライ用。GameSession #32 が呼ぶ）
+    // 黒客に通常弾を当てた → 評価を減らす（7章 −15）。OmamoriHitResolver から呼ばれる
+    public void RegisterBlackShot() => Modify(-blackShotLoss, "黒客に通常弾");
+
+    // 評価を固定する（3:00 の解決が終わった。GameSession が呼ぶ）
+    public void Lock()
+    {
+        if (IsLocked) return;
+        IsLocked = true;
+        Debug.Log($"[Rating] 評価固定 : {_rating:0}/{ratingMax:0}（今のランク {_rank} / 最高ランク {MaxRank}）");
+    }
+
+    // 評価を最初の値にもどす（リトライ用。GameSession #32 が呼ぶ）。固定も外す
     public void ResetAll()
     {
-        _rating = Mathf.Clamp(startRating, 0f, maxRating);
+        IsLocked = false;
+        ApplyInitial();
         Debug.Log("[Rating] Reset");
-        ApplyChange();
+        NotifyAll();
+    }
 
-        /*
-            企画書 v3 §7: リトライのとき（GameSession.Retry → ResetAll）でも
-            必ずランクCにもどるように、プレイ中にチェックする
-        */
-        if (RankOf(_rating) != ShrineRank.C)
-            Debug.LogError($"[Rating] リセット後のランクが C ではありません（{RankOf(_rating)}）。startRating を rankBThreshold 未満にしてください（v3 §7 違反）。", this);
+    void ApplyInitial()
+    {
+        _rating = Mathf.Clamp(initialRating, 0f, ratingMax);
+        _rank = RankLadder.Next(ShrineRank.C, _rating, thresholds);
+        MaxRank = _rank;
+        MaxRankReachedSeconds = 0f;
     }
 
     void Modify(float delta, string reason)
     {
+        if (IsLocked) return;
+
         float before = _rating;
-        _rating = Mathf.Clamp(_rating + delta, 0f, maxRating);
+        _rating = Mathf.Clamp(_rating + delta, 0f, ratingMax);
         if (Mathf.Approximately(before, _rating)) return;
 
-        Debug.Log($"[Rating] {reason} {(delta >= 0 ? "+" : "")}{delta} → {_rating:0}/{maxRating:0}（ランク {RankOf(_rating)} / 縁倍率 x{EnMultiplierOf(RankOf(_rating)):0.0}）");
-        ApplyChange();
-    }
+        ShrineRank newRank = RankLadder.Next(_rank, _rating, thresholds);
+        Debug.Log($"[Rating] {reason} {(delta >= 0 ? "+" : "")}{delta} → {_rating:0}/{ratingMax:0}（ランク {newRank}）");
 
-    void ApplyChange()
-    {
         onRatingChanged?.Invoke(RatingNormalized);
 
-        ShrineRank newRank = RankOf(_rating);
         if (newRank != _rank)
         {
             _rank = newRank;
             Debug.Log($"[Rating] ランク変化 → {_rank}");
             onRankChanged?.Invoke(_rank);
         }
-    }
 
-    ShrineRank RankOf(float rating)
-    {
-        if (rating >= rankSThreshold) return ShrineRank.S;
-        if (rating >= rankAThreshold) return ShrineRank.A;
-        if (rating >= rankBThreshold) return ShrineRank.B;
-        return ShrineRank.C;
-    }
-
-    float EnMultiplierOf(ShrineRank rank)
-    {
-        switch (rank)
+        if (_rank > MaxRank)
         {
-            case ShrineRank.S: return multiplierS;
-            case ShrineRank.A: return multiplierA;
-            case ShrineRank.B: return multiplierB;
-            default:           return multiplierC;
+            MaxRank = _rank;
+            GameSession session = GameSession.Instance;
+            MaxRankReachedSeconds = session != null ? session.ElapsedSeconds : Time.timeSinceLevelLoad;
+            Debug.Log($"[Rating] 最高ランク更新 → {MaxRank}（{MaxRankReachedSeconds:0.0}秒）");
+            onMaxRankChanged?.Invoke(MaxRank);
         }
+    }
+
+    void NotifyAll()
+    {
+        onRatingChanged?.Invoke(RatingNormalized);
+        onRankChanged?.Invoke(_rank);
+        onMaxRankChanged?.Invoke(MaxRank);
+    }
+
+    void CheckSettings()
+    {
+        if (!RankLadder.IsValid(thresholds, ratingMax, out string error))
+            Debug.LogWarning($"[Rating] ランクのしきい値がおかしいです: {error}（付録B RANK.UP / RANK.DOWN を確認してください）", this);
+
+        // 7章: 毎回必ずランクCからスタート
+        if (RankLadder.Next(ShrineRank.C, Mathf.Clamp(initialRating, 0f, ratingMax), thresholds) != ShrineRank.C)
+            Debug.LogWarning($"[Rating] 開始時の評価値 {initialRating} ではランク C から始まりません（7章 違反）。C→B の昇格の値 {thresholds.promoteToB} 未満にしてください。", this);
     }
 }

@@ -68,13 +68,13 @@ namespace Toufuku.Rescue.Tests
         [Test]
         public void 救済完了していない途中命中では縁も加点も入らない()
         {
-            // 欲張り客の1発目（付録B B-2「部分点なし」）。福の連なりだけ伸びる。
+            // 欲張り客の1発目（付録B B-2「部分点なし」）。福の連なりは増やさないで保つ（#61 / 7章）。
             _score.RegisterCorrectHit(HitZone.Center, rescued: false, rescueBaseScore: 300, priorityRescue: true);
 
             Assert.AreEqual(0, _score.LastGain);
             Assert.AreEqual(0, _score.LastPriorityBonus);
             Assert.AreEqual(0, _score.En);
-            Assert.AreEqual(1, _score.Combo, "正色命中なので福の連なりは伸びる");
+            Assert.AreEqual(0, _score.Combo, "途中命中では福の連なりは増えない（救済完了でだけ +1）");
         }
 
         [Test]

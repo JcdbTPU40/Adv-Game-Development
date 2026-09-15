@@ -212,6 +212,9 @@ namespace Toufuku.Rescue
 
         private void Update()
         {
+            // #61: 3:00 で危険度の進行を止める（7章「3:00境界の処理順」）。セッションがないシーンではいつも進める
+            if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
+
             // active の間だけ D が進む（入ってくる途中や終わりの状態では進まない）。黒客になるのは LateUpdate で決める
             Machine.TickDanger(Time.deltaTime);
         }

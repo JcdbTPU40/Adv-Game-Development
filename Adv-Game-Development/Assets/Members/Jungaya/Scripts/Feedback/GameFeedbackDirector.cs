@@ -256,7 +256,8 @@ namespace Toufuku.Feedback
                 _countdown.Reset();
                 if (bellOnSessionStart) Play(FeedbackSe.Bell, _bell);
             }
-            else if (!playing && _wasPlaying && session != null && session.IsFinished)
+            // #61: 3:00 のあとは受理済みの弾を待つ解決中（IsResolving）になるので、そこでも終わりの鈴を鳴らす
+            else if (!playing && _wasPlaying && session != null && (session.IsFinished || session.IsResolving))
             {
                 if (bellOnSessionEnd) Play(FeedbackSe.Bell, _bell);
             }
