@@ -42,9 +42,9 @@ namespace Toufuku.Playtest
         public const string T1FreePractice = "t1_free_practice";
         // 0:30.000 でカウンターを最初にもどした（本番スタート）
         public const string T1CounterReset = "t1_counter_reset";
-        // ゴーストを表示した（detail = 状況）
+        // ゴーストを表示した（detail = 状況。#58 は "stage1_idle:swing"（段階1で3秒止まった）/ "after_learning:aim" など（0:30 のあと））
         public const string T1Ghost = "t1_ghost";
-        // スタッフが手伝った（detail = 内容）
+        // 手伝った（detail = 内容。スタッフは "staff"、0:30 のあとの状況べつゴーストは "ghost:aim" など）
         public const string T1Intervention = "t1_intervention";
 
         /*

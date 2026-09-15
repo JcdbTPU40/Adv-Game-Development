@@ -49,7 +49,7 @@ namespace Toufuku.Rescue.Mock
 
         ※ 検証用の使い捨て。Mock/ フォルダごと消せる
     */
-    public class MockCrowdDirector : MonoBehaviour
+    public class MockCrowdDirector : MonoBehaviour, Toufuku.Tutorial.ILearningCustomerSource
     {
         // 定位置（スロット）の決め方
         public enum SlotPolicy
@@ -108,6 +108,9 @@ namespace Toufuku.Rescue.Mock
 
             // 危険度を凍結している間、キープしておく値。マイナスならまだ取っていない
             public float FrozenDanger = -1f;
+
+            // #58: 段階学習の同期パルスで今輪郭を明るくしている量（0〜1）
+            public float LearningPulse;
         }
 
         private class Slot
@@ -437,6 +440,52 @@ namespace Toufuku.Rescue.Mock
         // お祭りモードかどうか
         public bool FestivalMode => festivalMode;
 
+        // ---- #58 段階学習（ILearningCustomerSource） ----
+
+        [Header("段階学習（#58）")]
+        [Tooltip("同期パルスで輪郭を白に寄せる最大の割合。1 で真っ白。")]
+        [Range(0f, 1f)]
+        [SerializeField] private float learningPulseWhiten = 0.6f;
+
+        /*
+            ON の間は補充チケットを積まない（段階学習の 0:00〜0:30 は StagedLearningDirector が1人ずつ置く）
+            いる客（学習の客もふくむ）はそのまま残す。OFF にもどすと、次のフレームから時間割の上限まで補充する
+        */
+        public bool AutoSpawnSuspended { get; set; }
+
+        /*
+            色 color の通常客を、帯 bandIndex の空いている定位置のうち正面にいちばん近いところに1人置く（#58）
+            色の順番（5色を順に回す）は使わないので、学習のあとの補充の色の順番は学習の有無で変わらない
+            instant: true なら鳥居から歩かせずに定位置にすぐ置く。置けなかったら null
+        */
+        public GameObject SpawnLearningCustomer(OmamoriType color, int bandIndex, bool instant)
+        {
+            if (bands == null || bands.Length == 0) return null;
+            Member m = SpawnOne(instant, (int)color, Mathf.Clamp(bandIndex, 0, bands.Length - 1));
+            return m != null ? m.Go : null;
+        }
+
+        /*
+            学習の客の輪郭を amount01（0〜1）の分だけ白に寄せて明るくする（#58 同期パルス。ボタンの脈動と同じ値を毎フレーム渡す）
+            0 でもとの色にもどる
+        */
+        public void SetLearningPulse(GameObject customer, float amount01)
+        {
+            if (customer == null) return;
+            for (int i = 0; i < _members.Count; i++)
+            {
+                Member m = _members[i];
+                if (m == null || m.Go != customer) continue;
+                if (m.Outline == null || m.Tag == null) return;
+
+                float a = Mathf.Clamp01(amount01);
+                if (Mathf.Abs(a - m.LearningPulse) < 0.002f) return;
+                m.LearningPulse = a;
+                m.Outline.Setup(Color.Lerp(m.Tag.AssignedColor, Color.white, a * learningPulseWhiten), bodyColor, null);
+                return;
+            }
+        }
+
         // 目標の人数を直接決めた値。-1 なら決めていない（ランクから計算する）
         public int OverrideTargetCount => overrideTargetCount;
 
@@ -545,7 +594,8 @@ namespace Toufuku.Rescue.Mock
             SweepDeparted();
 
             // #57: 3:00 でプレイが終わったら新しい客は出さない（企画書 v8 8章「3:00.000 で新規スポーン停止」）。いる客はそのまま
-            if (SpawningStopped)
+            // #58: 段階学習の間（AutoSpawnSuspended）も補充しない。客は StagedLearningDirector が置く
+            if (SpawningStopped || AutoSpawnSuspended)
             {
                 _tickets.Clear();
             }
@@ -759,7 +809,8 @@ namespace Toufuku.Rescue.Mock
 
         // ---- 作る・帰らせる ----
 
-        private Member SpawnOne(bool instant)
+        // forcedColor / forcedBand: #58 段階学習で色と帯を決めて置くとき（-1 ならふつうの補充と同じにくじと順番で決める）
+        private Member SpawnOne(bool instant, int forcedColor = -1, int forcedBand = -1)
         {
             if (customerPrefab == null)
             {
@@ -779,12 +830,14 @@ namespace Toufuku.Rescue.Mock
             DeterministicRandom placement = PlaytestRandom.TryFor(PlaytestStreams.Placement, id);
 
             // #62: 黒客かどうかと客の種類は、定位置より先に決める（遠方客は置ける帯が決まっているから。企画書 v8 8章）
-            bool black = DecideBlack(PlaytestRandom.TryFor(PlaytestStreams.Identity, id));
-            CustomerKind kind = assignKinds && !black
+            // #58: 学習の客は黒客にしないで、通常客にする（18章「この30秒は黒客化しない」、8章「通常客（段階学習では1色ずつ）」）
+            bool learning = forcedColor >= 0;
+            bool black = !learning && DecideBlack(PlaytestRandom.TryFor(PlaytestStreams.Identity, id));
+            CustomerKind kind = assignKinds && !black && !learning
                 ? PickKind(PlaytestRandom.TryFor(PlaytestStreams.Kind, id))
                 : CustomerKind.Normal;
 
-            int slotIndex = FindSlotFor(kind, placement);
+            int slotIndex = forcedBand >= 0 ? FindLearningSlot(forcedBand) : FindSlotFor(kind, placement);
             if (slotIndex < 0) return null;
 
             Slot slot = _slots[slotIndex];
@@ -820,7 +873,7 @@ namespace Toufuku.Rescue.Mock
 
             slot.Occupant = member;
 
-            AssignIdentity(member, black);
+            AssignIdentity(member, black, forcedColor);
             if (assignKinds && member.State != null)
             {
                 // #57: 時間割で動かすときは、検証用の D の満タン秒数の上書き（#44）を外して、客の種類ごとの本番の秒数にする
@@ -933,8 +986,8 @@ namespace Toufuku.Rescue.Mock
                    (deficit >= slotsLeft || PlaytestRandom.Value(rng) < (float)deficit / slotsLeft);
         }
 
-        // 輪郭の色（お守り5色を順番に）と、黒客かどうかを決める
-        private void AssignIdentity(Member m, bool black)
+        // 輪郭の色（お守り5色を順番に。forcedColor が 0 以上ならその色）と、黒客かどうかを決める
+        private void AssignIdentity(Member m, bool black, int forcedColor = -1)
         {
             if (m == null || m.Tag == null) return;
 
@@ -948,7 +1001,7 @@ namespace Toufuku.Rescue.Mock
             }
             else
             {
-                index = NextColorIndex();
+                index = forcedColor >= 0 ? forcedColor : NextColorIndex();
                 if (palette != null)
                     color = palette.GetColor(index);
                 else
@@ -1302,6 +1355,38 @@ namespace Toufuku.Rescue.Mock
                 if (m < margin) margin = m;
             }
             return margin;
+        }
+
+        /*
+            #58: 段階学習の客を置く定位置。band の帯の空きのうち、ほかの客と重ならず、正面（基準点の真ん前）にいちばん近いもの
+            （18章「配置」で導線を作るので、学習の客は画面の真ん中に寄せる）。重ならない空きがなければ、いちばん正面に近い空き
+            その帯に空きがなければ、ふつうの補充と同じ決め方でほかの帯から選ぶ
+        */
+        private int FindLearningSlot(int band)
+        {
+            float centerX = bandSpace == BandSpace.DistanceFromOrigin ? DistanceOriginPosition.x : 0f;
+            int best = -1, fallback = -1;
+            float bestScore = float.MaxValue, fallbackScore = float.MaxValue;
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                Slot s = _slots[i];
+                if (s.Occupant != null || s.BandIndex != band) continue;
+
+                float score = Mathf.Abs(s.Position.x - centerX);
+                if (LaneMargin(s.Position, 0f) >= 0f)
+                {
+                    if (score < bestScore) { bestScore = score; best = i; }
+                }
+                else if (score < fallbackScore)
+                {
+                    fallbackScore = score;
+                    fallback = i;
+                }
+            }
+
+            if (best < 0) best = fallback;
+            if (best < 0) best = FindSlotFor(CustomerKind.Normal, null);
+            return best;
         }
 
         private void FreeSlot(Member m)

@@ -91,6 +91,12 @@ namespace Toufuku.Rescue
         // D が 0 から 100 になるまでの秒数
         public float DangerFullSeconds => _dangerFullSeconds;
 
+        /*
+            #58: D をスクリプトで決めた値に固定しているか（段階学習 0:00〜0:30）
+            固定している間は、時間・笑顔の伝わり・デバッグ用の設定のどれでも D が動かない
+        */
+        public bool IsDangerLocked { get; private set; }
+
         // 救われるのを待っている（時間が進んで、弾を受け付ける）
         public bool IsActive => _phase == CustomerPhase.Active;
         // 救えた
@@ -121,7 +127,7 @@ namespace Toufuku.Rescue
         */
         public void TickDanger(float deltaSeconds)
         {
-            if (_phase != CustomerPhase.Active || deltaSeconds <= 0f) return;
+            if (_phase != CustomerPhase.Active || deltaSeconds <= 0f || IsDangerLocked) return;
             SetDanger(_danger + MaxDanger * deltaSeconds / _dangerFullSeconds);
         }
 
@@ -170,18 +176,40 @@ namespace Toufuku.Rescue
         public bool ReceiveSmile()
         {
             if (!IsRescueTarget) return false;
-            SetDanger(_danger - SmileDangerRelief);
+            // #58: スクリプトで固定している D は動かさない（伝わったこと自体は数えてよい）
+            if (!IsDangerLocked) SetDanger(_danger - SmileDangerRelief);
             return true;
         }
 
         /*
             D を直接決める（モック・デバッグ・検証のシーン用。ふつうのゲームの進み方では使わない）
             黒客になるかはここでは決めないで、ResolveBlackout にまかせる
+            #58: スクリプトで固定している間は何もしない（LockDanger で決めた値を守る）
         */
         public void SetDangerForDebug(float danger)
         {
-            if (IsFinished) return;
+            if (IsFinished || IsDangerLocked) return;
             SetDanger(danger);
+        }
+
+        /*
+            #58: D を danger に固定する（企画書 v8 18章「段階学習の危険円はスクリプト固定値」）
+            0:00〜0:18 は D を増やさず、0:18〜0:30 の二重円は時間経過ではなく D=65 で表す。この30秒は黒客にしない
+            100 以上を渡すと黒客になってしまうので、100 未満におさめる
+        */
+        public void LockDanger(float danger)
+        {
+            if (IsFinished) return;
+            IsDangerLocked = true;
+            SetDanger(Math.Min(danger, MaxDanger - 0.001f));
+        }
+
+        // #58: 固定を外す。resetTo を渡したらその D から、渡さなければ今の D から、時間で進みはじめる
+        public void UnlockDanger(float? resetTo = null)
+        {
+            if (!IsDangerLocked) return;
+            IsDangerLocked = false;
+            if (resetTo.HasValue && !IsFinished) SetDanger(resetTo.Value);
         }
 
         void SetDanger(float value)

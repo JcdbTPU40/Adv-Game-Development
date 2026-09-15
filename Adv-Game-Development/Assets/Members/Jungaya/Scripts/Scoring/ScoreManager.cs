@@ -92,6 +92,14 @@ public class ScoreManager : MonoBehaviour
     // このプレイで救済を完了した人数（#65 の3:00境界ログ「決着前後の救済数」）
     public int RescueCount { get; private set; }
 
+    /*
+        #58: 段階学習（0:00〜0:30）の練習中か。練習中は縁・福の連なり C・救済数・伝播得点・5秒タイマーを動かさない
+        （企画書 v8 18章「学習中は競技用の得点・評価・ランクを加算しない」）
+        段階学習（StagedLearningDirector）だけが切りかえる。ふつうは false なので、段階学習を置いていないシーンは前と同じ
+        ResetAll では変えない（0:30.000 に「練習をやめる → ResetAll」の順で呼ぶ）
+    */
+    public bool IsPractice { get; private set; }
+
     // 優先救済（二重円）のボーナス（付録B B-2）。数値の表が入っていればその値
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
     // 笑顔の伝播1人ぶんの縁（付録B PROPAGATE）
@@ -135,7 +143,7 @@ public class ScoreManager : MonoBehaviour
     */
     public bool TickChainTimeout(float now)
     {
-        if (IsLocked) return false;
+        if (IsLocked || IsPractice) return false;
 
         int before = _chain.Count;
         if (!_chain.TickTimeout(now, ChainTimeoutSeconds)) return false;
@@ -160,6 +168,16 @@ public class ScoreManager : MonoBehaviour
         float? blessingMultiplier = null)
     {
         if (IsLocked) return;
+
+        // #58: 練習中は縁も C も救済数も動かさない（確認用の LastZone だけ残す）
+        if (IsPractice)
+        {
+            LastZone = zone;
+            LastGain = 0;
+            LastBonus = 0;
+            LastPriorityBonus = 0;
+            return;
+        }
 
         // Miss が来たら当たりにしない（連なりが切れるほうへ）
         if (zone == HitZone.Miss) { RegisterMiss(); return; }
@@ -212,7 +230,8 @@ public class ScoreManager : MonoBehaviour
     // 誤投擲（相性の合わないお守り）か、黒客への通常弾を記録する。福の連なりが切れる
     public void RegisterMiss()
     {
-        if (IsLocked) return;
+        // #58: 練習中の誤投擲は罰にしない（18章「誤投擲は「色が違う」短表示だけで罰を与えない」）。切れる演出の onMiss も出さない
+        if (IsLocked || IsPractice) return;
 
         int before = _chain.Count;
         if (_chain.Break())
@@ -254,7 +273,7 @@ public class ScoreManager : MonoBehaviour
     */
     public int RegisterPropagation(EnMultiplierSnapshot snapshot, double contactSessionSeconds)
     {
-        if (IsLocked || !snapshot.IsValid) return 0;
+        if (IsLocked || IsPractice || !snapshot.IsValid) return 0;
 
         GameSession session = GameSession.Instance;
         if (session != null)
@@ -295,7 +314,15 @@ public class ScoreManager : MonoBehaviour
         onScoreLocked?.Invoke(En);
     }
 
-    // スコアと福の連なりを最初にもどす（テスト・リトライ用）。固定も外す
+    // #58: 練習中にするかを切りかえる（段階学習が 0:00 に true、0:30.000 に false にする）
+    public void SetPractice(bool practice)
+    {
+        if (IsPractice == practice) return;
+        IsPractice = practice;
+        Debug.Log(practice ? "[Score] 練習中（段階学習）: 縁・福の連なりを加算しません" : "[Score] 練習をやめました（競技の縁を数えます）");
+    }
+
+    // スコアと福の連なりを最初にもどす（テスト・リトライ用）。固定も外す。練習中かどうかは変えない
     public void ResetAll()
     {
         En = 0;

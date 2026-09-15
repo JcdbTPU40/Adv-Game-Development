@@ -55,6 +55,9 @@ namespace Toufuku.Playtest
         public const string StageAchieved = "achieved";
         public const string StageTimeout = "timeout";
         public const string KindOharae = "Oharae";
+        // #58: T1Ghost の detail の始まり（段階1で3秒止まったとき / 0:30 のあとの状況べつ）
+        public const string GhostStage1Idle = "stage1_idle";
+        public const string GhostAfterLearning = "after_learning";
 
         sealed class Counts
         {
@@ -207,7 +210,43 @@ namespace Toufuku.Playtest
             Add(rows, s, "idle3s_total_sec", SumOverlap(idle, 0.0, window));
 
             Add(rows, s, "ghosts", CountType(events, PlaytestEventType.T1Ghost));
-            Add(rows, s, "interventions", CountType(events, PlaytestEventType.T1Intervention));
+
+            /*
+                #58: 介入は「0:30 のあとの状況べつゴースト」（detail が ghost で始まる）と「スタッフの手伝い」に分けても出す
+                T1 の合格の値「スタッフ介入 1/10 以下」は staff_interventions とくらべる。interventions は前と同じで全部の数
+            */
+            int interventions = 0, ghostInterventions = 0, idleGhosts = 0;
+            string afterLearningGhost = null;
+            foreach (PlaytestEvent e in events)
+            {
+                if (e.Type == PlaytestEventType.T1Intervention)
+                {
+                    interventions++;
+                    if (StartsWith(e.Detail, PlaytestLog.GhostInterventionPrefix)) ghostInterventions++;
+                }
+                else if (e.Type == PlaytestEventType.T1Ghost)
+                {
+                    if (StartsWith(e.Detail, GhostStage1Idle)) idleGhosts++;
+                    else if (afterLearningGhost == null && StartsWith(e.Detail, GhostAfterLearning)) afterLearningGhost = GhostSituationOf(e.Detail);
+                }
+            }
+            Add(rows, s, "interventions", interventions);
+            Add(rows, s, "ghost_interventions", ghostInterventions);
+            Add(rows, s, "staff_interventions", interventions - ghostInterventions);
+            Add(rows, s, "stage1_idle_ghosts", idleGhosts);
+            AddText(rows, s, "after_learning_ghost", afterLearningGhost);
+        }
+
+        // "after_learning:aim" → "aim"。「:」がなければそのまま
+        static string GhostSituationOf(string detail)
+        {
+            int colon = detail.IndexOf(':');
+            return colon >= 0 ? detail.Substring(colon + 1) : detail;
+        }
+
+        static bool StartsWith(string text, string prefix)
+        {
+            return text != null && text.StartsWith(prefix, StringComparison.Ordinal);
         }
 
         // ---- T2 ----

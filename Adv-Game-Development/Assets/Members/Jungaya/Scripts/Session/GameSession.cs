@@ -62,7 +62,7 @@ public class GameSession : MonoBehaviour
     [SerializeField] float resolveGraceSeconds = 0.5f;
 
     [Header("学習と競技の区切り（8章）")]
-    [Tooltip("開始からこの秒数は学習専用（競技計時は 0:30.000 から）。今はランクC停滞タイマーだけが見る（段階学習そのものは #58）。")]
+    [Tooltip("開始からこの秒数は学習専用（競技計時は 0:30.000 から）。ランクC停滞タイマーと段階学習（#58 StagedLearningDirector）が見る。")]
     [SerializeField, Min(0f)] float learningSeconds = 30f;
 
     [Header("時計（#65）")]
@@ -86,6 +86,12 @@ public class GameSession : MonoBehaviour
 
     // #65: 時計を止めた・再開した（引数: 今止めている理由。None なら動いている）
     public event Action<SessionHoldReason> HoldChanged;
+
+    /*
+        #58: 時計が learningSeconds（0:30.000）に届いた。1プレイに1回。引数: 学習の秒数（=競技の始まりの時計の秒）
+        このクラスは入力（-100）より先に動くので、受け取った側がカウンタを初期化すると、同じフレームの着弾から競技として数えられる
+    */
+    public event Action<double> CompetitionStarted;
 
     // プレイ中かどうか。false の間は入力と客を出すのと危険度の進行を止める
     public bool IsPlaying { get; private set; }
@@ -111,6 +117,8 @@ public class GameSession : MonoBehaviour
     // #65: 学習専用の秒数（8章 0:00〜0:30）と、今が学習中か
     public float LearningSeconds => learningSeconds;
     public bool IsLearning => IsPlaying && _clock.Elapsed < learningSeconds;
+    // #58: このプレイで 0:30.000 を通って、競技が始まったか（CompetitionStarted を出したか）
+    public bool HasCompetitionStarted { get; private set; }
     // #65: このフレームで進んだプレイの秒（[0, 3:00) と重なるぶん）。危険度 D・スポーン・ご加護の残り時間に使う
     public float PlayDeltaSeconds { get; private set; }
     // #65: このフレームで進んだ競技の秒（[0:30, 3:00) と重なるぶん）。ランクC停滞タイマーに使う
@@ -180,6 +188,14 @@ public class GameSession : MonoBehaviour
 
         if (IsPlaying)
         {
+            // #58: 0:30.000 に届いたフレームで1回だけ知らせる（学習の時間が 0 なら最初のフレーム）
+            if (!HasCompetitionStarted && after >= learningSeconds)
+            {
+                HasCompetitionStarted = true;
+                Debug.Log($"[Session] 競技開始 {learningSeconds:0.000}秒（見つけたフレーム {after:0.000}秒）");
+                CompetitionStarted?.Invoke(learningSeconds);
+            }
+
             UpdateMonth();
 
             if (!SessionBoundary.AcceptsSwing(after, TotalSeconds))
@@ -216,6 +232,7 @@ public class GameSession : MonoBehaviour
         IsPlaying = true;
         IsResolving = false;
         IsFinished = false;
+        HasCompetitionStarted = false;
 
         Debug.Log($"[Session] 開始（{totalMonths}ヶ月 / {TotalSeconds:0}秒）" + (IsHeld ? $" 時計は {HoldReasons} で止めています" : ""));
         onSessionStart?.Invoke();
