@@ -2,17 +2,17 @@ using UnityEngine;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// 素材が届くまでの仮SE を実行時に合成する — Issue #60
-    /// クールダウン中の有効スイングで返す「短い低音」に使う（正式素材は #64）。
-    /// </summary>
+    /*
+        ちゃんとした素材が来るまでの仮の効果音を、実行中に作るクラス（#60）
+        クールダウン中に振ったときに返す「短い低い音」に使う（ちゃんとした素材は #64）
+    */
     public static class ProceduralTone
     {
-        /// <summary>減衰する正弦波のモノラル AudioClip を作る。</summary>
+        // だんだん小さくなるサイン波のモノラル AudioClip を作る
         public static AudioClip Create(string name, float frequency, float seconds, float volume, int sampleRate = 44100)
         {
             int samples = Mathf.Max(1, Mathf.RoundToInt(seconds * sampleRate));
-            int attack = Mathf.Max(1, Mathf.RoundToInt(0.004f * sampleRate)); // 立ち上がりのプチ音を避ける
+            int attack = Mathf.Max(1, Mathf.RoundToInt(0.004f * sampleRate)); // 鳴り始めの「プチッ」という音が出ないようにする
             var data = new float[samples];
             for (int i = 0; i < samples; i++)
             {

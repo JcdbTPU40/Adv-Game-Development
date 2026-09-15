@@ -6,45 +6,49 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>T6-USB の進行フェーズ。</summary>
+    // T6-USB の進み方のフェーズ
     public enum UsbGatePhase
     {
-        /// <summary>区間を選ぶ。</summary>
+        // 区間を選ぶ
         Menu,
-        /// <summary>安全チェックの記入。</summary>
+        // 安全チェックを書く
         Safety,
-        /// <summary>区間の説明（Space で開始）。</summary>
+        // 区間の説明（Space でスタート）
         Prepare,
-        /// <summary>計測中。</summary>
+        // 測っている最中
         Active,
-        /// <summary>飛翔中の弾の着弾待ち。</summary>
+        // 飛んでいる弾が落ちるのを待つ
         Settle,
-        /// <summary>ドリフトの終わりの標本（置き台に戻して Space）。</summary>
+        // ドリフトの終わりのデータ（置き台にもどして Space）
         CaptureEnd,
-        /// <summary>区間の結果（Space でメニューへ）。</summary>
+        // 区間の結果（Space でメニューへ）
         Result
     }
 
-    /// <summary>
-    /// T6-USB 必須技術ゲートの進行と記録 — Issue #52（仕様書 v8 17章）
-    ///
-    /// 区間（メニューから選ぶ。F5〜F10）:
-    /// | 区間 | 何をするか | 記録 |
-    /// |---|---|---|
-    /// | 安全チェック | 12章の安全領域・配線・ストラップ・接合部を全項目確かめる。<b>全項目適合するまでほかの区間は始められない</b> | 項目ごとの適合 |
-    /// | 意図的 100 投 | 2 秒ごとの合図（画面＋音）に合わせて 1 回ずつ振る | 入力時刻／Unity 受信／発射確定／画面に弾、合図、却下 |
-    /// | 3 分静止ドリフト | 置き台に置いたまま 3 分 | 置き台での照準の画面 X（始め・終わり・10 秒ごと） |
-    /// | 3 分操作ドリフト | 置き台 → 手に持って 3 分振る → 置き台へ戻す | 同上（始め・終わり） |
-    /// | 30 体負荷 | 黒客・退場者込み 30 体を描画しながら 5 秒慣らし＋60 秒計測（1 秒ごとに自動投擲） | 平均 fps・1% low・描画体数 |
-    /// | 子ども 近・遠 | 2 分練習 → 近くの的へ 10 投 → 遠くの的へ 10 投 | 発射・着弾の距離と命中 |
-    ///
-    /// ・実機を使う区間では受信の途絶（切断）・受信頻度・フレーム時間をいつも測る。群衆は区間ごとに出す／出さないを選べる。
-    /// ・クールダウンは T0-CD の採用値、フィードバックは T0-A/B の採用案（同じ GameObject の FeedbackTimingShifter）で固定する。
-    /// ・区間が終わるたびに記録 CSV へ追記し、判定 CSV を書き直す（<see cref="UsbGateCsvFile"/>）。
-    ///
-    /// 操作: F5〜F10 区間を選ぶ / Space 開始・標本・次へ / Esc 中断 / C 接触 / O 逸脱（その場で中止）/
-    /// X 直前の合図を無効（振らなかった）/ Tab 実施者パネル / L 記録を読み直す。
-    /// </summary>
+    /*
+        T6-USB の「絶対に通さないといけない技術のチェック」を進めて記録するクラス（#52 / 企画書 v8 17章）
+
+        区間（メニューから選ぶ。F5〜F10）:
+        ・安全チェック: 12章の安全な場所・配線・ストラップ・つなぎ目をぜんぶ確かめる。ぜんぶ OK になるまでほかの区間は始められない
+          → 記録: 項目ごとに OK か
+        ・わざと100投: 2秒ごとの合図（画面＋音）に合わせて1回ずつ振る
+          → 記録: 入力時刻／Unity が受け取った時刻／発射が決まった時刻／画面に弾が出た時刻、合図、はじいた
+        ・3分止めたままのドリフト: 置き台に置いたまま3分
+          → 記録: 置き台での照準の画面 X（始め・終わり・10秒ごと）
+        ・3分さわったあとのドリフト: 置き台 → 手に持って3分振る → 置き台にもどす
+          → 記録: 上と同じ（始め・終わり）
+        ・30人の負荷: 黒客と帰っている途中の客も入れて30人を描きながら、5秒ならし＋60秒測る（1秒ごとに自動で投げる）
+          → 記録: 平均 fps・1% low・描いている人数
+        ・子ども 近い・遠い: 2分練習 → 近くの的に10投 → 遠くの的に10投
+          → 記録: 発射・着弾の距離と当たったか
+
+        ・実機を使う区間では、受け取りがとぎれた（切断）・受け取る回数・フレームの時間をいつも測る。客を出すかどうかは区間ごとに選べる
+        ・クールダウンは T0-CD で選んだ値、フィードバックは T0-A/B で選んだ案（同じ GameObject の FeedbackTimingShifter）で固定する
+        ・区間が終わるたびに記録の CSV に足して、判定の CSV を書きなおす（UsbGateCsvFile）
+
+        操作: F5〜F10 区間を選ぶ / Space スタート・データを取る・次へ / Esc やめる / C ぶつかった / O はみ出た（その場でやめる）/
+        X さっきの合図をなしにする（振らなかった）/ Tab やる人のパネル / L 記録を読みなおす
+    */
     [DefaultExecutionOrder(-80)]
     public class UsbGateDirector : MonoBehaviour
     {
@@ -112,7 +116,7 @@ namespace Toufuku.Playtest
         [Header("表示")]
         [SerializeField] bool showOperatorPanel = true;
 
-        /// <summary>発射 1 つ分の追跡（画面に出た時刻と、子どもの着弾の判定に使う）。</summary>
+        // 発射1つぶんを追いかける（画面に出た時刻と、子どもの着弾の判定に使う）
         sealed class FireTrack
         {
             public UsbGateEvent Row;
@@ -147,7 +151,7 @@ namespace Toufuku.Playtest
         UsbGateEvent _openDisconnect;
         bool _framesMeasuring;
 
-        // 意図的 100 投
+        // わざと100投
         int _cueIndex;
         double _cueFlashUntil = double.NegativeInfinity;
         AudioClip _cueClip;
@@ -168,7 +172,7 @@ namespace Toufuku.Playtest
         int _blockFires;
         double _blockStart;
 
-        // 発射と弾の結び付け（購読の順番が前後しても同じフレームなら結ぶ）
+        // 発射と弾をつなげる（受け取る順番が前後しても、同じフレームならつなげる）
         FireTrack _unlinkedFire;
         int _unlinkedFireFrame = -1;
         OmamoriProjectile _unlinkedProjectile;
@@ -196,7 +200,7 @@ namespace Toufuku.Playtest
         public string Message => _message;
         public int NextChild => _nextChild;
 
-        /// <summary>今日の最後の安全チェックで全項目が適合しているか。</summary>
+        // 今日の最後の安全チェックで、ぜんぶの項目が OK になっているか
         public bool SafetyPassed => _summary != null && _summary.SafetyChecked &&
                                     _summary.SafetyItemsOk == UsbGatePlan.SafetyItems.Length;
 
@@ -237,13 +241,11 @@ namespace Toufuku.Playtest
 
         void Start()
         {
-            // 区間の外では振っても何も出さない
+            // 区間の外では、振っても何も出さない
             if (input != null) input.enabled = false;
         }
 
-        // ══════════════════════════════════════════════════════
-        //  進行
-        // ══════════════════════════════════════════════════════
+        // ==================== 進める ====================
 
         void Update()
         {
@@ -276,7 +278,7 @@ namespace Toufuku.Playtest
                 _phase = UsbGatePhase.Menu;
             }
 
-            // 記録画面・安全チェックでは所見を入力できるので、Space は入力欄にフォーカスが無いときだけ
+            // 記録画面や安全チェックでは気づいたことを入力できるので、Space は入力欄を選んでいないときだけ
             if (Input.GetKeyDown(KeyCode.Space) && GUIUtility.keyboardControl == 0) HandleSpace(now);
 
             if (_phase == UsbGatePhase.Active || _phase == UsbGatePhase.Settle || _phase == UsbGatePhase.CaptureEnd)
@@ -301,7 +303,7 @@ namespace Toufuku.Playtest
 
         void LateUpdate()
         {
-            // 弾（と軌跡）の見た目がこのフレームで初めて有効になったか。present は次のフレームの始まりまでに終わる
+            // 弾（と軌跡）の見た目がこのフレームではじめて有効になったか。present は次のフレームの始まりまでに終わる
             int frame = Time.frameCount;
             foreach (FireTrack track in _tracks)
             {
@@ -332,7 +334,7 @@ namespace Toufuku.Playtest
 
         bool IsDrift => _section == UsbGateSection.DriftStatic || _section == UsbGateSection.DriftOperate;
 
-        /// <summary>区間を選ぶ。安全チェックが全項目適合していなければ、安全チェック以外は始められない。</summary>
+        // 区間を選ぶ。安全チェックがぜんぶ OK じゃなければ、安全チェック以外は始められない
         public bool StartSection(UsbGateSection section)
         {
             if (_phase != UsbGatePhase.Menu && _phase != UsbGatePhase.Result) return false;
@@ -362,7 +364,7 @@ namespace Toufuku.Playtest
             ApplyCooldown();
             _still.Reset();
             _phase = UsbGatePhase.Prepare;
-            // 準備中もキャリブレーション（正面ボタン 1 秒）を受け付けるため入力は有効にする。準備中の発射は記録しない
+            // 準備中もキャリブレーション（正面ボタン1秒）を受け付けたいので、入力は有効にする。準備中の発射は記録しない
             if (input != null) input.enabled = true;
             return true;
         }
@@ -379,7 +381,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>計測を始める（準備画面で Space）。</summary>
+        // 測り始める（準備の画面で Space）
         public void BeginActive(double now)
         {
             if (_phase != UsbGatePhase.Prepare) return;
@@ -474,7 +476,7 @@ namespace Toufuku.Playtest
                     if (loadAutoThrow && input != null && input.Machine != null && now >= _nextAutoThrow)
                     {
                         _nextAutoThrow += loadAutoThrowSeconds;
-                        // 本番と同じ入口（振りピーク）から入れる。以後は SwingAccepted → 発射・SE・振動の本番の経路
+                        // 本番と同じ入り口（振りピーク）から入れる。このあとは SwingAccepted → 発射・効果音・振動 の本番と同じ流れ
                         input.Machine.SwingPeak(loadAutoThrowStrength, now);
                     }
                     if (t >= loadWarmupSeconds + loadMeasureSeconds) EnterSettle(now);
@@ -531,7 +533,7 @@ namespace Toufuku.Playtest
             Finish(false, reason);
         }
 
-        /// <summary>区間を終えて記録する。completed = false なら中断（合否に使わない）。</summary>
+        // 区間を終わって記録する。completed = false ならやめた（合格かどうかには使わない）
         void Finish(bool completed, string reason)
         {
             double now = Now;
@@ -582,11 +584,9 @@ namespace Toufuku.Playtest
             Debug.Log($"[T6-USB] {_message} → {_eventsPath}", this);
         }
 
-        // ══════════════════════════════════════════════════════
-        //  安全チェック
-        // ══════════════════════════════════════════════════════
+        // ==================== 安全チェック ====================
 
-        /// <summary>安全チェックを記録する（全項目の適合／不適合を残す。不適合があればほかの区間は始められない）。</summary>
+        // 安全チェックを記録する（ぜんぶの項目の OK / NG を残す。NG があればほかの区間は始められない）
         public void SaveSafety(bool[] checks, string note)
         {
             if (_phase != UsbGatePhase.Safety) return;
@@ -622,19 +622,17 @@ namespace Toufuku.Playtest
             if (_phase == UsbGatePhase.Menu || _phase == UsbGatePhase.Result || _phase == UsbGatePhase.Safety) return;
             if (_phase == UsbGatePhase.Prepare)
             {
-                // 計測前でも安全事象は残す（回を始めて、そのまま中断として記録する）
+                // 測る前でも安全のことは残す（回を始めて、そのままやめたとして記録する）
                 BeginActive(Now);
             }
             UsbGateEvent row = AddRow(UsbGateEventType.Incident, Now - _sectionStart);
             row.Label = kind;
             Debug.LogWarning($"[T6-USB] 安全事象: {kind}", this);
-            // 領域からの逸脱は即時停止（12章）
+            // 安全な場所からはみ出たら、すぐ止める（12章）
             if (kind == UsbGateBlock.Deviation) Finish(false, "領域からの逸脱のため停止");
         }
 
-        // ══════════════════════════════════════════════════════
-        //  意図的 100 投
-        // ══════════════════════════════════════════════════════
+        // ==================== わざと100投 ====================
 
         void VoidLastCue()
         {
@@ -655,9 +653,7 @@ namespace Toufuku.Playtest
             seSource.PlayOneShot(_cueClip);
         }
 
-        // ══════════════════════════════════════════════════════
-        //  ドリフト
-        // ══════════════════════════════════════════════════════
+        // ==================== ドリフト ====================
 
         void RequestCapture(string label, double now)
         {
@@ -696,7 +692,7 @@ namespace Toufuku.Playtest
                 _driftRunning = true;
                 _driftRunStart = now;
                 _lastTrack = now;
-                // 操作ドリフトは手に持って振る。静止ドリフトは置いたまま（振っても記録には残る）
+                // さわったあとのドリフトは手に持って振る。止めたままのドリフトは置いたまま（振っても記録には残る）
             }
             else if (_captureLabel == UsbGateBlock.DriftEnd)
             {
@@ -719,9 +715,7 @@ namespace Toufuku.Playtest
             return true;
         }
 
-        // ══════════════════════════════════════════════════════
-        //  計測（購読）
-        // ══════════════════════════════════════════════════════
+        // ==================== 計測（イベントを受け取る） ====================
 
         void Subscribe()
         {
@@ -893,9 +887,7 @@ namespace Toufuku.Playtest
             return false;
         }
 
-        // ══════════════════════════════════════════════════════
-        //  記録
-        // ══════════════════════════════════════════════════════
+        // ==================== 記録 ====================
 
         UsbGateEvent AddRow(string type, double t)
         {
@@ -960,7 +952,7 @@ namespace Toufuku.Playtest
             return true;
         }
 
-        /// <summary>記録 CSV を読み直して判定しなおす。</summary>
+        // 記録の CSV を読みなおして判定しなおす
         public void Reload()
         {
             _events.Clear();
@@ -997,9 +989,7 @@ namespace Toufuku.Playtest
             if (farTarget != null) farTarget.gameObject.SetActive(far);
         }
 
-        // ══════════════════════════════════════════════════════
-        //  表示
-        // ══════════════════════════════════════════════════════
+        // ==================== 表示 ====================
 
         void OnGUI()
         {

@@ -2,17 +2,17 @@ using UnityEngine;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// マウス＋数字キーの入力実装 — Issue #20
-    ///
-    /// ・発射: マウス左クリック
-    /// ・照準: マウスカーソル位置
-    /// ・お守り選択: 数字キー 1〜5
-    ///
-    /// シーンの GameManager 等に付け、TestShooter / OmamoriSelector の
-    /// inputProviderSource へドラッグして使う。
-    /// ESP32 コントローラ版は同じ IInputProvider を実装して差し替える。
-    /// </summary>
+    /*
+        マウスと数字キーで入力するクラス（#20）
+
+        ・発射: マウスの左クリック
+        ・照準: マウスカーソルの位置
+        ・お守りを選ぶ: 数字キー1〜5
+
+        シーンの GameManager などに付けて、TestShooter / OmamoriSelector の
+        inputProviderSource にドラッグして使う
+        ESP32 コントローラー版は、同じ IInputProvider を使ったクラスを作って入れかえる
+    */
     public class MouseInputProvider : MonoBehaviour, IInputProvider
     {
         public bool FireTriggered => Input.GetMouseButtonDown(0);
@@ -23,7 +23,7 @@ namespace Toufuku.GameInput
         {
             get
             {
-                // キー1〜5 → OmamoriType の enum 値（企画書v3 §3 の並び）に対応。
+                // キー1〜5 は OmamoriType の enum の値（企画書 v3 §3 の順番）に合わせている
                 if (Input.GetKeyDown(KeyCode.Alpha1)) return 0; // 健康
                 if (Input.GetKeyDown(KeyCode.Alpha2)) return 1; // 学業成就
                 if (Input.GetKeyDown(KeyCode.Alpha3)) return 2; // 厄除け安全

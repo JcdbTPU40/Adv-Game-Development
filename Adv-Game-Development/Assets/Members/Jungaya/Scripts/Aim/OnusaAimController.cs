@@ -3,24 +3,24 @@ using Toufuku.GameInput;
 
 namespace Toufuku.Aim
 {
-    /// <summary>照準の入力元。値は int でシーンに焼かれるので並べ替えないこと。</summary>
+    // 照準の入力をどこから取るか。値は int でシーンに保存されるので、順番を変えないこと
     public enum AimSourceMode
     {
-        Auto = 0,     // ESP32 接続中はヨー／ピッチ、それ以外はマウス
-        Mouse = 1,    // マウスカーソルが指す地面（机上確認用）
-        YawPitch = 2  // 生入力のヨー／ピッチ（KeyboardMouseRawSource なら Q・E とマウスホイール）
+        Auto = 0,     // ESP32 がつながっているときはヨーとピッチ、それ以外はマウス
+        Mouse = 1,    // マウスカーソルが指している地面（机の上で確認する用）
+        YawPitch = 2  // 入力そのままのヨーとピッチ（KeyboardMouseRawSource なら Q・E とマウスホイール）
     }
 
-    /// <summary>
-    /// 照準 — Issue #60（仕様書 v8 4章）
-    ///
-    /// 毎フレーム、大幣の向きから「地面上の着弾予測点」を 1 つ決める。
-    /// ・ヨー（キャリブレーション基準からの相対角）→ 左右、ピッチ → 地面上 3〜18m。
-    /// ・マウスのときはカーソルが指す地面を、同じヨー／距離の範囲に収めて使う。
-    /// ・予測点が画面外へ出そうなら、画面の内側へ押し戻す（押し戻しは範囲より優先）。
-    /// ・振りの強さは使わない。SwingAccepted の瞬間の予測点がそのまま着弾目標点になる（<see cref="GetLockedTarget"/>）。
-    /// ・発射側（OnusaThrower）より先に今フレームの照準を確定させるため、ThrowInputController（-100）より前に動かす。
-    /// </summary>
+    /*
+        照準を決めるクラス（#60 / 企画書 v8 4章）
+
+        毎フレーム、大幣の向きから「弾が落ちる予定の地面の点」を1つ決める
+        ・ヨー（キャリブレーションした正面からの角度）で左右、ピッチで地面の 3〜18m を決める
+        ・マウスのときは、カーソルが指す地面を同じヨーと距離の範囲におさめて使う
+        ・予測点が画面の外に出そうなときは、画面の内側に押しもどす（範囲より押しもどしを優先する）
+        ・振りの強さは使わない。SwingAccepted の瞬間の予測点が、そのまま着弾目標点になる（GetLockedTarget）
+        ・発射する側（OnusaThrower）より先にこのフレームの照準を決めておきたいので、ThrowInputController（-100）より前に動かしている
+    */
     [DefaultExecutionOrder(-150)]
     public class OnusaAimController : MonoBehaviour
     {
@@ -72,19 +72,19 @@ namespace Toufuku.Aim
         float _referenceYaw;
         bool _referenceCaptured;
 
-        /// <summary>1 回以上照準を計算できたか。</summary>
+        // 1回でも照準を計算できたかどうか
         public bool HasAim { get; private set; }
-        /// <summary>地面上の着弾予測点（ワールド座標）。</summary>
+        // 地面の上の着弾予測点（ワールド座標）
         public Vector3 TargetPoint { get; private set; }
-        /// <summary>着弾予測点のスクリーン座標（z はカメラからの奥行き）。</summary>
+        // 着弾予測点のスクリーン座標（z はカメラからの奥行き）
         public Vector3 ScreenPosition { get; private set; }
-        /// <summary>基準点から着弾予測点までの水平距離（押し戻し後）。</summary>
+        // 基準点から着弾予測点までの水平距離（押しもどしたあとの値）
         public float Distance { get; private set; }
-        /// <summary>正面からの左右角（度、押し戻し後）。</summary>
+        // 正面からの左右の角度（度、押しもどしたあとの値）
         public float RelativeYaw { get; private set; }
-        /// <summary>今フレームの照準がヨー／ピッチから求めたものか（false ならマウス）。</summary>
+        // このフレームの照準がヨーとピッチから出したものかどうか（false ならマウス）
         public bool UsingYawPitch { get; private set; }
-        /// <summary>今フレームの照準が画面の内側へ押し戻されたか。</summary>
+        // このフレームの照準が画面の内側に押しもどされたかどうか
         public bool PushedBack { get; private set; }
 
         public float GroundY => groundY;
@@ -109,7 +109,7 @@ namespace Toufuku.Aim
             Recompute();
         }
 
-        /// <summary>正面（ヨー 0 度）の向きを取り直す。カメラ演出で向きが変わる前に 1 回だけ取る。</summary>
+        // 正面（ヨー 0 度）の向きを取りなおす。カメラの演出で向きが変わる前に1回だけ取る
         public void CaptureReferenceYaw()
         {
             Vector3 forward = referenceForward != null ? referenceForward.forward
@@ -119,10 +119,10 @@ namespace Toufuku.Aim
             _referenceCaptured = true;
         }
 
-        /// <summary>
-        /// 有効スイング確定時刻（SwingAcceptedArgs.Time）に対応する着弾目標点。
-        /// lockLookbackSeconds = 0 なら現在の着弾予測点そのもの。
-        /// </summary>
+        /*
+            有効スイングが決まった時刻（SwingAcceptedArgs.Time）のときの着弾目標点を返す
+            lockLookbackSeconds が 0 なら、今の着弾予測点をそのまま返す
+        */
         public Vector3 GetLockedTarget(double swingTime)
         {
             if (lockLookbackSeconds <= 0f || _historyCount == 0) return TargetPoint;
@@ -133,7 +133,7 @@ namespace Toufuku.Aim
                 int idx = (_historyHead - i + HistoryCapacity) % HistoryCapacity;
                 if (_historyTime[idx] <= want) return _historyPoint[idx];
             }
-            // 履歴より古い時刻を求められたら、残っている最古の照準
+            // 残っている記録より古い時刻を聞かれたら、いちばん古い照準を返す
             return _historyPoint[(_historyHead - _historyCount + HistoryCapacity) % HistoryCapacity];
         }
 
@@ -192,7 +192,7 @@ namespace Toufuku.Aim
             {
                 Vector3 d = ray.GetPoint(enter) - Origin;
                 d.y = 0f;
-                // 基準点より手前（カメラ側）を指したときに左右へ飛ばないよう、前方成分は少しだけ残す
+                // 基準点より手前（カメラ側）を指したときに左右へ飛んでいかないように、前向きの成分を少しだけ残しておく
                 float f = Mathf.Max(Vector3.Dot(d, forward), 0.01f);
                 float r = Vector3.Dot(d, right);
                 relativeYaw = Mathf.Atan2(r, f) * Mathf.Rad2Deg;
@@ -200,7 +200,7 @@ namespace Toufuku.Aim
             }
             else
             {
-                // 地平線より上を指している → 指している向きの最遠
+                // 地平線より上を指しているときは、その向きのいちばん遠い場所にする
                 relativeYaw = Mathf.DeltaAngle(_referenceYaw, AimSolver.YawOf(ray.direction, _referenceYaw));
                 distance = Mathf.Max(nearDistance, farDistance);
             }
@@ -212,7 +212,7 @@ namespace Toufuku.Aim
             Vector3 vp = cam.WorldToViewportPoint(point);
             if (AimSolver.IsInsideViewport(vp, viewportMargin)) return point;
 
-            // カメラの後ろに回った点は、画面下端の左右反対側として扱う
+            // カメラのうしろに回った点は、画面の下のはしの左右反対側としてあつかう
             Vector2 clamped = vp.z > 0f
                 ? AimSolver.ClampToViewport(new Vector2(vp.x, vp.y), viewportMargin)
                 : AimSolver.ClampToViewport(new Vector2(1f - vp.x, 0f), viewportMargin);
@@ -228,7 +228,7 @@ namespace Toufuku.Aim
                     p.y = groundY;
                     return p;
                 }
-                // 押し戻し先が地平線より上なら、地面に届くまで少しずつ下げる
+                // 押しもどした先が地平線より上だったら、地面に届くまで少しずつ下げる
                 clamped.y -= PushBackStep;
             }
             return point;

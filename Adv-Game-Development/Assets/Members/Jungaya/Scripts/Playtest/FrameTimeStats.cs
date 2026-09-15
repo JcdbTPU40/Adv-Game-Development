@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// フレーム時間から平均 fps と 1% low を出す — Issue #52（T6-USB の 30 体負荷）
-    ///
-    /// ・平均 fps = フレーム数 ÷ 合計秒（1 フレームごとの fps の平均ではない。遅いフレームを正しく重く数える）。
-    /// ・1% low = 遅い順に上位 1%（切り上げ・最低 1 フレーム）のフレーム時間の平均 → fps。#45 <c>OutlinePerfHud</c> と同じ定義。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        フレームの時間から平均の fps と 1% low を出すクラス（#52。T6-USB の30人の負荷）
+
+        ・平均 fps = フレーム数 ÷ 合計の秒（1フレームごとの fps の平均じゃない。遅いフレームをちゃんと重く数えるため）
+        ・1% low = 遅い順に上から 1%（切り上げ・最低1フレーム）のフレームの時間の平均を fps にしたもの。#45 の OutlinePerfHud と同じ決め方
+        MonoBehaviour は使っていない
+    */
     public sealed class FrameTimeStats
     {
         readonly List<double> _ms = new List<double>(4096);
@@ -17,7 +17,7 @@ namespace Toufuku.Playtest
         public int Frames => _ms.Count;
         public double TotalSeconds { get; private set; }
 
-        /// <summary>1 フレームの時間（秒）を足す。0 以下・NaN は無視する。</summary>
+        // 1フレームの時間（秒）を足す。0 以下と NaN は無視する
         public void Add(double seconds)
         {
             if (double.IsNaN(seconds) || seconds <= 0.0) return;
@@ -59,7 +59,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>1% に当たるフレーム数（切り上げ・最低 1）。浮動小数の丸めで 1 フレーム増えないよう整数で計算する。</summary>
+        // 1% にあたるフレーム数（切り上げ・最低1）。小数の丸めで1フレーム増えないように、整数で計算する
         public static int WorstCount(int frames) => frames <= 0 ? 0 : Math.Max(1, (frames + 99) / 100);
     }
 }

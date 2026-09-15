@@ -1,18 +1,18 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-/// <summary>
-/// 3分1ゲームのセッション管理 — Issue #32
-///
-/// 企画書8章/7章。現実1分＝ゲーム内1ヶ月、三ヶ月＝3分で1ゲーム終了。
-/// これが通しプレイの背骨。シーンに1つ置く。
-///
-/// ・経過時間 → 月(1分=1月)を進め、totalMonths ヶ月で終了。
-/// ・現在の月/残り時間は CurrentMonth / RemainingSeconds と onMonthChanged で公開（HUD用）。
-/// ・終了時に入力・スポーンを停止（TestShooter / RescueCustomerSpawner が IsPlaying を見る）。
-/// ・リザルト表示は SessionHud（OnGUI）が担当。リトライは Retry() を呼ぶ。
-/// ・月ごとの客構成変化・祭事は onMonthChanged がフック（実装は別Issue）。
-/// </summary>
+/*
+    3分で1ゲームのセッションを管理するクラス（#32）
+
+    企画書8章・7章。現実の1分＝ゲームの中の1か月、3か月＝3分で1ゲームが終わる
+    これが通しでプレイするときの背骨。シーンに1つ置く
+
+    ・たった時間で月（1分=1か月）を進めて、totalMonths か月で終わる
+    ・今の月と残り時間は CurrentMonth / RemainingSeconds と onMonthChanged で外から見られる（HUD 用）
+    ・終わったら入力と客を出すのを止める（TestShooter / RescueCustomerSpawner が IsPlaying を見る）
+    ・リザルトの表示は SessionHud（OnGUI）の担当。リトライは Retry() を呼ぶ
+    ・月ごとに客の組み合わせが変わったり、お祭りがあったりするのは onMonthChanged でつなぐ（作るのは別の Issue）
+*/
 public class GameSession : MonoBehaviour
 {
     public static GameSession Instance { get; private set; }
@@ -31,19 +31,19 @@ public class GameSession : MonoBehaviour
     public UnityEvent onSessionStart;
     public UnityEvent onSessionEnd;
 
-    /// <summary>プレイ中か。false の間は入力・スポーンを止める。</summary>
+    // プレイ中かどうか。false の間は入力と客を出すのを止める
     public bool IsPlaying { get; private set; }
-    /// <summary>セッションが終了してリザルト表示中か。</summary>
+    // セッションが終わってリザルトを表示しているかどうか
     public bool IsFinished { get; private set; }
-    /// <summary>現在の月（1〜totalMonths）。</summary>
+    // 今の月（1〜totalMonths）
     public int CurrentMonth { get; private set; } = 1;
-    /// <summary>ゲーム終了までの残り時間（秒）。</summary>
+    // ゲームが終わるまでの残り時間（秒）
     public float RemainingSeconds => Mathf.Max(0f, TotalSeconds - _elapsed);
-    /// <summary>セッション開始からの経過時間（秒）。#63 計測ログの時刻（T3 の区間分け）に使う。</summary>
+    // セッションが始まってからたった時間（秒）。#63 の計測ログの時刻（T3 の区間分け）に使う
     public float ElapsedSeconds => _elapsed;
-    /// <summary>1ゲームの総時間（秒）。</summary>
+    // 1ゲームの全部の時間（秒）
     public float TotalSeconds => secondsPerMonth * totalMonths;
-    /// <summary>総月数（HUD表示用）。</summary>
+    // 全部の月の数（HUD の表示用）
     public int TotalMonths => totalMonths;
 
     float _elapsed;
@@ -65,20 +65,20 @@ public class GameSession : MonoBehaviour
 
         _elapsed += Time.deltaTime;
 
-        // 月の更新（1分=1月）
+        // 月を進める（1分=1か月）
         int month = Mathf.Min(totalMonths, Mathf.FloorToInt(_elapsed / Mathf.Max(0.01f, secondsPerMonth)) + 1);
         if (month != CurrentMonth)
         {
             CurrentMonth = month;
             Debug.Log($"[Session] {CurrentMonth}ヶ月目に入った（残り {RemainingSeconds:0}秒）");
-            onMonthChanged?.Invoke(CurrentMonth); // 祭事・客構成変化のフック（別Issue）
+            onMonthChanged?.Invoke(CurrentMonth); // お祭りや客の組み合わせが変わるときのフック（別の Issue）
         }
 
         if (_elapsed >= TotalSeconds)
             EndSession();
     }
 
-    /// <summary>セッション開始（リトライ時も使う）。</summary>
+    // セッションを始める（リトライのときも使う）
     public void StartSession()
     {
         _elapsed = 0f;
@@ -91,7 +91,7 @@ public class GameSession : MonoBehaviour
         onMonthChanged?.Invoke(CurrentMonth);
     }
 
-    /// <summary>時間切れによるゲーム終了。入力・スポーンが止まり、リザルトへ。</summary>
+    // 時間切れでゲームを終わる。入力と客を出すのが止まって、リザルトへ
     public void EndSession()
     {
         if (!IsPlaying) return;
@@ -105,19 +105,19 @@ public class GameSession : MonoBehaviour
         onSessionEnd?.Invoke();
     }
 
-    /// <summary>
-    /// リトライ。スコア(#22)・評価(#30)をリセットし、残っている客を退場させて再開する。
-    /// SessionHud のリトライボタンから呼ばれる。
-    /// </summary>
+    /*
+        リトライ。スコア（#22）と評価（#30）をリセットして、残っている客を帰らせてからやりなおす
+        SessionHud のリトライボタンから呼ばれる
+    */
     public void Retry()
     {
         if (ScoreManager.Instance != null)
-            ScoreManager.Instance.ResetAll(); // onReset 経由でご加護(#29)も解除される
+            ScoreManager.Instance.ResetAll(); // onReset を通してご加護（#29）もやめになる
 
         if (ShrineRating.Instance != null)
             ShrineRating.Instance.ResetAll();
 
-        // 場に残っている客を一掃
+        // その場に残っている客をぜんぶ片付ける
         foreach (GameObject customer in GameObject.FindGameObjectsWithTag("Customer"))
             Destroy(customer);
 

@@ -2,13 +2,13 @@ using System;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 大幣が静止しているか — Issue #52（ドリフトの標本を取るとき）
-    ///
-    /// 3章の正面キャリブレーションの受理条件と同じ「角速度 30deg/s 未満が 0.5 秒続いた」で静止とみなす。
-    /// 角速度はヨーとピッチの変化（折り返し補正あり）の合成。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        大幣が止まっているかを見るクラス（#52。ドリフトのデータを取るとき）
+
+        3章の正面のキャリブレーションを受け付ける条件と同じ「角速度 30deg/s 未満が 0.5 秒つづいた」で止まっているとする
+        角速度はヨーとピッチの変化（1周したときの補正あり）を合わせたもの
+        MonoBehaviour は使っていない
+    */
     public sealed class UsbStillnessDetector
     {
         public float SpeedLimit { get; set; } = UsbGatePlan.StillAngularSpeed;
@@ -64,7 +64,7 @@ namespace Toufuku.Playtest
             _time = time;
         }
 
-        /// <summary>from → to の最短の角度差（-180〜180）。</summary>
+        // from から to へのいちばん近い角度の差（-180〜180）
         public static double DeltaAngle(double from, double to)
         {
             double d = (to - from) % 360.0;

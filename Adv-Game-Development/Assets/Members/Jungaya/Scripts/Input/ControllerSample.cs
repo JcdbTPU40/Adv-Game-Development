@@ -2,14 +2,14 @@ using System.Globalization;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>
-    /// ESP32 から 1 行ぶん受信したサンプル — Issue #51
-    ///
-    /// 通信形式: <c>yaw,pitch,roll[,buttons[,millis]]</c>（改行区切り・小数点はピリオド）
-    /// ・buttons は省略可（現行ファームウェアは 3 項目のみ）。
-    /// ・buttons は 10 進のビットマスク: bit0〜4 = 色ボタン（OmamoriType の並び）、bit5 = 正面ボタン。
-    /// ・millis（#63）はコントローラ側でサンプルを取った時刻（ミリ秒、millis()）。計測ログの「入力時刻」になる。省略可。
-    /// </summary>
+    /*
+        ESP32 から1行ぶん受け取ったデータ（#51）
+
+        送られてくる形: yaw,pitch,roll[,buttons[,millis]]（改行で区切る。小数点はピリオド）
+        ・buttons はなくてもいい（今のファームウェアは3つしか送ってこない）
+        ・buttons は10進数のビットの集まり。bit0〜4 が色ボタン（OmamoriType の順番）、bit5 が正面ボタン
+        ・millis（#63）はコントローラー側でデータを取った時刻（ミリ秒、millis()）。計測ログの「入力時刻」になる。なくてもいい
+    */
     public readonly struct ControllerSample
     {
         public const int FrontButtonBit = 5;
@@ -19,9 +19,9 @@ namespace Toufuku.GameInput
         public readonly float Roll;
         public readonly int Buttons;
         public readonly bool HasButtons;
-        /// <summary>Unity 側で受信した時刻（Time.realtimeSinceStartupAsDouble）。</summary>
+        // Unity 側で受け取った時刻（Time.realtimeSinceStartupAsDouble）
         public readonly double Time;
-        /// <summary>#63: コントローラ側でサンプルを取った時刻（秒）。5 項目目が無ければ NaN。Unity の時刻とは原点が違う。</summary>
+        // #63: コントローラー側でデータを取った時刻（秒）。5つ目がなければ NaN。Unity の時刻とはスタート地点がちがう
         public readonly double DeviceTime;
 
         public ControllerSample(float yaw, float pitch, float roll, int buttons, bool hasButtons, double time, double deviceTime = double.NaN)
@@ -41,7 +41,7 @@ namespace Toufuku.GameInput
 
         public bool HasDeviceTime => !double.IsNaN(DeviceTime);
 
-        /// <summary>1 行を解釈する。3〜5 項目の数値行だけを受け付ける。</summary>
+        // 1行を読み取る。数字が3〜5個ならんでいる行だけを受け付ける
         public static bool TryParse(string line, double time, out ControllerSample sample)
         {
             sample = default;

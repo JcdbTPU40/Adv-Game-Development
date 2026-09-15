@@ -4,16 +4,16 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 参加者 1 人 × 1 条件 = 1 行の CSV — Issue #50（19章のテスト記録へそのまま貼れる形）
-    ///
-    /// ・ゲーム側の列は実施中に埋まる。<b>動画側の 4 列は空で書き出す</b>ので、
-    ///   録画を見返しながら Excel で埋めるか、実施者パネルの集計モードで入れる。
-    /// ・空欄は「未入力」であって 0 ではない（<see cref="CooldownConditionRecord.NotEntered"/>）。
-    ///   0 と書けば「0 件を確認した」という意味になる。
-    /// ・区切りと引用の扱いは #49 と同じ（<see cref="AbTestCsv.Escape"/> / <see cref="AbTestCsv.SplitRow"/>）。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        参加者1人 × 条件1つを1行にした CSV（#50。19章のテスト記録にそのまま貼れる形）
+
+        ・ゲーム側の列はテスト中にうまる。動画側の4列は空のまま書き出すので、
+          録画を見返しながら Excel でうめるか、やる人のパネルの集計モードで入れる
+        ・空欄は「まだ入れていない」という意味で、0 ではない（CooldownConditionRecord.NotEntered）
+          0 と書いたら「0件だったのを確認した」という意味になる
+        ・区切りと引用符のあつかいは #49 と同じ（AbTestCsv.Escape / AbTestCsv.SplitRow）
+        MonoBehaviour は使っていない
+    */
     public static class CooldownCsv
     {
         public const string Header =
@@ -70,7 +70,7 @@ namespace Toufuku.Playtest
         {
             record = null;
             if (string.IsNullOrWhiteSpace(line)) return false;
-            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出し行
+            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出しの行
 
             string[] f = AbTestCsv.SplitRow(line);
             if (f.Length < ColumnCount) return false;
@@ -116,7 +116,7 @@ namespace Toufuku.Playtest
             return true;
         }
 
-        /// <summary>未入力は空欄で書く（0 と区別する）。</summary>
+        // まだ入れていない値は空欄で書く（0 と分けるため）
         static string Optional(int value) =>
             value <= CooldownConditionRecord.NotEntered ? string.Empty : value.ToString(Culture);
 

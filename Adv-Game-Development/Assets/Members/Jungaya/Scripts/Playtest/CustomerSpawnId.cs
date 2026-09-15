@@ -3,15 +3,15 @@ using UnityEngine;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 客の ID（スポーン順の通し番号）と分類 — Issue #63
-    ///
-    /// ・スポーン側が生成直後に <see cref="Assign"/> する。ID は 1 から振り、計測プレイの開始（リトライ含む）で 1 に戻る。
-    /// ・固定シードの抽選はこの ID ごとの列で行う（<see cref="PlaytestRandom.TryFor"/>）。生成前に抽選したいときは
-    ///   <see cref="NextId"/> を使う（生成に失敗して ID を振らなければ、次の客が同じ ID と同じ抽選結果を使う）。
-    /// ・ログの対象ID・優先対象ID はすべてこの ID。
-    /// ・分類（<see cref="Category"/>）は T2 の選択の分布に使う。客種（通常・移動・欲張り・遠方）は #57 / #62 でここへ入れる。
-    /// </summary>
+    /*
+        客のID（出てきた順の通し番号）と分類（#63）
+
+        ・出す側が作った直後に Assign する。IDは1から付けて、計測プレイが始まったとき（リトライも）に1にもどる
+        ・決まったシードのくじは、このIDごとの乱数で引く（PlaytestRandom.TryFor）。作る前にくじを引きたいときは
+          NextId を使う（作るのに失敗してIDを付けなければ、次の客が同じIDと同じくじの結果を使う）
+        ・ログの相手IDや優先相手IDは、ぜんぶこのID
+        ・分類（Category）は T2 でどれを選んだかの分布に使う。客の種類（通常・移動・欲張り・遠方）は #57 / #62 でここに入れる
+    */
     [DisallowMultipleComponent]
     public class CustomerSpawnId : MonoBehaviour
     {
@@ -21,9 +21,9 @@ namespace Toufuku.Playtest
 
         static int s_next = 1;
 
-        /// <summary>ID を振った（生成直後。見た目・ゲージの設定はこのあと同じフレームで行われる）。</summary>
+        // IDを付けた（作った直後。見た目やゲージの設定はこのあと同じフレームでやる）
         public static event Action<CustomerSpawnId> Spawned;
-        /// <summary>ID 付きの客が破棄された。</summary>
+        // IDが付いた客が消された
         public static event Action<CustomerSpawnId> Despawned;
 
         int _id;
@@ -34,7 +34,7 @@ namespace Toufuku.Playtest
 
         Vector3? _destination;
 
-        /// <summary>立ち位置（歩いて向かう先）。スポーン側が設定しなければ null（ログは生成位置を使う）。</summary>
+        // 立つ場所（歩いて向かう先）。出す側が設定しなければ null（ログは作った場所を使う）
         public Vector3? Destination => _destination;
 
         public void SetDestination(Vector3 destination)
@@ -42,7 +42,7 @@ namespace Toufuku.Playtest
             _destination = destination;
         }
 
-        /// <summary>次に振る ID。</summary>
+        // 次に付けるID
         public static int NextId => s_next;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -53,13 +53,13 @@ namespace Toufuku.Playtest
             Despawned = null;
         }
 
-        /// <summary>ID を 1 から振り直す（計測プレイの開始時に PlaytestLogger が呼ぶ）。</summary>
+        // IDを1から付けなおす（計測プレイが始まるときに PlaytestLogger が呼ぶ）
         public static void ResetSequence()
         {
             s_next = 1;
         }
 
-        /// <summary>客に ID を振る。振り済みなら分類だけ更新する。</summary>
+        // 客にIDを付ける。もう付いていたら分類だけ変える
         public static CustomerSpawnId Assign(GameObject customer, string category = CategoryNormal)
         {
             if (customer == null) return null;
@@ -75,7 +75,7 @@ namespace Toufuku.Playtest
             return c;
         }
 
-        /// <summary>客の ID。スポーン側が振っていなければここで振る（シーンに最初から置いた客など）。null なら 0。</summary>
+        // 客のIDを返す。出す側が付けていなければここで付ける（シーンに最初から置いてある客など）。null なら 0
         public static int Of(GameObject customer)
         {
             if (customer == null) return 0;

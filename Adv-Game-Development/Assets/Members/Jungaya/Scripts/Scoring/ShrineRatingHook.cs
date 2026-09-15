@@ -1,14 +1,14 @@
 using UnityEngine;
 using Toufuku.Rescue;
 
-/// <summary>
-/// 客1体分の「救済成功/黒客化 → 神社評価(#30)」結線コンポーネント。
-///
-/// CustomerState(#54) の onRescued / onBlack を購読し、ShrineRating へ報告する。
-/// 増減量は客種ごとの値（付録B B-1。CustomerKindTable）を渡す。
-/// 客プレハブに1つ付けるだけでよい（RescueCustomerSpawner 経由の生成なら
-/// 実行時に自動で AddComponent されるので、付け忘れても動く）。
-/// </summary>
+/*
+    客1人ぶんの「救えた・黒客になった → 神社の評価（#30）」をつなぐコンポーネント
+
+    CustomerState（#54）の onRescued / onBlack を受け取って、ShrineRating に知らせる
+    増やす量・減らす量は客の種類ごとの値（付録B B-1。CustomerKindTable）を渡す
+    客のプレハブに1つ付けるだけでいい（RescueCustomerSpawner で作ったなら
+    プレイ中に自動で AddComponent されるので、付けわすれても動く）
+*/
 [RequireComponent(typeof(CustomerState))]
 public class ShrineRatingHook : MonoBehaviour
 {

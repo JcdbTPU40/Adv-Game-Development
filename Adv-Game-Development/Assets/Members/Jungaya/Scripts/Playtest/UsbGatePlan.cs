@@ -2,7 +2,7 @@ using System;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>T6-USB の計測区間。値は CSV の section 列（文字列）に書くので並べ替えてよい。</summary>
+    // T6-USB で測る区間。値は CSV の section 列（文字）に書くので、ならべかえてもいい
     public enum UsbGateSection
     {
         Safety,
@@ -13,7 +13,7 @@ namespace Toufuku.Playtest
         Children
     }
 
-    /// <summary>開始前の安全チェック 1 項目。</summary>
+    // 始める前の安全チェックの1項目
     public readonly struct UsbSafetyItem
     {
         public readonly string Id;
@@ -26,90 +26,91 @@ namespace Toufuku.Playtest
         }
     }
 
-    /// <summary>
-    /// T6-USB 必須技術ゲートの数値と手順の定数 — Issue #52（仕様書 v8 17章・3章・12章・付録B）
-    ///
-    /// | 完了条件 | 値 |
-    /// |---|---|
-    /// | 安全チェック | 全項目適合・接触／逸脱 0 件 |
-    /// | 入力遅延（SwingAccepted → 画面で弾が出る） | p95 ≤ 80ms・最大 ≤ 100ms（付録B LATENCY.USB） |
-    /// | 意図的入力 | 欠落 &lt; 2%・誤発射 ≤ 2%（意図的 100 投） |
-    /// | 接続 | 切断 0 |
-    /// | ヨー角ドリフト | 3 分で画面幅の 5% 以下 |
-    /// | 描画（黒客・退場者込み 30 体） | 60fps・1% low ≥ 55fps |
-    /// | 子ども 5 人（2 分練習後） | 近 7/10・遠 6/10 命中 |
-    ///
-    /// USB が赤なら MVP を固定しない。BLE（T6-BLE）は別の任意ゲート。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        T6-USB の「絶対に通さないといけない技術のチェック」の数値と手順の定数（#52 / 企画書 v8 17章・3章・12章・付録B）
+
+        完了条件と値:
+        ・安全チェック: ぜんぶの項目が OK、ぶつかった・はみ出たが0件
+        ・入力の遅れ（SwingAccepted から画面に弾が出るまで）: p95 が 80ms 以下、最大が 100ms 以下（付録B LATENCY.USB）
+        ・わざと入力: 抜けが 2% 未満、まちがい発射が 2% 以下（わざと100投）
+        ・接続: 切断0
+        ・ヨー角のドリフト: 3分で画面のはばの 5% 以下
+        ・描画（黒客と帰っている途中の客も入れて30人）: 60fps、1% low が 55fps 以上
+        ・子ども5人（2分練習したあと）: 近いのは 7/10、遠いのは 6/10 当たる
+
+        USB がだめなら MVP を決めない。BLE（T6-BLE）は別の、やってもやらなくてもいいチェック
+        MonoBehaviour は使っていない
+    */
     public static class UsbGatePlan
     {
         public const string DefaultTestId = "T6-USB-1";
 
-        // ── 入力遅延 ──
+        // ---- 入力の遅れ ----
         public const double LatencyP95LimitMs = 80.0;
         public const double LatencyMaxLimitMs = 100.0;
 
-        // ── 意図的 100 投 ──
+        // ---- わざと100投 ----
         public const int IntendedThrows = 100;
-        /// <summary>欠落率はこの値<b>未満</b>で合格（2% ちょうどは不合格）。</summary>
+        // 抜けのわりあいはこの値より小さければ合格（ちょうど 2% は不合格）
         public const double MissRateLimit = 0.02;
-        /// <summary>誤発射率はこの値<b>以下</b>で合格（2% ちょうどは合格）。</summary>
+        // まちがい発射のわりあいはこの値以下なら合格（ちょうど 2% は合格）
         public const double FalseFireRateLimit = 0.02;
-        /// <summary>合図の間隔（秒）。クールダウン（最長 0.65 秒）と飛翔（最長 0.65 秒）より十分長くする。</summary>
+        // 合図の間かく（秒）。クールダウン（いちばん長くて 0.65 秒）と飛ぶ時間（いちばん長くて 0.65 秒）より十分長くする
         public const float CueIntervalSeconds = 2.0f;
-        /// <summary>最初の合図までの秒。</summary>
+        // 最初の合図までの秒
         public const float CueLeadInSeconds = 3.0f;
-        /// <summary>合図より前にこの秒数以内の発射も、その合図への応答とみなす（合図を予測して振る人がいるため）。</summary>
+        // 合図より前でもこの秒数以内の発射なら、その合図に反応したとする（合図を予想して振る人がいるから）
         public const float CueWindowBeforeSeconds = 0.3f;
-        /// <summary>合図からこの秒数以内の発射を、その合図への応答とみなす。</summary>
+        // 合図からこの秒数以内の発射を、その合図に反応したとする
         public const float CueWindowAfterSeconds = 1.2f;
 
-        // ── 接続 ──
-        /// <summary>受信がこの秒数途切れたら「切断」1 回と数える（ボタン箱の 100ms 無受信解放より長い、明らかな途絶）。</summary>
+        /*
+            ---- 接続 ----
+            受け取りがこの秒数とぎれたら「切断」1回と数える（ボタン箱の 100ms 受け取れなかったら放すのより長い、はっきりしたとぎれ）
+        */
         public const float DisconnectGapSeconds = 0.5f;
-        /// <summary>入力時刻（コントローラの時計）を Unity の時計へ合わせるとき、前後この秒数の受信から時計差を推定する。</summary>
+        // 入力時刻（コントローラーの時計）を Unity の時計に合わせるとき、前後この秒数に受け取ったデータから時計の差を出す
         public const double ClockWindowSeconds = 5.0;
 
-        // ── ドリフト ──
+        // ---- ドリフト ----
         public const float DriftSeconds = 180f;
         public const double DriftLimitScreenRatio = 0.05;
-        /// <summary>静止判定（3章 キャリブレーションの受理条件と同じ）: 角速度がこの値未満で…</summary>
+        // 止まっているかの判定（3章のキャリブレーションを受け付ける条件と同じ）: 角速度がこの値より小さい状態が…
         public const float StillAngularSpeed = 30f;
-        /// <summary>…この秒数続いたら静止。</summary>
+        // …この秒数つづいたら止まっているとする
         public const float StillSeconds = 0.5f;
-        /// <summary>静止を待つ上限。超えたら取り直しを促す。</summary>
+        // 止まるのを待ついちばん長い時間。こえたら取りなおしてもらう
         public const float StillTimeoutSeconds = 5f;
-        /// <summary>静止ドリフト中に経過を記録する間隔（秒）。</summary>
+        // 止めたままのドリフトの間に、とちゅうの様子を記録する間かく（秒）
         public const float DriftTrackIntervalSeconds = 10f;
 
-        // ── 描画負荷 ──
+        // ---- 描画の負荷 ----
         public const int LoadBodies = 30;
         public const double TargetFps = 60.0;
-        /// <summary>垂直同期 59.94Hz の表示機や計測の丸めで 60.0 に届かないぶんの許容。平均 59.0fps 以上で「60fps」とみなす。</summary>
+        // 垂直同期 59.94Hz のモニターや計測の丸めで 60.0 に届かないぶんをゆるす。平均 59.0fps 以上なら「60fps」とする
         public const double TargetFpsTolerance = 1.0;
         public const double OnePercentLowLimitFps = 55.0;
         public const float LoadWarmupSeconds = 5f;
         public const float LoadMeasureSeconds = 60f;
-        /// <summary>負荷計測中の自動投擲の間隔（T0-3M の想定実操作周期 1.0〜1.4 秒の速い側）。</summary>
+        // 負荷を測っている間の、自動で投げる間かく（T0-3M で思っている実際の間かく 1.0〜1.4 秒の速いほう）
         public const float LoadAutoThrowSeconds = 1.0f;
 
-        // ── 子ども ──
+        // ---- 子ども ----
         public const int ChildParticipants = 5;
         public const float ChildPracticeSeconds = 120f;
         public const int ThrowsPerRange = 10;
         public const double NearHitRatio = 0.7;
         public const double FarHitRatio = 0.6;
-        /// <summary>的の判定半径（T0 の標準ターゲットと同じ 0.90m）。</summary>
+        // 的の判定半径（T0 のふつうの的と同じ 0.90m）
         public const float TargetRadius = 0.90f;
 
-        /// <summary>時間切れ・規定数到達のあと、飛翔中の弾（最長 0.65 秒）の着弾を待つ秒。</summary>
+        // 時間切れや決まった数に届いたあと、飛んでいる弾（いちばん長くて 0.65 秒）が落ちるのを待つ秒
         public const float SettleSeconds = 1.0f;
 
-        /// <summary>
-        /// 開始前の安全チェック（17章 T6-USB・12章「安全領域と配線」）。全項目適合でなければ計測を始めない。
-        /// id は CSV に残るので変えないこと（文言は変えてよい）。
-        /// </summary>
+        /*
+            始める前の安全チェック（17章 T6-USB・12章「安全領域と配線」）。ぜんぶ OK じゃなければ測り始めない
+            id は CSV に残るので変えないこと（文章は変えてもいい）
+        */
         public static readonly UsbSafetyItem[] SafetyItems =
         {
             new UsbSafetyItem("area_1_5m", "前後左右 1.5m の振り抜き安全領域をコーン／ベルトで囲った（大幣の全長＋腕の長さで、紙垂を含む先端が境界に届かない）"),
@@ -141,7 +142,7 @@ namespace Toufuku.Playtest
         public static bool HitRatioOk(int hits, int throws, double ratio) =>
             throws > 0 && hits + Epsilon >= throws * ratio;
 
-        /// <summary>CSV の section 列の値。</summary>
+        // CSV の section 列の値
         public static string KeyOf(UsbGateSection section)
         {
             switch (section)
@@ -180,7 +181,7 @@ namespace Toufuku.Playtest
             }
         }
 
-        /// <summary>受信・発射を測る区間か（切断・遅延の対象）。安全チェックは入力を使わない。</summary>
+        // 受け取り・発射を測る区間かどうか（切断と遅れを見る）。安全チェックは入力を使わない
         public static bool UsesController(UsbGateSection section) => section != UsbGateSection.Safety;
     }
 }

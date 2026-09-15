@@ -1,13 +1,13 @@
 using UnityEngine;
 
-/// <summary>
-/// セッション表示＋簡易リザルト（OnGUIオーバーレイ）— Issue #32
-///
-/// ・プレイ中: 画面上中央に「◯ヶ月目」を表示（企画書v3 §7：右上は縁(ScoreHud)が使う）。
-///   残り時間は showDebugTimer ON のときだけ表示（v3 §8：タイマーUIは展示ビルドで非表示）。
-/// ・終了時 : 画面中央にリザルト（縁 / 神社ランク / 最大コンボ）とリトライボタン。
-/// Canvas不要、シーンに1つ置くだけ。本番UIができたら不要になるテスト専用スクリプト。
-/// </summary>
+/*
+    セッションの表示＋かんたんなリザルト（OnGUI で重ねて描く）（#32）
+
+    ・プレイ中: 画面の上の真ん中に「◯か月目」を表示する（企画書 v3 §7: 右上は縁（ScoreHud）が使う）
+      残り時間は showDebugTimer が ON のときだけ表示する（v3 §8: タイマーの UI は展示用のビルドでは出さない）
+    ・終わったとき: 画面の真ん中にリザルト（縁 / 神社のランク / いちばん大きいコンボ）とリトライボタン
+    Canvas はいらなくて、シーンに1つ置くだけ。本番の UI ができたらいらなくなる、テスト専用のスクリプト
+*/
 public class SessionHud : MonoBehaviour
 {
     [SerializeField] int fontSize = 26;
@@ -38,7 +38,7 @@ public class SessionHud : MonoBehaviour
 
     void EnsureStyles()
     {
-        // 企画書v3 §7：月表示は画面上中央（右上は縁 ScoreHud に譲る）。
+        // 企画書 v3 §7: 月の表示は画面の上の真ん中（右上は縁の ScoreHud にゆずる）
         if (_style == null || _style.fontSize != fontSize)
             _style = new GUIStyle(GUI.skin.label) { fontSize = fontSize, alignment = TextAnchor.UpperCenter };
         _style.normal.textColor = Color.white;
@@ -50,12 +50,14 @@ public class SessionHud : MonoBehaviour
 
     void DrawPlaying(GameSession session)
     {
-        // 企画書v3 §7：右上を空けるため、月表示は画面上中央に出す。
+        // 企画書 v3 §7: 右上を空けておきたいので、月の表示は画面の上の真ん中に出す
         float w = 340, h = fontSize + 10;
         float x = (Screen.width - w) / 2f, y = 12;
 
-        // 企画書v3 §8：タイマーUIは展示ビルドで表示しない（日周表現への置換は別Issue）。
-        // 非表示時は背景パネルも1行ぶんに縮め、黒帯だけが残らないようにする。
+        /*
+            企画書 v3 §8: タイマーの UI は展示用のビルドでは表示しない（1日の流れで見せるやり方にかえるのは別の Issue）
+            表示しないときは背景のパネルも1行ぶんにちぢめて、黒い帯だけが残らないようにする
+        */
         float panelH = showDebugTimer ? h * 2 + 12 : h + 12;
 
         GUI.color = new Color(0f, 0f, 0f, 0.45f);

@@ -2,29 +2,29 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 1客タイプぶんの「定義データ」— Issue #16
-    /// 「客タイプ → 悩み → 正解お守り」の紐付けを 1 アセットに束ねた“受け皿”。
-    ///
-    /// 企画方針:
-    ///   ・v2 の「見た目で察させる」方針は企画書 v3 §6 で廃止。現在は【客の輪郭発光】で
-    ///     求めているお守りを明示する。
-    ///   ・このアセットは輪郭発光・弾・ボタンで共有する代表色と、見た目アセットの
-    ///     受け皿を保持する（データ構造は v2 から流用）。
-    ///   ・いまは絵が無いので「プレースホルダー画像でOK」。デザイン陣があとから
-    ///     <see cref="placeholderSprite"/> / <see cref="viewPrefab"/> に本番アートを
-    ///     差し替えるだけで済むよう、先に“受け皿”だけ切っておく。
-    ///
-    /// 役割分担:
-    ///   ・このアセットは「データ（紐付け＋見た目）」だけを持つ。挙動は持たない。
-    ///   ・相性◯/✗の判定は <see cref="OmamoriAffinityTable"/>(#12) が担当。
-    ///     ここの <see cref="correctOmamori"/> は “1:1 の正解（フォールバック）” を表す。
-    ///   ・全タイプをまとめて引くのは <see cref="CustomerProfileCatalog"/>。
-    ///
-    /// 使い方:
-    ///   Project で右クリック → Create → Toufuku → 客タイプ定義(CustomerProfile)。
-    ///   客タイプ1種につき1アセットを作り、Catalog に登録する。
-    /// </summary>
+    /*
+        客のタイプ1つぶんの「決まりのデータ」（#16）
+        「客のタイプ → なやみ → 正解のお守り」のつながりを1つのアセットにまとめた入れ物
+
+        企画の方針:
+          ・v2 の「見た目でわかってもらう」やり方は企画書 v3 §6 でやめた。今は【客の輪郭が光る】ことで
+            ほしいお守りをはっきり見せる
+          ・このアセットは、輪郭・弾・ボタンでいっしょに使う代表の色と、見た目のアセットの
+            入れ物を持つ（データの形は v2 のをそのまま使っている）
+          ・今は絵がないので「仮の画像でOK」。デザインの人があとから
+            placeholderSprite / viewPrefab に本番の絵を
+            入れるだけですむように、先に入れ物だけ用意しておく
+
+        役割分担:
+          ・このアセットは「データ（つながり＋見た目）」だけを持つ。動きは持たない
+          ・相性◯/✗の判定は OmamoriAffinityTable（#12）の担当
+            ここの correctOmamori は「1対1の正解（予備）」の意味
+          ・ぜんぶのタイプをまとめて取るのは CustomerProfileCatalog
+
+        使い方:
+          Project で右クリック → Create → Toufuku → 客タイプ定義(CustomerProfile)
+          客のタイプ1つにつき1つアセットを作って、Catalog に登録する
+    */
     [CreateAssetMenu(
         fileName = "CustomerProfile",
         menuName = "Toufuku/客タイプ定義 (CustomerProfile)",
@@ -61,49 +61,51 @@ namespace Toufuku.Rescue
         [TextArea(2, 4)]
         [SerializeField] private string designerNote = "";
 
-        // ---- 読み取り専用アクセサ（外部はここ経由で参照する）----
+        // ---- 読むだけのプロパティ（外からはここを使う） ----
 
-        /// <summary>この定義が表す客タイプ（＝悩み）。</summary>
+        // この決まりが表す客のタイプ（＝なやみ）
         public CustomerType CustomerType => customerType;
 
-        /// <summary>この客に効く正解お守り（1:1のフォールバック）。</summary>
+        // この客に効く正解のお守り（1対1の予備）
         public OmamoriType CorrectOmamori => correctOmamori;
 
-        /// <summary>見た目プレースホルダー画像(2D)。未設定なら null。</summary>
+        // 見た目の仮の画像（2D）。入っていなければ null
         public Sprite PlaceholderSprite => placeholderSprite;
 
-        /// <summary>見た目プレハブ(3D/演出付き)。未設定なら null。</summary>
+        // 見た目のプレハブ（3D や演出付き）。入っていなければ null
         public GameObject ViewPrefab => viewPrefab;
 
-        /// <summary>
-        /// この客が求めるお守りの代表色。輪郭発光・弾・ボタンの色と完全統一（v3 §3）。
-        /// この客の代表色は「求めているお守りの色」と定義上必ず一致するため、
-        /// palette 設定時は OmamoriPalette から correctOmamori で引く。
-        /// palette 未設定時のみフォールバックの representativeColor を返す。
-        /// </summary>
+        /*
+            この客がほしいお守りの代表の色。輪郭・弾・ボタンの色と完全にそろえる（v3 §3）
+            この客の代表の色は「ほしいお守りの色」と必ず同じになるので、
+            palette が入っていれば OmamoriPalette から correctOmamori で取る
+            palette が入っていないときだけ、予備の representativeColor を返す
+        */
         public Color RepresentativeColor =>
             palette != null ? palette.GetColor(correctOmamori) : representativeColor;
 
-        /// <summary>エディタ/デバッグ表示名（未設定なら客タイプ名を返す）。</summary>
+        // エディタやデバッグで表示する名前（入っていなければ客のタイプの名前を返す）
         public string DisplayName =>
             string.IsNullOrEmpty(displayName) ? customerType.ToString() : displayName;
 
-        /// <summary>デザイン/企画向けメモ。</summary>
+        // デザインや企画の人向けのメモ
         public string DesignerNote => designerNote;
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// 表示名が空のとき、アセット名から補完しておく（Inspector の見やすさ用）。
-        /// 仕様には影響しない。
-        /// </summary>
+        /*
+            表示する名前が空のとき、アセットの名前から入れておく（Inspector で見やすくするため）
+            仕様には関係ない
+        */
         private void OnValidate()
         {
             if (string.IsNullOrEmpty(displayName))
                 displayName = name;
 
-            // palette 設定済みなのにフォールバック representativeColor が正と大きく食い違う場合は
-            // 警告する（palette を外した瞬間に腐った色へ戻る事故に気づけるように）。
-            // 「大きく」の閾値は RGB 差の合計 0.3（体感で明らかに別の色になるライン）。
+            /*
+                palette が入っているのに、予備の representativeColor が正しい色と大きくちがうときは
+                警告を出す（palette を外した瞬間に古い色にもどってしまうのに気づけるように）
+                「大きく」のしきい値は RGB の差の合計が 0.3（見てはっきり別の色になるくらい）
+            */
             if (palette != null)
             {
                 Color c = palette.GetColor(correctOmamori);

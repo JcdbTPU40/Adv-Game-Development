@@ -6,14 +6,14 @@ using UnityEngine;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// T6-USB の記録ファイル — Issue #52
-    ///
-    /// 保存先は #49 / #50 / #53 と同じ <see cref="AbTestCsvFile.DefaultFolder"/>（Editor はプロジェクト直下、ビルドは persistentDataPath）。
-    /// ・<c>{テストID}_{日付}_events.csv</c>: 1 イベント 1 行。区間が終わるたびに追記するので、途中で落ちてもそれまでの区間は残る。
-    /// ・<c>{テストID}_{日付}_summary.csv</c>: 完了条件ごとの判定。区間が終わるたびに書き直す（19章のテスト記録へ貼る）。
-    /// どちらも UTF-8 BOM 付き。
-    /// </summary>
+    /*
+        T6-USB の記録ファイルを読み書きするクラス（#52）
+
+        保存する場所は #49・#50・#53 と同じ AbTestCsvFile.DefaultFolder（エディタはプロジェクトのすぐ下、ビルドは persistentDataPath）
+        ・{テストID}_{日付}_events.csv: 1イベント1行。区間が終わるたびに足すので、とちゅうで落ちてもそれまでの区間は残る
+        ・{テストID}_{日付}_summary.csv: 完了条件ごとの判定。区間が終わるたびに書きなおす（19章のテスト記録に貼る）
+        どっちも UTF-8 BOM 付き
+    */
     public static class UsbGateCsvFile
     {
         public static string DefaultFolder => AbTestCsvFile.DefaultFolder;
@@ -67,7 +67,7 @@ namespace Toufuku.Playtest
             return events;
         }
 
-        /// <summary>完了条件ごとの判定を書き直す。</summary>
+        // 完了条件ごとの判定を書きなおす
         public static bool WriteSummary(string path, string testId, string date, UsbGateSummary summary, out string error)
         {
             error = null;

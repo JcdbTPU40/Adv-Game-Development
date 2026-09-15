@@ -3,20 +3,20 @@ using UnityEngine.Events;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 救済判定（相性◯/✗ → D・R の更新）— Issue #13 / #54
-    ///
-    /// 仕様（企画書 v8 6章）:
-    ///   ・相性◯（正色）命中 … 残り必要発数 R を1減らす。危険度 D は変えない。R=0 で救済完了。
-    ///   ・相性✗（誤色）命中 … D も R も変えない。福の連なり C とご加護進捗 G だけが切れる（v8変更点2）。
-    ///     誤色で D を下げないので、無限弾の誤色連打で黒客化を遅らせる抜け道は成立しない。
-    ///
-    /// 役割分担（#54 以降）:
-    ///   D・R の値、状態遷移、時間経過、黒客化、退場は CustomerState が一元管理する。
-    ///   ここは “相性判定だけ” に絞り、命中時に CustomerState の
-    ///   ApplyCorrectColorHit() / ApplyWrongColorHit() を呼ぶ。
-    ///   ※ 同じ GameObject に CustomerState が必要（RequireComponent）。
-    /// </summary>
+    /*
+        救済の判定（相性◯/✗ → D と R を更新する）（#13 / #54）
+
+        仕様（企画書 v8 6章）:
+          ・相性◯（正しい色）で当たった: 残りの必要な発数 R を1減らす。危険度 D は変えない。R=0 で救えた
+          ・相性✗（まちがった色）で当たった: D も R も変えない。福の連なり C とご加護の進み G だけが切れる（v8 の変更点2）
+            まちがった色で D を下げないので、弾が無限なのを使ってまちがった色を連打して黒客になるのを遅らせる、というずるはできない
+
+        役割分担（#54 から）:
+          D と R の値、状態の変わり方、時間の経過、黒客になること、帰ることは CustomerState がまとめて管理する
+          ここは「相性の判定だけ」にしぼって、当たったときに CustomerState の
+          ApplyCorrectColorHit() / ApplyWrongColorHit() を呼ぶ
+          ※ 同じ GameObject に CustomerState が必要（RequireComponent）
+    */
     [RequireComponent(typeof(CustomerState))]
     public class CustomerRescue : MonoBehaviour
     {
@@ -33,18 +33,18 @@ namespace Toufuku.Rescue
         [SerializeField] private OmamoriType correctOmamori = OmamoriType.Kenkou;
 
         [Header("判定時イベント（SE/スコア接続用）")]
-        public UnityEvent onGoodHit; // 相性◯ヒット（正色。R が1減る）
-        public UnityEvent onBadHit;  // 相性✗ヒット（誤色。C と G が切れる。渋るリアクションは #14）
+        public UnityEvent onGoodHit; // 相性◯で当たった（正しい色。R が1減る）
+        public UnityEvent onBadHit;  // 相性✗で当たった（まちがった色。C と G が切れる。渋るリアクションは #14）
 
         private CustomerState _state;
 
-        /// <summary>D・R・状態は CustomerState が正本。参照したい場合はこちらから。</summary>
+        // D・R・状態は CustomerState が正しい値を持っている。見たいときはここから
         public CustomerState State => _state;
-        /// <summary>この客のタイプ（相性テーブル判定に使う）。</summary>
+        // この客のタイプ（相性の表での判定に使う）
         public CustomerType CustomerType => customerType;
-        /// <summary>正解お守り（フォールバック判定に使う。Setup(profile) で客タイプと揃う）。#63 計測ログの客の色に使う。</summary>
+        // 正解のお守り（予備の判定に使う。Setup(profile) で客のタイプとそろう）。#63 の計測ログの客の色にも使う
         public OmamoriType CorrectOmamori => correctOmamori;
-        /// <summary>終端状態（救済成功 or 黒客）。以後この客に得点も救済も発生しない。</summary>
+        // 終わりの状態（救えた、または黒客）。このあとこの客で得点も救済も起きない
         public bool IsFinished => _state != null && _state.IsFinished;
 
         private void Awake()
@@ -52,22 +52,22 @@ namespace Toufuku.Rescue
             _state = GetComponent<CustomerState>();
         }
 
-        /// <summary>
-        /// スポーン時にこの客のタイプと相性テーブルを差し込む用（#16 のスポーン側から呼ぶ想定）。
-        /// table を渡すとテーブル判定に切り替わる。
-        /// </summary>
+        /*
+            出てくるときに、この客のタイプと相性の表を入れる用（#16 の出す側から呼ぶつもり）
+            table を渡すと表での判定に切りかわる
+        */
         public void Setup(CustomerType type, OmamoriAffinityTable table = null)
         {
             customerType = type;
             if (table != null) affinityTable = table;
         }
 
-        /// <summary>
-        /// 客タイプ定義(#16)を丸ごと差し込む版。スポーン側はカタログから引いた
-        /// <see cref="CustomerProfile"/> を渡すだけで、客タイプ・正解お守り（フォールバック）が
-        /// まとめて設定される。table を渡せば相性テーブル判定に切り替わる。
-        /// 見た目(Sprite/Prefab/色)の適用はスポーン側の担当（このコンポーネントは判定のみ）。
-        /// </summary>
+        /*
+            客のタイプの決まり（#16）をまるごと入れるバージョン。出す側はカタログから取った
+            CustomerProfile を渡すだけで、客のタイプと正解のお守り（予備）が
+            まとめて設定される。table を渡せば相性の表での判定に切りかわる
+            見た目（Sprite/Prefab/色）を入れるのは出す側の担当（このコンポーネントは判定だけ）
+        */
         public void Setup(CustomerProfile profile, OmamoriAffinityTable table = null)
         {
             if (profile == null) return;
@@ -76,33 +76,35 @@ namespace Toufuku.Rescue
             if (table != null) affinityTable = table;
         }
 
-        /// <summary>
-        /// お守りが命中したときに OmamoriHitResolver から呼ぶ。
-        /// 相性判定の結果を返すので、呼び出し側でコンボ/スコア処理に使える。
-        /// </summary>
-        /// <param name="hitType">当たったお守りの種類</param>
-        /// <returns>相性◯/✗の判定結果</returns>
+        /*
+            お守りが当たったときに OmamoriHitResolver から呼ぶ
+            相性の判定の結果を返すので、呼ぶ側でコンボやスコアの処理に使える
+            hitType: 当たったお守りの種類
+            返す値: 相性◯/✗の判定結果
+        */
         public Affinity ApplyHit(OmamoriType hitType)
         {
-            // 相性テーブル(#12)があれば客タイプで判定。無ければ従来の正解一致で判定。
-            // ※ テーブル設定時、correctOmamori は判定に使われない。customerType の設定漏れ
-            //   （correctOmamori だけオーバーライド等）は全員 Kenkou 扱いになるので注意。
+            /*
+                相性の表（#12）があれば客のタイプで判定する。なければ前と同じで正解と同じかで判定する
+                ※ 表を入れているときは correctOmamori は判定に使われない。customerType の設定をわすれる
+                  （correctOmamori だけ上書きした、など）と全員 Kenkou あつかいになるので注意
+            */
             Affinity affinity = affinityTable != null
                 ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
                 : AffinityResolver.Resolve(correctOmamori, hitType);
 
-            // 終端状態（救済成功 / 黒客）では D も R も動かさない（二重判定防止）。
+            // 終わりの状態（救えた / 黒客）では D も R も動かさない（2回判定しないように）
             if (_state == null || !_state.IsActive) return affinity;
 
             if (affinity == Affinity.Good)
             {
-                _state.ApplyCorrectColorHit(); // R を1減らす。D は変えない。R=0 で救済完了。
+                _state.ApplyCorrectColorHit(); // R を1減らす。D は変えない。R=0 で救えた
                 onGoodHit?.Invoke();
             }
             else
             {
-                _state.ApplyWrongColorHit();   // D も R も変えない（v8変更点2）。
-                onBadHit?.Invoke();            // ← 福の連なり C とご加護進捗 G のリセット／渋るリアクション（#14）
+                _state.ApplyWrongColorHit();   // D も R も変えない（v8 の変更点2）
+                onBadHit?.Invoke();            // ← 福の連なり C とご加護の進み G のリセット、渋るリアクション（#14）
             }
 
             return affinity;

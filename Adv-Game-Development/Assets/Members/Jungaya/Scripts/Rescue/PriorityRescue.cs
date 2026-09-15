@@ -5,29 +5,29 @@ using Toufuku.Playtest;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 優先救済（二重円）の対象を決め、加点の可否を判定する — Issue #55（仕様書 v8 6章・7章／付録B B-2・PRIORITY.MARK）
-    ///
-    /// 候補集合（v8 6章「最危険マーク＝優先救済候補」）:
-    ///   ・<b>画面内</b>にいる、active かつ 未救済・非黒客・R&gt;0 の客だけ。入場中・退場中・黒客は入れない。
-    ///   ・その中で危険度 D が最大の 1 人。同値順は <see cref="PriorityTarget"/>（D 最大 → 遠い → active 化が早い → 生成ID 昇順）。
-    ///   ・閾値は無い（付録B PRIORITY.MARK：対象数 1 人／D 閾値なし）。D&lt;50 でも必ず 1 人に決まる。
-    ///
-    /// 加点（v8 7章）:
-    ///   ・通常弾の SwingAccepted 時点の対象IDを弾へ保存し（<see cref="OmamoriProjectile.PriorityTargetId"/>）、
-    ///     着弾でその ID の客を<b>救済完了させた</b>ときだけ +50（<see cref="IsBonusHit"/>）。
-    ///   ・飛翔 0.65 秒の間に二重円が別の客へ移っても、保存値は変えない＝表示どおり狙った加点は消えない。
-    ///
-    /// 同じフレーム内で何度呼んでも選び直さない（1 フレーム 1 回だけ計算してキャッシュする）。
-    /// 二重円の表示（<see cref="CustomerGroundRing"/>）・発射時の保存（OnusaThrower）・計測ログ（#63）が
-    /// この 1 か所を見るので、「画面で光っている客」と「加点対象の客」が食い違わない。
-    /// </summary>
+    /*
+        優先救済（二重円）の相手を決めて、ボーナスが入るかを判定するクラス（#55 / 企画書 v8 6章・7章、付録B B-2・PRIORITY.MARK）
+
+        候補の集め方（v8 6章「最危険マーク＝優先救済候補」）:
+          ・画面の中にいる、active で、まだ救われていない・黒客じゃない・R>0 の客だけ。入ってくる途中・帰っている途中・黒客は入れない
+          ・その中で危険度 D がいちばん大きい1人。同じ値のときの順番は PriorityTarget（D が大きい → 遠い → active になったのが早い → 生成IDが小さい）
+          ・しきい値はない（付録B PRIORITY.MARK: 相手は1人、D のしきい値なし）。D が 50 より小さくても必ず1人に決まる
+
+        ボーナス（v8 7章）:
+          ・ふつうの弾の SwingAccepted の時点の相手のIDを弾に保存して（OmamoriProjectile.PriorityTargetId）、
+            落ちたときにそのIDの客を救えたときだけ +50（IsBonusHit）
+          ・飛んでいる 0.65 秒の間に二重円が別の客に移っても、保存した値は変えない＝表示を見てねらったボーナスは消えない
+
+        同じフレームの中で何回呼んでも選びなおさない（1フレームに1回だけ計算して、とっておく）
+        二重円の表示（CustomerGroundRing）・発射したときの保存（OnusaThrower）・計測ログ（#63）が
+        この1か所を見るので、「画面で光っている客」と「ボーナスの相手の客」がずれない
+    */
     public static class PriorityRescue
     {
-        /// <summary>優先対象が居ない／保存していないことを表す ID。</summary>
+        // 優先の相手がいない・保存していないことを表すID
         public const int NoTarget = 0;
 
-        /// <summary>画面内判定の余白（ビューポート比）。端ぎりぎりの客を落とさないための遊び。</summary>
+        // 画面の中かを判定するときのよゆう（ビューポートのわりあい）。はしギリギリの客を落とさないための遊び
         public static float ScreenMargin = 0.02f;
 
         static readonly List<PriorityCandidate> s_candidates = new List<PriorityCandidate>();
@@ -37,13 +37,11 @@ namespace Toufuku.Rescue
         static Camera s_camera;
         static OnusaAimController s_aim;
 
-        /// <summary>距離を測る基準点の上書き（検証シーン用）。null ならプレイヤーの照準基準点 → カメラ位置の順で決める。</summary>
+        // 距離を測る基準点を上書きする（検証のシーン用）。null ならプレイヤーの照準の基準点 → カメラの位置 の順で決める
         public static Vector3? OriginOverride;
-        /// <summary>画面内判定に使うカメラの上書き（検証シーン用）。null なら照準のカメラ → Camera.main の順で決める。</summary>
+        // 画面の中かを判定するカメラを上書きする（検証のシーン用）。null なら照準のカメラ → Camera.main の順で決める
         public static Camera CameraOverride;
-        /// <summary>
-        /// 候補にする的の一覧の上書き（検証・テスト用）。null ならシーン上の有効な <see cref="HitZoneTarget"/> 全部。
-        /// </summary>
+        // 候補にする的の一覧を上書きする（検証・テスト用）。null ならシーンにある有効な HitZoneTarget ぜんぶ
         public static System.Func<IReadOnlyList<HitZoneTarget>> TargetSource;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -59,7 +57,7 @@ namespace Toufuku.Rescue
             ScreenMargin = 0.02f;
         }
 
-        /// <summary>いまの優先対象（二重円の客）の生成ID。候補が居なければ null。</summary>
+        // 今の優先の相手（二重円の客）の生成ID。候補がいなければ null
         public static int? CurrentTargetId
         {
             get
@@ -69,23 +67,23 @@ namespace Toufuku.Rescue
             }
         }
 
-        /// <summary>いまの優先対象の生成ID。居なければ <see cref="NoTarget"/>（＝0）。</summary>
+        // 今の優先の相手の生成ID。いなければ NoTarget（＝0）
         public static int CurrentTargetIdOrNone => CurrentTargetId ?? NoTarget;
 
-        /// <summary>この客がいまの優先対象か。</summary>
+        // この客が今の優先の相手かどうか
         public static bool IsPriority(int customerId)
         {
             return customerId > 0 && CurrentTargetId == customerId;
         }
 
-        /// <summary>
-        /// この着弾で優先救済の +50 が入るか。
-        /// 発射時に保存した対象IDと、<b>この弾が救済完了させた</b>客の ID が一致したときだけ true。
-        /// 途中命中（欲張り客の1発目など）は救済完了ではないので加点しない（付録B B-2「部分点なし」）。
-        /// </summary>
-        /// <param name="savedTargetId">SwingAccepted 時点の優先対象ID（弾が保存した値）。</param>
-        /// <param name="rescuedCustomerId">当たった客の生成ID。</param>
-        /// <param name="rescued">この命中で救済が完了したか（R=0 になったか）。</param>
+        /*
+            この着弾で優先救済の +50 が入るかどうか
+            発射したときに保存した相手のIDと、この弾で救えた客のIDが同じときだけ true
+            とちゅうの当たり（欲張り客の1発目など）は救えたわけじゃないのでボーナスは入れない（付録B B-2「部分点なし」）
+            savedTargetId: SwingAccepted の時点の優先の相手のID（弾が保存した値）
+            rescuedCustomerId: 当たった客の生成ID
+            rescued: この当たりで救えたかどうか（R=0 になったか）
+        */
         public static bool IsBonusHit(int savedTargetId, int rescuedCustomerId, bool rescued)
         {
             return rescued
@@ -94,7 +92,7 @@ namespace Toufuku.Rescue
                 && savedTargetId == rescuedCustomerId;
         }
 
-        /// <summary>このフレームの優先対象を選び直す（通常は自動。検証シーン・テストから明示的に呼ぶこともできる）。</summary>
+        // このフレームの優先の相手を選びなおす（ふつうは自動。検証のシーンやテストからわざと呼ぶこともできる）
         public static int? Refresh()
         {
             s_frame = Time.frameCount;
@@ -102,7 +100,7 @@ namespace Toufuku.Rescue
             return s_target;
         }
 
-        /// <summary>いまの候補集合（確認・検証用。戻り値は次の <see cref="Refresh"/> で上書きされる作業用リスト）。</summary>
+        // 今の候補の集まり（確認・検証用。返すリストは次の Refresh で上書きされる作業用のもの）
         public static IReadOnlyList<PriorityCandidate> CollectCandidates()
         {
             Camera cam = ResolveCamera();
@@ -117,7 +115,7 @@ namespace Toufuku.Rescue
                 if (target == null) continue;
 
                 CustomerState state = target.GetComponent<CustomerState>();
-                // 候補集合（v8 6章）: active かつ 未救済・非黒客・R>0 だけ。入場中・退場中・黒客はここで落ちる。
+                // 候補の集め方（v8 6章）: active で、まだ救われていない・黒客じゃない・R>0 の客だけ。入ってくる途中・帰っている途中・黒客はここで落ちる
                 if (state == null || !state.IsRescueTarget) continue;
 
                 Vector3 center = target.Center;
@@ -131,7 +129,7 @@ namespace Toufuku.Rescue
             return s_candidates;
         }
 
-        /// <summary>画面内か。カメラが無いシーン（テスト・ヘッドレス）では全員を画面内として扱う。</summary>
+        // 画面の中かどうか。カメラがないシーン（テストや画面なし）では、全員を画面の中としてあつかう
         public static bool IsOnScreen(Camera cam, Vector3 worldPoint)
         {
             if (cam == null) return true;

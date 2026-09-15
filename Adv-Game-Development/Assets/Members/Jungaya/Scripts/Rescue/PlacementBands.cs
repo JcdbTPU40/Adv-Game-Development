@@ -3,23 +3,23 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 近／中／遠の距離帯の割り当て（企画書 v8 8章「空間配置の比率」／付録B PLACEMENT）— Issue #62
-    ///
-    ///   ・比率 40／40／20% は「新規1体ごとの抽選率」ではなく、定位置にいる非黒客の<b>目標占有率</b>。
-    ///   ・現在上限に比率を掛けて最大剰余法で整数枠へ丸め（<see cref="Quotas"/>）、
-    ///     補充時は不足率が最大の帯を優先する（<see cref="Choose"/>）。
-    ///   ・遠方客は必ず遠へ置く。遠に空きがなくて置けないときだけ、次に不足する帯へ回す。
-    ///
-    /// MonoBehaviour 非依存。境界はエディタテストで検証する（PlacementBandsTests）。
-    /// </summary>
+    /*
+        近い・中・遠いの距離の帯を割りふるクラス（企画書 v8 8章「空間配置の比率」、付録B PLACEMENT）（#62）
+
+          ・わりあい 40/40/20% は「新しく1人出すごとのくじのわりあい」じゃなくて、定位置にいる黒客じゃない客の「目標のわりあい」
+          ・今の上限にわりあいをかけて、最大剰余法で整数の枠にする（Quotas）
+            補充するときは、いちばん足りない帯を優先する（Choose）
+          ・遠方客は必ず遠い帯に置く。遠い帯に空きがなくて置けないときだけ、次に足りない帯に回す
+
+        MonoBehaviour は使っていない。さかい目はエディタのテストで確かめる（PlacementBandsTests）
+    */
     public static class PlacementBands
     {
-        /// <summary>
-        /// 最大剰余法で上限を帯ごとの整数枠へ分ける。端数が同じなら添字の小さい帯（手前）へ回す。
-        /// </summary>
-        /// <param name="capacity">現在の上限人数。</param>
-        /// <param name="shares">帯ごとの比率（合計が1や100でなくてよい）。</param>
+        /*
+            最大剰余法で、上限を帯ごとの整数の枠に分ける。はんぱが同じなら番号が小さい帯（手前）に回す
+            capacity: 今の上限の人数
+            shares: 帯ごとのわりあい（合計が1や100じゃなくてもいい）
+        */
         public static int[] Quotas(int capacity, IReadOnlyList<float> shares)
         {
             int n = shares != null ? shares.Count : 0;
@@ -48,22 +48,22 @@ namespace Toufuku.Rescue
                     if (remainders[i] > remainders[best] + 1e-9) best = i;
                 }
                 quotas[best]++;
-                remainders[best] = -1.0;   // 同じ帯に2つ目の端数を回さない
+                remainders[best] = -1.0;   // 同じ帯に2つ目のはんぱを回さない
             }
             return quotas;
         }
 
-        /// <summary>
-        /// 補充する帯を選ぶ。
-        ///   1) <paramref name="requiredBand"/> が指定され、そこに空きがあればそこ（遠方客＝遠）
-        ///   2) それ以外は、空きがある帯のうち不足率（(枠−占有) ÷ 枠）が最大の帯。同率なら手前（添字が小さい方）
-        /// </summary>
-        /// <param name="quotas">帯ごとの目標枠（<see cref="Quotas"/>）。</param>
-        /// <param name="occupied">帯ごとの、定位置にいる（向かっている）非黒客の数。</param>
-        /// <param name="hasFree">帯ごとに空き定位置があるか。</param>
-        /// <param name="requiredBand">置く帯が決まっている客種の帯。無ければ -1。</param>
-        /// <param name="fellBack">指定の帯に空きがなく、別の帯へ回したら true（ログに残す）。</param>
-        /// <returns>帯の添字。どこにも空きがなければ -1。</returns>
+        /*
+            補充する帯を選ぶ
+              1) requiredBand が決まっていて、そこに空きがあればそこ（遠方客＝遠い帯）
+              2) それ以外は、空きがある帯のうち足りないわりあい（(枠−いる人数) ÷ 枠）がいちばん大きい帯。同じなら手前（番号が小さいほう）
+            quotas: 帯ごとの目標の枠（Quotas）
+            occupied: 帯ごとの、定位置にいる（向かっている）黒客じゃない客の数
+            hasFree: 帯ごとに空いている定位置があるか
+            requiredBand: 置く帯が決まっている種類の客の帯。なければ -1
+            fellBack: 決まった帯に空きがなくて、別の帯に回したら true（ログに残す）
+            返す値: 帯の番号。どこにも空きがなければ -1
+        */
         public static int Choose(IReadOnlyList<int> quotas, IReadOnlyList<int> occupied, IReadOnlyList<bool> hasFree,
                                  int requiredBand, out bool fellBack)
         {
@@ -91,17 +91,17 @@ namespace Toufuku.Rescue
             return best;
         }
 
-        /// <summary>不足率。枠が0の帯は、占有が増えるほど後回しになる負の値にする。</summary>
+        // 足りないわりあい。枠が0の帯は、いる人数が増えるほどあと回しになるマイナスの値にする
         public static double DeficitRate(int quota, int occupied)
         {
             if (quota <= 0) return -1.0 - occupied;
             return (double)(quota - occupied) / quota;
         }
 
-        /// <summary>
-        /// 基準点から水平距離 <paramref name="distance"/> にあり、左右に <paramref name="lateral"/> ずれた点の、
-        /// 奥行き方向の距離。左右のずれが距離を超えるときは 0。
-        /// </summary>
+        /*
+            基準点から水平距離 distance のところにあって、左右に lateral ずれた点の、
+            奥行きの方向の距離。左右のずれが距離より大きいときは 0
+        */
         public static float DepthAtDistance(float distance, float lateral)
         {
             float d2 = distance * distance - lateral * lateral;

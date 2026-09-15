@@ -3,25 +3,25 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 移動客の往復経路（企画書 v8 10章「移動客：定位置到着後、現在の距離帯の中を左右3mの往復経路で移動。奥行帯は変えない」
-    /// ／付録B MOVE.SPEED 1.0m/s）— Issue #62
-    ///
-    ///   ・経路は定位置を中心にした左右（X方向）の線分。奥行き（Z）は変えない。
-    ///   ・「左右3m」は端から端までの幅として扱う（中心から ±1.5m）。
-    ///   ・中心から歩き出し、片端で折り返す三角波。位置は「歩いた道のり」だけで決まるので、
-    ///     同じ速度・同じ向きなら何度やっても同じ経路をたどる（固定シードで再現できる）。
-    ///
-    /// MonoBehaviour 非依存。境界はエディタテストで検証する（CustomerPathsTests）。
-    /// </summary>
+    /*
+        移動客の往復の道（企画書 v8 10章「移動客：定位置に着いたら、今の距離の帯の中を左右3mの往復の道で動く。奥行きの帯は変えない」
+        、付録B MOVE.SPEED 1.0m/s）（#62）
+
+          ・道は定位置を真ん中にした左右（X方向）の線。奥行き（Z）は変えない
+          ・「左右3m」は、はしからはしまでのはばとしてあつかう（真ん中から ±1.5m）
+          ・真ん中から歩き出して、はしで折り返す三角波。位置は「歩いた道のり」だけで決まるので、
+            同じ速さで同じ向きなら何回やっても同じ道を通る（決まったシードで同じにできる）
+
+        MonoBehaviour は使っていない。さかい目はエディタのテストで確かめる（CustomerPathsTests）
+    */
     public static class PatrolPath
     {
-        /// <summary>
-        /// 経路の中心から見た左右のずれ。
-        /// </summary>
-        /// <param name="width">往復の幅（端から端、m）。</param>
-        /// <param name="travelled">歩き始めてからの道のり（m）。</param>
-        /// <param name="startSign">+1 なら右（+X）へ、-1 なら左（-X）へ歩き出す。</param>
+        /*
+            道の真ん中から見た、左右のずれ
+            width: 往復のはば（はしからはし、m）
+            travelled: 歩き始めてからの道のり（m）
+            startSign: +1 なら右（+X）へ、-1 なら左（-X）へ歩き出す
+        */
         public static float Offset(float width, float travelled, int startSign)
         {
             float half = Mathf.Max(0f, width) * 0.5f;
@@ -31,14 +31,14 @@ namespace Toufuku.Rescue
             float s = Mathf.Repeat(Mathf.Max(0f, travelled), period);
 
             float offset;
-            if (s < half) offset = s;                         // 中心 → 片端
-            else if (s < 3f * half) offset = 2f * half - s;   // 片端 → 反対の端
-            else offset = s - 4f * half;                      // 反対の端 → 中心
+            if (s < half) offset = s;                         // 真ん中 → 片方のはし
+            else if (s < 3f * half) offset = 2f * half - s;   // 片方のはし → 反対のはし
+            else offset = s - 4f * half;                      // 反対のはし → 真ん中
 
             return startSign >= 0 ? offset : -offset;
         }
 
-        /// <summary>経路が帯の左右範囲からはみ出さないよう、中心を内側へ寄せる。帯が経路より狭ければ帯の中央。</summary>
+        // 道が帯の左右のはんいからはみ出さないように、真ん中を内側に寄せる。帯が道よりせまければ帯の真ん中
         public static float ClampCenter(float center, float width, float minX, float maxX)
         {
             float lo = Mathf.Min(minX, maxX);
@@ -48,10 +48,10 @@ namespace Toufuku.Rescue
             return Mathf.Clamp(center, lo + half, hi - half);
         }
 
-        /// <summary>
-        /// 2本の左右レーン（XZ平面の水平な線分）の最短距離。幅0なら点として扱う。
-        /// 移動客の経路の上に別の客を立たせない（通り抜けて重ならない）ための間隔の判定に使う。
-        /// </summary>
+        /*
+            左右のレーン2本（XZ平面の水平な線）のいちばん近い距離。はばが0なら点としてあつかう
+            移動客の道の上にほかの客を立たせない（通りぬけて重ならない）ための間かくの判定に使う
+        */
         public static float LaneToLane(Vector3 centerA, float widthA, Vector3 centerB, float widthB)
         {
             float gapX = Mathf.Max(0f, Mathf.Abs(centerA.x - centerB.x) - Mathf.Max(0f, widthA) * 0.5f - Mathf.Max(0f, widthB) * 0.5f);
@@ -60,17 +60,17 @@ namespace Toufuku.Rescue
         }
     }
 
-    /// <summary>
-    /// 退場経路（企画書 v8 6章「救済成功／失敗の演出」：救済3秒／黒客4秒かけて参道を歩いて退場）— Issue #62
-    ///
-    ///   ・出口は手前（プレイヤー側）の左右に置く。客は左右位置が近い方の出口へまっすぐ歩く。
-    ///   ・奥の客ほど帰路が長く、手前の客の間を通り抜けるので、すれ違う人数が増える
-    ///     （6章「参道の奥にいる参拝客ほど、すれ違う人数が多くなる」／7章 遠方客「帰路が長く伝播人数が多い」）。
-    ///   ・歩く時間は退場秒数で固定なので、帰路が長い客ほど速く歩く。
-    /// </summary>
+    /*
+        帰り道（企画書 v8 6章「救済成功／失敗の演出」: 救済は3秒、黒客は4秒かけて参道を歩いて帰る）（#62）
+
+          ・出口は手前（プレイヤーのほう）の左右に置く。客は左右の位置が近いほうの出口にまっすぐ歩く
+          ・奥の客ほど帰り道が長くて、手前の客の間を通りぬけるので、すれちがう人数が増える
+            （6章「参道の奥にいる参拝客ほど、すれ違う人数が多くなる」、7章 遠方客「帰路が長く伝播人数が多い」）
+          ・歩く時間は帰る秒数で決まっているので、帰り道が長い客ほど速く歩く
+    */
     public static class ExitRoute
     {
-        /// <summary>左右位置（X）が最も近い出口を選ぶ。同じ近さなら添字の小さい方。出口が無ければ -1。</summary>
+        // 左右の位置（X）がいちばん近い出口を選ぶ。同じ近さなら番号が小さいほう。出口がなければ -1
         public static int Choose(Vector3 from, IReadOnlyList<Vector3> exits)
         {
             if (exits == null || exits.Count == 0) return -1;
@@ -89,7 +89,7 @@ namespace Toufuku.Rescue
             return best;
         }
 
-        /// <summary>出口までの水平距離（帰路の長さ）。</summary>
+        // 出口までの水平距離（帰り道の長さ）
         public static float Length(Vector3 from, Vector3 exit)
         {
             float dx = exit.x - from.x;

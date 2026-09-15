@@ -2,22 +2,22 @@ using UnityEngine;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 生成された客に「客タイプ定義(#16)」を適用するコンポーネント。
-    ///
-    /// 役割:
-    ///   ・<see cref="CustomerProfileCatalog"/> からプロフィールを引き、
-    ///     <see cref="CustomerRescue.Setup(CustomerProfile, OmamoriAffinityTable)"/> で
-    ///     客タイプ・正解お守り・相性テーブルを注入する。
-    ///   ・見た目（代表カラー / プレースホルダーSprite / 見た目Prefab）を“プレースホルダー”として反映。
-    ///     ＝ ラベルではなく見た目で客の悩みを察させる（#16の方針）。
-    ///
-    /// 使い方:
-    ///   ・客プレハブにこのコンポーネントを付け、catalog を割り当てるだけ。
-    ///     pickRandomOnStart が ON なら、生成された瞬間にランダムな客タイプへ自分で化ける。
-    ///   ・スポナー側でタイプを決めたい場合は pickRandomOnStart を OFF にして
-    ///     <see cref="Apply(CustomerProfile, CustomerProfileCatalog)"/> を呼ぶ。
-    /// </summary>
+    /*
+        作られた客に「客のタイプの決まり（#16）」を入れるコンポーネント
+
+        役割:
+          ・CustomerProfileCatalog からプロフィールを取って、
+            CustomerRescue.Setup(CustomerProfile, OmamoriAffinityTable) で
+            客のタイプ・正解のお守り・相性の表を入れる
+          ・見た目（代表の色 / 仮の Sprite / 見た目の Prefab）を「仮のもの」として反映する
+            ＝ 名前じゃなくて見た目で客のなやみをわかってもらう（#16 の方針）
+
+        使い方:
+          ・客のプレハブにこのコンポーネントを付けて、catalog を入れるだけ
+            pickRandomOnStart が ON なら、作られた瞬間にランダムな客のタイプに自分で変わる
+          ・スポナーのほうでタイプを決めたいときは pickRandomOnStart を OFF にして、
+            Apply(CustomerProfile, CustomerProfileCatalog) を呼ぶ
+    */
     [RequireComponent(typeof(CustomerRescue))]
     public class CustomerProfileApplier : MonoBehaviour
     {
@@ -41,10 +41,10 @@ namespace Toufuku.Rescue
         [Tooltip("viewPrefab を生成する親。未設定ならこの GameObject。")]
         [SerializeField] private Transform viewMount;
 
-        /// <summary>適用中のプロフィール（未適用なら null）。</summary>
+        // 今使っているプロフィール（まだ入れていなければ null）
         public CustomerProfile Current { get; private set; }
 
-        // 色プロパティ名（Built-in: _Color / URP: _BaseColor）。両方に書けば描画パイプライン非依存。
+        // 色のプロパティ名（Built-in: _Color / URP: _BaseColor）。両方に書けば、どっちの描画パイプラインでも動く
         private static readonly int ColorId = Shader.PropertyToID("_Color");
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private MaterialPropertyBlock _mpb;
@@ -58,15 +58,15 @@ namespace Toufuku.Rescue
 
         private void Start()
         {
-            // 外部から Apply 済みでなければ、ランダムに自分で化ける。
-            // #63: 計測プレイ中は客ID ごとの固定シードの列で抽選する
+            /*
+                外から Apply されていなければ、ランダムに自分で変わる
+                #63: 計測プレイ中は、客IDごとに決まったシードの乱数でくじを引く
+            */
             if (Current == null && pickRandomOnStart && catalog != null)
                 Apply(catalog.GetRandom(Toufuku.Playtest.PlaytestRandom.TryForCustomer(gameObject, Toufuku.Playtest.PlaytestStreams.Profile)));
         }
 
-        /// <summary>
-        /// 指定プロフィールを適用する（スポナーがタイプを決める場合）。
-        /// </summary>
+        // 決めたプロフィールを入れる（スポナーがタイプを決めるとき）
         public void Apply(CustomerProfile profile)
         {
             if (profile == null) return;
@@ -79,9 +79,7 @@ namespace Toufuku.Rescue
             ApplyVisual(profile);
         }
 
-        /// <summary>
-        /// カタログ参照ごと差し込む版（スポナー側で catalog を渡したいとき）。
-        /// </summary>
+        // カタログもいっしょに入れるバージョン（スポナーのほうで catalog を渡したいとき）
         public void Apply(CustomerProfile profile, CustomerProfileCatalog fromCatalog)
         {
             if (fromCatalog != null) catalog = fromCatalog;
@@ -90,11 +88,11 @@ namespace Toufuku.Rescue
 
         private void ApplyVisual(CustomerProfile p)
         {
-            // プレースホルダーSprite（2D）。
+            // 仮の Sprite（2D）
             if (applySprite && targetSprite != null && p.PlaceholderSprite != null)
                 targetSprite.sprite = p.PlaceholderSprite;
 
-            // 代表カラー（絵が無い間の見分け）。
+            // 代表の色（絵がない間に見分けるため）
             if (applyColor)
             {
                 if (targetSprite != null)
@@ -103,7 +101,7 @@ namespace Toufuku.Rescue
                 }
                 else if (targetRenderer != null)
                 {
-                    // MaterialPropertyBlock で塗る＝共有マテリアルを複製せず他インスタンスに影響しない。
+                    // MaterialPropertyBlock でぬる＝共有しているマテリアルをコピーしないので、ほかの客にえいきょうしない
                     if (_mpb == null) _mpb = new MaterialPropertyBlock();
                     targetRenderer.GetPropertyBlock(_mpb);
                     _mpb.SetColor(ColorId, p.RepresentativeColor);
@@ -111,12 +109,12 @@ namespace Toufuku.Rescue
                     targetRenderer.SetPropertyBlock(_mpb);
                 }
 
-                // 渋り演出(#14)のフラッシュ戻り先をこの代表カラーへそろえる。
+                // 渋るリアクション（#14）のフラッシュのあとにもどる色を、この代表の色にそろえる
                 CustomerReluctance reluctance = GetComponent<CustomerReluctance>();
                 if (reluctance != null) reluctance.SetBaseColor(p.RepresentativeColor);
             }
 
-            // 見た目Prefab（3D/演出付き）。
+            // 見た目の Prefab（3D や演出付き）
             if (spawnViewPrefab && p.ViewPrefab != null)
             {
                 Transform mount = viewMount != null ? viewMount : transform;

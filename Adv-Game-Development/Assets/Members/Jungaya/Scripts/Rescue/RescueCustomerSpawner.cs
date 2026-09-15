@@ -3,17 +3,17 @@ using Toufuku.Playtest;
 
 namespace Toufuku.Rescue
 {
-    /// <summary>
-    /// 客タイプカタログ(#16)を使って客を生成する簡易スポナー（任意利用）。
-    ///
-    /// ・一定間隔でプレハブを生成し、カタログからランダムなプロフィールを適用する。
-    /// ・プレハブに <see cref="CustomerProfileApplier"/> が付いていればそれに委譲し、
-    ///   見た目（代表カラー/Sprite/Prefab）＋正解お守りをまとめて反映させる。
-    ///   付いていなければ <see cref="CustomerRescue"/> へ直接 Setup する（最低限の判定だけ動く）。
-    ///
-    /// 既存の Customer_Spawner とは独立。Rescue 系の動作確認用にシーンへ1つ置いて使う想定。
-    /// ※ 常時補充制を本実装する際の注意：上限低下で体数が超過しても、既にいる客は強制退場させず自然減を待つこと（企画書v3 §7/§8。MockCrowdDirector.BalanceToTarget と同方針）。
-    /// </summary>
+    /*
+        客のタイプのカタログ（#16）を使って客を作る、かんたんなスポナー（使っても使わなくてもいい）
+
+        ・決まった間かくでプレハブを作って、カタログからランダムなプロフィールを入れる
+        ・プレハブに CustomerProfileApplier が付いていればそっちにまかせて、
+          見た目（代表の色/Sprite/Prefab）＋正解のお守りをまとめて反映させる
+          付いていなければ CustomerRescue に直接 Setup する（最低限の判定だけ動く）
+
+        もとからある Customer_Spawner とは関係なく動く。Rescue まわりの動作確認用に、シーンに1つ置いて使うつもり
+        ※ ずっと補充するやり方を本番で作るときの注意: 上限が下がって人数が多くなっても、もういる客をむりやり帰らせないで、自然に減るのを待つこと（企画書 v3 §7/§8。MockCrowdDirector.BalanceToTarget と同じ方針）
+    */
     public class RescueCustomerSpawner : MonoBehaviour
     {
         [Header("生成元")]
@@ -53,7 +53,7 @@ namespace Toufuku.Rescue
         {
             if (customerPrefab == null || catalog == null) return;
 
-            // セッション終了中（リザルト）はスポーン停止（#32）
+            // ゲームが終わっている間（リザルト）は客を出さない（#32）
             if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
 
             _timer -= Time.deltaTime;
@@ -64,26 +64,26 @@ namespace Toufuku.Rescue
             }
         }
 
-        /// <summary>
-        /// 1体生成して、カタログからランダムなプロフィールを適用する。生成した GameObject を返す。
-        /// </summary>
+        // 1人作って、カタログからランダムなプロフィールを入れる。作った GameObject を返す
         public GameObject Spawn()
         {
             if (customerPrefab == null) return null;
 
-            // #63: 計測プレイ中は「客ID × 用途」の固定シードの列で抽選する（未制御なら UnityEngine.Random）
+            // #63: 計測プレイ中は「客ID × 使いみち」の決まったシードの乱数でくじを引く（管理されていなければ UnityEngine.Random）
             int id = CustomerSpawnId.NextId;
             float x = PlaytestRandom.Range(PlaytestRandom.TryFor(PlaytestStreams.Placement, id), spawnXRange.x, spawnXRange.y);
             Vector3 pos = new Vector3(x, spawnY, spawnZ);
             GameObject go = Instantiate(customerPrefab, pos, Quaternion.identity);
             CustomerSpawnId.Assign(go, CustomerSpawnId.CategoryNormal);
 
-            // 救済成功/黒客化 → 神社評価(#30) の結線。プレハブに付け忘れていても動くよう保険で付与。
+            // 救えた・黒客になった → 神社の評価（#30）につなぐ。プレハブに付けわすれていても動くように、念のため付ける
             if (go.GetComponent<CustomerState>() != null && go.GetComponent<ShrineRatingHook>() == null)
                 go.AddComponent<ShrineRatingHook>();
 
-            // 客種の数値（初期R・D満タン秒数・基礎点）を差し込む。通常客のD満タン秒数（15〜25秒）は
-            // 「客ID × 用途」の固定シードで引く（#63 の再現性を保つ）。
+            /*
+                客の種類の数値（最初のR・D が満タンになる秒数・基礎点）を入れる。通常客の D が満タンになる秒数（15〜25秒）は
+                「客ID × 使いみち」の決まったシードで引く（#63 で同じ結果にできるようにするため）
+            */
             CustomerState state = go.GetComponent<CustomerState>();
             if (state != null && kindTable != null)
                 state.Setup(customerKind, kindTable, PlaytestRandom.Value(PlaytestRandom.TryFor(PlaytestStreams.DangerSeconds, id)));
@@ -97,7 +97,7 @@ namespace Toufuku.Rescue
             }
             else
             {
-                // Applier 無しプレハブでも最低限：相性判定だけは効くようにしておく。
+                // Applier がないプレハブでも最低限、相性の判定だけは効くようにしておく
                 CustomerRescue rescue = go.GetComponent<CustomerRescue>();
                 if (rescue != null && profile != null)
                     rescue.Setup(profile, catalog != null ? catalog.AffinityTable : null);

@@ -8,28 +8,28 @@ using UnityEngine.Rendering.Universal;
 
 namespace Toufuku.Rescue.Outline
 {
-    /// <summary>
-    /// ステンシル＋マスクRT方式のアウトライン Renderer Feature（#45）。
-    ///
-    /// 構成（3パス）:
-    ///   1) OutlineStencilPass … フル解像度のカメラ depth-stencil に内側フラグだけを立てる（ColorMask 0）。
-    ///      ZTest LEqual で遮蔽（鳥居・提灯の裏）を従来どおり効かせる。
-    ///   2) OutlineMaskPass … 任意解像度のマスクRTへ色＋パターンを書く。深度アタッチメント無し。
-    ///      遮蔽は _CameraDepthTexture の手動サンプル＋discard。これで maskResolutionScale&lt;1 が可能。
-    ///   3) OutlineComposePass … マスクをダイレートし、Stencil NotEqual で内側を除外して縁だけ合成。
-    ///
-    /// なぜ色マスクとステンシルを分離したか:
-    ///   マスクRTを低解像度にすると RenderGraph がカラーと深度アタッチメントのサイズ一致を要求しエラーになる。
-    ///   Docs 4章の本命逃げ道「マスクRT 1/2」を塞がないため、ステンシルはフル解像度のまま残す。
-    ///   MRT や追加の R8 存在チャンネルは帯域が増えるので採用しない（A チャンネルに存在フラグを載せている）。
-    ///
-    /// Native RenderPass について:
-    ///   本 Feature はフルスクリーン Compose でカメラの depth-stencil をバインドする。
-    ///   Native RenderPass が有効だと depth-stencil のバインドが期待どおりにならないことがあるため、
-    ///   PC_Renderer では useNativeRenderPass を OFF にしてある（設定変更のコミット参照）。
-    ///
-    /// RenderGraph 必須。Compatibility Mode の Execute() は使わない。
-    /// </summary>
+    /*
+        ステンシル＋マスクRT のやり方で描くアウトラインの Renderer Feature（#45）
+
+        しくみ（3つのパス）:
+          1) OutlineStencilPass: フル解像度のカメラの depth-stencil に、内側のフラグだけを立てる（ColorMask 0）
+             ZTest LEqual で、かくれている部分（鳥居や提灯のうしろ）はいつもどおり描かない
+          2) OutlineMaskPass: 好きな解像度のマスクRT に色ともようを書く。深度のアタッチメントはなし
+             かくれているかは _CameraDepthTexture を自分で読んで discard する。これで maskResolutionScale を 1 より小さくできる
+          3) OutlineComposePass: マスクを太らせて（ダイレート）、Stencil NotEqual で内側を消して、ふちだけ合成する
+
+        なんで色のマスクとステンシルを分けたか:
+          マスクRT の解像度を下げると、RenderGraph がカラーと深度のアタッチメントのサイズが同じじゃないとだめと言ってエラーになる
+          Docs 4章の本命のにげ道「マスクRT を 1/2 にする」をつぶさないように、ステンシルはフル解像度のままにしている
+          MRT や、あるかないか用の R8 チャンネルを足すのはデータが増えるのでやらない（A チャンネルにフラグをのせている）
+
+        Native RenderPass について:
+          この Feature はフルスクリーンの Compose でカメラの depth-stencil を使う
+          Native RenderPass が有効だと depth-stencil がちゃんとつながらないことがあるので、
+          PC_Renderer では useNativeRenderPass を OFF にしてある（設定を変えたコミットを見る）
+
+        RenderGraph が必要。Compatibility Mode の Execute() は使わない
+    */
     public class OutlineRendererFeature : ScriptableRendererFeature
     {
         [Serializable]
@@ -81,7 +81,7 @@ namespace Toufuku.Rescue.Outline
             public Shader composeShader;
         }
 
-        /// <summary>マスクRTを Mask→Compose で共有するためのフレームデータ。</summary>
+        // マスクRT を Mask から Compose に渡すためのフレームのデータ
         public class OutlineFrameData : ContextItem
         {
             public TextureHandle maskTexture;
@@ -105,32 +105,32 @@ namespace Toufuku.Rescue.Outline
         Material _maskMaterial;
         Material _composeMaterial;
 
-        /// <summary>計測HUDなどから Feature の ON/OFF を切り替えるための参照。</summary>
+        // 計測の HUD などから Feature のオンオフを切りかえるための参照
         public static OutlineRendererFeature Instance => s_Instance;
 
         public Settings CurrentSettings => settings;
 
-        /// <summary>
-        /// ダイレート半径（マスクテクセル）。量子化込みの実効値。
-        /// radius = max(1, round(thicknessPx * scale))
-        /// </summary>
+        /*
+            太らせる半径（マスクのテクセル単位）。丸めたあとの実際の値
+            radius = max(1, round(thicknessPx * scale))
+        */
         public static float EffectiveRadiusMaskTexels(float thicknessPx, float maskResolutionScale)
         {
             float scale = Mathf.Clamp(maskResolutionScale, 0.25f, 1f);
             return Mathf.Max(1f, Mathf.Round(thicknessPx * scale));
         }
 
-        /// <summary>
-        /// 実効太さの画面ピクセル換算 = radius_mask / scale。
-        /// scale=0.25 では radius 下限により thicknessPx&lt;4 を表現できない点に注意。
-        /// </summary>
+        /*
+            実際の太さを画面のピクセルに直した値 = radius_mask / scale
+            scale=0.25 だと半径の下限があるので、thicknessPx が 4 より小さい太さは出せないので注意
+        */
         public static float EffectiveThicknessScreenPx(float thicknessPx, float maskResolutionScale)
         {
             float scale = Mathf.Clamp(maskResolutionScale, 0.25f, 1f);
             return EffectiveRadiusMaskTexels(thicknessPx, scale) / scale;
         }
 
-        /// <summary>アウトライン描画が有効か。</summary>
+        // アウトラインを描くのが有効かどうか
         public bool OutlineEnabled
         {
             get => isActive;
@@ -147,12 +147,12 @@ namespace Toufuku.Rescue.Outline
             _maskPass ??= new OutlineMaskPass();
             _composePass ??= new OutlineComposePass();
 
-            // Opaque の後＝カメラ深度が揃った状態でステンシル→マスク→合成。
+            // 不透明なものを描いたあと＝カメラの深度がそろった状態で、ステンシル → マスク → 合成 の順にやる
             _stencilPass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
             _maskPass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
             _composePass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
 
-            // 色マスクは手動深度比較のため Depth テクスチャが必要。Compose も距離減衰で使う。
+            // 色のマスクは自分で深度をくらべるので Depth テクスチャがいる。Compose も距離で弱くするのに使う
             _maskPass.ConfigureInput(ScriptableRenderPassInput.Depth);
             _composePass.ConfigureInput(ScriptableRenderPassInput.Depth);
         }
@@ -210,14 +210,14 @@ namespace Toufuku.Rescue.Outline
                 _composeMaterial = CreateMaterial(settings.composeShader, "Toufuku/Outline/Compose");
         }
 
-        /// <summary>
-        /// シェーダー参照からマテリアルを作る。
-        ///
-        /// Settings のシェーダー参照が空だと Shader.Find 頼みになるが、ビルドでは
-        /// このシェーダーを参照する資産が他に無いためストリップされ、Find が null を返して
-        /// アウトラインが「エラーも出ずに描かれない」状態になる（#45 で実際に踏んだ）。
-        /// Renderer Feature のインスペクタで3つとも割り当てておくこと。
-        /// </summary>
+        /*
+            シェーダーの参照からマテリアルを作る
+
+            Settings のシェーダーの参照が空だと Shader.Find にたよることになるけど、ビルドでは
+            このシェーダーを使っているファイルがほかにないので削られてしまって、Find が null を返して
+            アウトラインが「エラーも出ないのに描かれない」状態になる（#45 で実際にこれになった）
+            Renderer Feature のインスペクターで3つとも入れておくこと
+        */
         Material CreateMaterial(Shader assigned, string fallbackName)
         {
             var shader = assigned != null ? assigned : Shader.Find(fallbackName);
@@ -239,7 +239,7 @@ namespace Toufuku.Rescue.Outline
 
         bool _shaderWarningLogged;
 
-        /// <summary>有効な OutlineTarget を収集する共通処理。</summary>
+        // 有効な OutlineTarget を集める、共通の処理
         static void CollectTargets(Settings settings, List<OutlineTarget> dst)
         {
             dst.Clear();
@@ -269,12 +269,12 @@ namespace Toufuku.Rescue.Outline
             return 1;
         }
 
-        // ── Stencil Pass ─────────────────────────────────────────
+        // ---- Stencil Pass ----
 
-        /// <summary>
-        /// フル解像度のカメラ depth-stencil に内側フラグだけを立てる。
-        /// カラーアタッチメント無し（ColorMask 0）。遮蔽は ZTest LEqual。
-        /// </summary>
+        /*
+            フル解像度のカメラの depth-stencil に、内側のフラグだけを立てる
+            カラーのアタッチメントはなし（ColorMask 0）。かくれているかは ZTest LEqual で見る
+        */
         sealed class OutlineStencilPass : ScriptableRenderPass
         {
             static readonly List<OutlineTarget> s_Scratch = new List<OutlineTarget>(32);
@@ -317,9 +317,11 @@ namespace Toufuku.Rescue.Outline
                     for (int i = 0; i < s_Scratch.Count; i++)
                         passData.renderers.Add(s_Scratch[i].TargetRenderer);
 
-                    // ステンシル書き込みのため depth-stencil を ReadWrite。
-                    // カラーは ColorMask 0 だが、RenderGraph はカラーアタッチメントを要求することがあるため
-                    // 既存のカメラカラーをバインドする（書き込まない）。
+                    /*
+                        ステンシルに書きこむので depth-stencil は ReadWrite
+                        カラーは ColorMask 0 だけど、RenderGraph はカラーのアタッチメントを求めてくることがあるので、
+                        今のカメラのカラーをつないでおく（書きこみはしない）
+                    */
                     builder.SetRenderAttachment(resourceData.activeColorTexture, 0, AccessFlags.Write);
                     builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture, AccessFlags.ReadWrite);
 
@@ -338,12 +340,12 @@ namespace Toufuku.Rescue.Outline
             }
         }
 
-        // ── Mask Pass ────────────────────────────────────────────
+        // ---- Mask Pass ----
 
-        /// <summary>
-        /// 任意解像度のマスクRTへ色＋パターンを書く。深度アタッチメント無し。
-        /// 遮蔽はシェーダ内で _CameraDepthTexture を比較して discard。
-        /// </summary>
+        /*
+            好きな解像度のマスクRT に色ともようを書く。深度のアタッチメントはなし
+            かくれているかは、シェーダーの中で _CameraDepthTexture とくらべて discard する
+        */
         sealed class OutlineMaskPass : ScriptableRenderPass
         {
             static readonly int ColorId = Shader.PropertyToID("_OutlineColor");
@@ -422,7 +424,7 @@ namespace Toufuku.Rescue.Outline
                 {
                     passData.material = _material;
                     passData.depthBias = _settings.depthBiasEpsilon;
-                    // フラグメントで SV_POSITION.xy * texelSize からスクリーンUVを作るために渡す。
+                    // フラグメントで SV_POSITION.xy * texelSize からスクリーンの UV を作るために渡す
                     passData.maskTexelSize = new Vector4(1f / w, 1f / h, w, h);
                     passData.items = new List<DrawItem>(s_Scratch.Count);
                     for (int i = 0; i < s_Scratch.Count; i++)
@@ -432,12 +434,12 @@ namespace Toufuku.Rescue.Outline
                         {
                             renderer = t.TargetRenderer,
                             color = t.Color,
-                            // OutlinePattern の数値そのもの（0/1/2）。A への +1 エンコードは Mask シェーダ側。
+                            // OutlinePattern の数字そのまま（0/1/2）。A に +1 して入れるのは Mask シェーダーのほう
                             patternId = (float)(int)t.Pattern,
                         });
                     }
 
-                    // 深度アタッチメントは付けない → 任意解像度のマスクRTが可能。
+                    // 深度のアタッチメントは付けない → 好きな解像度のマスクRT にできる
                     builder.SetRenderAttachment(mask, 0, AccessFlags.Write);
 
                     if (resourceData.cameraDepthTexture.IsValid())
@@ -466,12 +468,12 @@ namespace Toufuku.Rescue.Outline
             }
         }
 
-        // ── Compose Pass ─────────────────────────────────────────
+        // ---- Compose Pass ----
 
-        /// <summary>
-        /// マスクRTをダイレートして外周リングを作り、ステンシルで内側を除外してカメラカラーへ合成する。
-        /// 太さは画面ピクセル固定（#44 ScreenConstant の経緯に合わせる）。
-        /// </summary>
+        /*
+            マスクRT を太らせて外側のリングを作って、ステンシルで内側を消してカメラのカラーに合成する
+            太さは画面のピクセルで固定（#44 の ScreenConstant のときの流れに合わせる）
+        */
         sealed class OutlineComposePass : ScriptableRenderPass
         {
             static readonly int MaskTexId = Shader.PropertyToID("_OutlineMaskTex");
@@ -521,16 +523,18 @@ namespace Toufuku.Rescue.Outline
                     passData.mask = outlineData.maskTexture;
                     passData.intensity = _settings.intensity;
 
-                    // thicknessPx は「画面上のピクセル」。ダイレート半径はマスクRTのテクセル単位。
-                    //
-                    // 換算: radius_mask = max(1, round(thicknessPx * maskResolutionScale))
-                    //   scale=1.0, thickness=3 → radius=3 → 画面上 3px
-                    //   scale=0.5, thickness=3 → radius=2 → 画面上 4px（33% 太い）
-                    //   scale=0.25, thickness=3 → radius=1（下限）→ 画面上 4px
-                    //
-                    // 量子化で太さは階段状になる。特に scale=0.25 では radius の下限 1 により
-                    // thicknessPx < 4 を画面上で表現できない（どれも 4px 相当に張り付く）。
-                    // 細さを保ったまま 1/4 にするなら thickness 側の設計見直しが必要。
+                    /*
+                        thicknessPx は「画面のピクセル」。太らせる半径はマスクRT のテクセル単位
+
+                        直し方: radius_mask = max(1, round(thicknessPx * maskResolutionScale))
+                          scale=1.0, thickness=3 → radius=3 → 画面で 3px
+                          scale=0.5, thickness=3 → radius=2 → 画面で 4px（33% 太い）
+                          scale=0.25, thickness=3 → radius=1（下限）→ 画面で 4px
+
+                        丸めるので太さは階段みたいになる。とくに scale=0.25 だと半径の下限が 1 なので、
+                        thicknessPx が 4 より小さい太さを画面で出せない（ぜんぶ 4px くらいにくっつく）
+                        細いまま 1/4 にしたいなら、thickness のほうの考え方を見直さないといけない
+                    */
                     float scale = Mathf.Clamp(outlineData.maskResolutionScale, 0.25f, 1f);
                     passData.thicknessInMaskPx = Mathf.Max(1f, Mathf.Round(_settings.thicknessPx * scale));
 

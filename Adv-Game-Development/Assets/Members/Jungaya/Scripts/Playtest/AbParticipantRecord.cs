@@ -3,59 +3,59 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 参加者 1 人分の記録 — Issue #49（仕様書 v8 17章・19章）
-    ///
-    /// 取る項目は 5 つ。
-    /// ・自発投数（45 秒で何回振ったか。言われずに振った回数なので参加者には見せない）
-    /// ・表情・声（実施者のメモ）
-    /// ・手応え 5 段階（案ごと）
-    /// ・「すぐもう一度振りたい」二択（案ごと）
-    /// ・採用案の強制二択と理由
-    /// あわせて合否に効く「同期ずれの指摘」と安全（痛み・恐怖・ストラップ逸脱）も残す。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        参加者1人ぶんの記録（#49 / 企画書 v8 17章・19章）
+
+        取る項目は5つ
+        ・自分から振った回数（45秒で何回振ったか。言われずに振った回数なので、参加者には見せない）
+        ・表情や声（やる人のメモ）
+        ・手ごたえの5段階（案ごと）
+        ・「すぐもう一回振りたい」の2択（案ごと）
+        ・どっちの案がいいか、むりやり2択で選んでもらったのと、その理由
+        合格かどうかに関係する「タイミングずれの指摘」と、安全（痛い・こわい・ストラップが外れた）も残す
+        MonoBehaviour は使っていない
+    */
     [Serializable]
     public class AbParticipantRecord
     {
         public const int MinFeel = 1;
         public const int MaxFeel = 5;
 
-        /// <summary>テストID（19章のテスト記録と突き合わせる）。</summary>
+        // テストID（19章のテスト記録と照らし合わせる）
         public string testId = "T0-AB-1";
-        /// <summary>実施日（yyyy-MM-dd）。</summary>
+        // やった日（yyyy-MM-dd）
         public string date = "";
-        /// <summary>責任者。</summary>
+        // 責任者
         public string owner = "";
-        /// <summary>参加者番号（1 始まり）。奇数が A→B、偶数が B→A。</summary>
+        // 参加者の番号（1から）。奇数は A→B、偶数は B→A
         public int participantNo = 1;
         public AbOrder order = AbOrder.AB;
 
-        /// <summary>45 秒の自発投数（有効スイング）。</summary>
+        // 45秒で自分から振った回数（有効スイング）
         public int throwsA, throwsB;
-        /// <summary>クールダウン中に振った回数（参考値。「もう一度振りたい」の行動側の手がかり）。</summary>
+        // クールダウン中に振った回数（参考の値。「もう一回振りたい」を行動から見るヒント）
         public int rejectedA, rejectedB;
 
-        /// <summary>手応え 5 段階（1〜5）。0 は未回答。</summary>
+        // 手ごたえの5段階（1〜5）。0 はまだ答えていない
         public int feelA, feelB;
-        /// <summary>「すぐもう一度振りたい」二択。</summary>
+        // 「すぐもう一回振りたい」の2択
         public bool againA, againB;
-        /// <summary>二択に答えたか（未回答と「いいえ」を区別する）。</summary>
+        // 2択に答えたかどうか（まだ答えていないのと「いいえ」を分けるため）
         public bool againAnsweredA, againAnsweredB;
 
-        /// <summary>採用案（強制二択）。</summary>
+        // 選んだ案（むりやり2択）
         public VariantId adopted = VariantId.A;
         public bool adoptedAnswered;
-        /// <summary>採用の理由（そのままの言葉で残す）。</summary>
+        // 選んだ理由（言った言葉のまま残す）
         public string reason = "";
 
-        /// <summary>映像・音・振動の同期ずれを指摘したか。</summary>
+        // 映像・音・振動のタイミングがずれていると言ったかどうか
         public bool syncComplaint;
 
-        /// <summary>安全（1 件でもあればその場で中止して原因を直す）。</summary>
+        // 安全（1つでもあったら、その場でやめて原因を直す）
         public bool pain, fear, strapDeviation;
 
-        /// <summary>表情・声のメモ。</summary>
+        // 表情や声のメモ
         public string note = "";
 
         public int ThrowsOf(VariantId id) => id == VariantId.A ? throwsA : throwsB;
@@ -64,11 +64,11 @@ namespace Toufuku.Playtest
         public bool AgainOf(VariantId id) => id == VariantId.A ? againA : againB;
         public bool AgainAnsweredOf(VariantId id) => id == VariantId.A ? againAnsweredA : againAnsweredB;
 
-        /// <summary>採用案の手応え。</summary>
+        // 選んだ案の手ごたえ
         public int AdoptedFeel => FeelOf(adopted);
-        /// <summary>採用案の「すぐもう一度振りたい」。</summary>
+        // 選んだ案の「すぐもう一回振りたい」
         public bool AdoptedAgain => AgainOf(adopted);
-        /// <summary>採用案の手応えが 4 以上か。</summary>
+        // 選んだ案の手ごたえが4以上かどうか
         public bool AdoptedFeelOk => AdoptedFeel >= AbTestPlan.MinFeel;
         public bool HasSafetyIncident => pain || fear || strapDeviation;
 
@@ -96,14 +96,14 @@ namespace Toufuku.Playtest
             adoptedAnswered = true;
         }
 
-        /// <summary>合否の集計に入れられる記録か。</summary>
+        // 合格かどうかの集計に入れていい記録かどうか
         public bool IsComplete =>
             participantNo > 0 &&
             IsValidFeel(feelA) && IsValidFeel(feelB) &&
             againAnsweredA && againAnsweredB &&
             adoptedAnswered;
 
-        /// <summary>足りない項目（保存ボタンの横に出す）。すべてそろっていれば空文字。</summary>
+        // 足りない項目（保存ボタンのとなりに出す）。ぜんぶそろっていれば空の文字
         public string MissingFields()
         {
             var sb = new StringBuilder();

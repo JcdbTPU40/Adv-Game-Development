@@ -4,14 +4,14 @@ using System.Text;
 
 namespace Toufuku.Playtest
 {
-    /// <summary>
-    /// 参加者 1 人 = 1 行の CSV — Issue #49（19章のテスト記録へそのまま貼れる形）
-    ///
-    /// ・1 レコード 1 行に収めるため、自由記述の改行は空白へ置き換える。
-    /// ・二択は「はい / いいえ / 未回答」、手応えは 1〜5（未回答は空）。
-    /// ・Excel で開けるよう、書き出し側（<see cref="AbTestCsvFile"/>）は UTF-8 BOM を付ける。
-    /// MonoBehaviour 非依存。
-    /// </summary>
+    /*
+        参加者1人を1行にした CSV（#49。19章のテスト記録にそのまま貼れる形）
+
+        ・1人を1行に入れたいので、自由に書いたところの改行は空白にかえる
+        ・2択は「はい / いいえ / 未回答」、手ごたえは1〜5（答えていないときは空）
+        ・Excel で開けるように、書き出すほう（AbTestCsvFile）で UTF-8 BOM を付ける
+        MonoBehaviour は使っていない
+    */
     public static class AbTestCsv
     {
         public const string Header =
@@ -58,7 +58,7 @@ namespace Toufuku.Playtest
         {
             record = null;
             if (string.IsNullOrWhiteSpace(line)) return false;
-            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出し行
+            if (line.StartsWith("テストID", StringComparison.Ordinal)) return false; // 見出しの行
 
             string[] f = SplitRow(line);
             if (f.Length < ColumnCount) return false;
@@ -107,7 +107,7 @@ namespace Toufuku.Playtest
             sb.Append(Escape(field));
         }
 
-        /// <summary>カンマ・引用符を含む自由記述を包む。改行は 1 行に収めるため空白にする。</summary>
+        // カンマや引用符が入っている自由記述をかこむ。改行は1行におさめるために空白にする
         public static string Escape(string field)
         {
             if (string.IsNullOrEmpty(field)) return string.Empty;
@@ -117,7 +117,7 @@ namespace Toufuku.Playtest
             return "\"" + flat.Replace("\"", "\"\"") + "\"";
         }
 
-        /// <summary>1 行を列へ分ける（引用符の中のカンマは区切りにしない）。</summary>
+        // 1行を列に分ける（引用符の中のカンマでは区切らない）
         public static string[] SplitRow(string line)
         {
             var fields = new List<string>();

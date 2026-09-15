@@ -3,14 +3,14 @@ using UnityEngine;
 
 namespace Toufuku.Aim
 {
-    /// <summary>着弾判定の候補（参拝客 1 人ぶん）。</summary>
+    // 着弾判定の候補（客1人ぶん）
     public readonly struct LandingCandidate
     {
-        /// <summary>判定の中心（高さは無視する）。</summary>
+        // 判定の中心（高さは見ない）
         public readonly Vector3 Center;
-        /// <summary>判定半径（ワールド単位）。</summary>
+        // 判定の半径（ワールド単位）
         public readonly float Radius;
-        /// <summary>当たり判定が生きているか。救済演出中（結末確定後）は false。</summary>
+        // 当たり判定が生きているか。救済の演出中（結果が決まったあと）は false
         public readonly bool Hittable;
 
         public LandingCandidate(Vector3 center, float radius, bool hittable)
@@ -21,19 +21,19 @@ namespace Toufuku.Aim
         }
     }
 
-    /// <summary>
-    /// 着弾点で誰に当たったかを決める — Issue #60
-    ///
-    /// ・弾は途中の客に遮られず、必ず着弾目標点で判定する（予測点と実着弾点を一致させるため）。
-    /// ・当たり判定が消えている客（救済演出中）は候補から外す＝弾は通過し、後ろにいる客で判定する。
-    /// ・判定円が重なっていれば、中心に最も近い客（命中精度が最も高くなる客）を選ぶ。
-    /// </summary>
+    /*
+        弾が落ちた場所で、だれに当たったかを決めるクラス（#60）
+
+        ・弾はとちゅうの客にさえぎられず、必ず着弾目標点で判定する（予測点と実際に落ちた場所を同じにするため）
+        ・当たり判定が消えている客（救済の演出中）は候補から外す。弾は通りぬけて、うしろの客で判定する
+        ・判定の円が重なっていたら、中心にいちばん近い客（命中精度がいちばん高くなる客）を選ぶ
+    */
     public static class LandingJudge
     {
-        /// <summary>
-        /// 当たった候補の添字を返す。誰にも当たらなければ -1。
-        /// normalizedDistance は判定半径に対する中心からの距離の割合（<see cref="HitAccuracy"/> に渡す値）。
-        /// </summary>
+        /*
+            当たった候補の番号を返す。だれにも当たらなかったら -1
+            normalizedDistance は、中心からの距離が判定半径の何割か（HitAccuracy に渡す値）
+        */
         public static int FindBest(IReadOnlyList<LandingCandidate> candidates, Vector3 point, out float normalizedDistance)
         {
             int best = -1;

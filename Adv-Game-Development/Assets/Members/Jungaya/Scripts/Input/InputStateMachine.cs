@@ -3,26 +3,26 @@ using System.Collections.Generic;
 
 namespace Toufuku.GameInput
 {
-    /// <summary>有効スイングの種類。</summary>
+    // 有効スイングの種類
     public enum ThrowKind
     {
-        Normal, // 通常投擲
-        Oharae  // 大祓（長押しチャージ）— T5 通過後に実装。現在は分岐のみ
+        Normal, // ふつうに投げる
+        Oharae  // 大祓（長押ししてためる）。T5 を通ったあとに作る。今は分かれ道だけ
     }
 
-    /// <summary>
-    /// 振りピークを有効スイングにしなかった理由。判定はこの順で行う（上ほど優先）。
-    /// #60 の「クールダウン中は灰色＋低音」などのフィードバックはこの理由で出し分ける。
-    /// </summary>
+    /*
+        振りピークを有効スイングにしなかった理由。この順番で判定する（上ほど優先）
+        #60 の「クールダウン中は灰色＋低い音」みたいなフィードバックは、この理由を見て出し分ける
+    */
     public enum SwingRejectReason
     {
-        Inactive,    // セッション外（リザルト中など）
-        FrontHeld,   // 正面ボタン押下中（キャリブレーション操作中）
-        NoSelection, // 色が一度も選ばれていない
+        Inactive,    // ゲームの時間外（リザルト中など）
+        FrontHeld,   // 正面ボタンを押している（キャリブレーション中）
+        NoSelection, // 色がまだ一回も選ばれていない
         Cooldown     // クールダウン中
     }
 
-    /// <summary>デバッグ表示用の現在フェーズ。</summary>
+    // デバッグ表示用の、今のフェーズ
     public enum InputPhase
     {
         Ready,
@@ -61,37 +61,37 @@ namespace Toufuku.GameInput
         }
     }
 
-    /// <summary>
-    /// 入力状態機械 — Issue #51（v8 変更点3）
-    ///
-    /// 色ボタン押下／離す・正面ボタン押下／離す・振りピーク・時間経過の 4 種の入力だけで
-    /// 通常投擲／キャンセル／多重押し／正面ボタン長押しキャリブレーション／大祓分岐を決める。
-    /// MonoBehaviour に依存しない純粋な C# クラスにして、同じ入力列から必ず同じ結果になるようにしている。
-    /// 状態遷移表は Docs/51_入力状態機械.md を正本とする。
-    ///
-    /// ・<see cref="SwingAccepted"/> が有効スイング確定の唯一の発火点（発射・投擲SE・#55 の対象ID確定はここに繋ぐ）。
-    /// ・時刻は呼び出し側が秒で渡す。逆行した時刻は直前の時刻に丸める。
-    /// </summary>
+    /*
+        入力の状態機械（#51 / v8 の変更点3）
+
+        色ボタンを押す・はなす、正面ボタンを押す・はなす、振りピーク、時間がたつ、の4種類の入力だけで、
+        ふつうに投げる／キャンセル／同時押し／正面ボタン長押しのキャリブレーション／大祓の分かれ道を決める
+        MonoBehaviour を使わないただの C# のクラスにして、同じ入力なら必ず同じ結果になるようにしている
+        状態がどう変わるかの表は Docs/51_入力状態機械.md が正しいものとする
+
+        ・SwingAccepted が、有効スイングが決まるただ1つの場所（発射・投げる音・#55 の相手ID決めはここにつなぐ）
+        ・時刻は呼ぶ側が秒で渡す。時刻が前にもどっていたら、直前の時刻に合わせる
+    */
     public sealed class InputStateMachine
     {
         public const int ColorCount = 5;
         public const int NoColor = -1;
 
-        // float の秒数（0.8f = 0.80000001…）と double の時刻を比べるときの許容誤差
+        // float の秒（0.8f = 0.80000001…）と double の時刻をくらべるときに、これくらいのズレは許す
         const double TimeEpsilon = 1e-6;
 
-        /// <summary>有効スイング確定から次の有効スイングを受け付けるまでの秒数（T0-CD で決定）。</summary>
+        // 有効スイングが決まってから、次の有効スイングを受け付けるまでの秒数（T0-CD で決める）
         public float CooldownSeconds { get; set; } = 0.50f;
-        /// <summary>正面ボタンをこの秒数押し続けるとヨー角キャリブレーションを要求する。</summary>
+        // 正面ボタンをこの秒数押しつづけると、ヨー角のキャリブレーションをお願いする
         public float FrontHoldSeconds { get; set; } = 1.0f;
-        /// <summary>大祓の分岐を有効にするか。false の間は長押ししても通常投擲になる。</summary>
+        // 大祓の分かれ道を使うかどうか。false の間は長押ししてもふつうに投げる
         public bool OharaeEnabled { get; set; }
-        /// <summary>色ボタンをこの秒数単独で押し続けるとチャージ状態になる（大祓）。</summary>
+        // 色ボタンをこの秒数1つだけ押しつづけると、ためる状態になる（大祓）
         public float ChargeSeconds { get; set; } = 0.8f;
-        /// <summary>false の間は振りピークを <see cref="SwingRejectReason.Inactive"/> で却下する。キャリブレーションは受け付ける。</summary>
+        // false の間は、振りピークを SwingRejectReason.Inactive ではじく。キャリブレーションは受け付ける
         public bool IsActive { get; set; } = true;
 
-        /// <summary>選択中の色（0〜4、OmamoriType の並び）。未選択は <see cref="NoColor"/>。</summary>
+        // 今選んでいる色（0〜4、OmamoriType の順番）。選んでいないときは NoColor
         public int SelectedColor { get; private set; }
         public bool IsFrontHeld { get; private set; }
         public bool IsCharging { get; private set; }
@@ -105,7 +105,7 @@ namespace Toufuku.GameInput
 
         readonly bool[] _held = new bool[ColorCount];
         readonly double[] _pressTime = new double[ColorCount];
-        // 押されている色を押した順に保持する（末尾が最新）
+        // 押されている色を押した順番に覚えておく（最後がいちばん新しい）
         readonly List<int> _heldOrder = new List<int>(ColorCount);
 
         int _chargeCandidate = NoColor;
@@ -125,7 +125,7 @@ namespace Toufuku.GameInput
 
         public double CooldownRemaining(double now) => Math.Max(0.0, _cooldownEndTime - now);
 
-        /// <summary>正面ボタン長押しの進み具合（0〜1）。押していなければ 0。</summary>
+        // 正面ボタン長押しの進み具合（0〜1）。押していなければ 0
         public float FrontHoldProgress(double now)
         {
             if (!IsFrontHeld || FrontHoldSeconds <= 0f) return 0f;
@@ -145,7 +145,7 @@ namespace Toufuku.GameInput
             if (!IsValidColor(index) || _held[index]) return;
             time = Advance(time);
 
-            // 別の色が押されたらチャージは取り消す（多重押しは大祓にしない）
+            // 別の色が押されたら、ためるのはやめる（同時押しは大祓にしない）
             if (IsCharging) CancelCharge();
 
             _held[index] = true;
@@ -153,10 +153,10 @@ namespace Toufuku.GameInput
             _heldOrder.Remove(index);
             _heldOrder.Add(index);
 
-            // 単独押し かつ 正面ボタンを押していないときだけチャージ候補にする
+            // 1つだけ押していて、しかも正面ボタンを押していないときだけ、ためる候補にする
             _chargeCandidate = (_heldOrder.Count == 1 && !IsFrontHeld) ? index : NoColor;
 
-            // 多重押しの優先規則: 最後に押した色を採用する
+            // 同時押しのルール: 最後に押した色を使う
             SetSelected(index);
         }
 
@@ -171,7 +171,7 @@ namespace Toufuku.GameInput
 
             if (_chargeCandidate == index)
             {
-                // 振らずに離した＝チャージの取り消し（選択は保持）
+                // 振らずにはなした＝ためるのをキャンセル（選んだ色はそのまま）
                 if (IsCharging) CancelCharge();
                 _chargeCandidate = NoColor;
             }
@@ -194,12 +194,12 @@ namespace Toufuku.GameInput
         {
             if (!IsFrontHeld) return;
             time = Advance(time);
-            // Tick の間隔が粗くても、離した時点で 1 秒に達していれば発火させる
+            // Tick を呼ぶ間かくがあらくても、はなした時点で1秒たっていれば発動させる
             Tick(time);
             IsFrontHeld = false;
         }
 
-        /// <summary>振りのピークを検出した瞬間に呼ぶ。有効なら <see cref="SwingAccepted"/> を発火する。</summary>
+        // 振りのピークを見つけた瞬間に呼ぶ。有効なら SwingAccepted を呼ぶ
         public void SwingPeak(float strength, double time)
         {
             time = Advance(time);
@@ -208,7 +208,7 @@ namespace Toufuku.GameInput
             if (!IsActive) { Reject(SwingRejectReason.Inactive, strength, time); return; }
             if (IsFrontHeld) { Reject(SwingRejectReason.FrontHeld, strength, time); return; }
             if (SelectedColor == NoColor) { Reject(SwingRejectReason.NoSelection, strength, time); return; }
-            // 却下されたスイングはクールダウンを延長しない
+            // はじかれた振りでは、クールダウンをのばさない
             if (time < _cooldownEndTime - TimeEpsilon) { Reject(SwingRejectReason.Cooldown, strength, time); return; }
 
             ThrowKind kind = ThrowKind.Normal;
@@ -223,7 +223,7 @@ namespace Toufuku.GameInput
             SwingAccepted?.Invoke(new SwingAcceptedArgs(SelectedColor, kind, strength, time));
         }
 
-        /// <summary>時間経過で起きる遷移（長押し 1 秒・チャージ開始）を進める。毎フレーム呼ぶ。</summary>
+        // 時間がたつと起きること（長押し1秒、ため開始）を進める。毎フレーム呼ぶ
         public void Tick(double time)
         {
             time = Advance(time);
@@ -242,12 +242,12 @@ namespace Toufuku.GameInput
             }
             else if (!OharaeEnabled && IsCharging)
             {
-                // 実行中に大祓を無効化したらチャージを畳む
+                // プレイ中に大祓を無効にしたら、ためているのをやめる
                 CancelCharge();
             }
         }
 
-        /// <summary>選択を外部（UI 等）から合わせる。<see cref="SelectionChanged"/> も発火する。</summary>
+        // 選んでいる色を外（UI など）から合わせる。SelectionChanged も呼ぶ
         public void SetSelected(int index)
         {
             if (!IsValidColor(index) || SelectedColor == index) return;
@@ -255,7 +255,7 @@ namespace Toufuku.GameInput
             SelectionChanged?.Invoke(index);
         }
 
-        /// <summary>押下状態・クールダウン・チャージをすべて初期化する（シーン再開時など）。</summary>
+        // 押している状態・クールダウン・ためをぜんぶ最初にもどす（シーンをやりなおすときなど）
         public void Reset(int initialColor = 0)
         {
             for (int i = 0; i < ColorCount; i++) _held[i] = false;

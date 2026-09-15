@@ -2,17 +2,17 @@ using UnityEngine;
 using Toufuku.Rescue;
 using Toufuku.GameInput;
 
-/// <summary>
-/// 検証用の簡易発射。発射入力で、照準が指すワールド地点へ向けて
-/// 弾プレハブを撃つ。弾には Rigidbody + Collider + OmamoriBullet が必要。
-/// カーソルを客の中心/端に合わせて当てれば、命中ゾーン（中心/中/外）を試せる。
-/// OmamoriSelector を割り当てれば、数字キー 1〜5 で撃つお守り種類を切り替えて
-/// 相性◯/✗（#10）も試せる。
-///
-/// #20: 入力は IInputProvider 経由（未設定ならマウス直読みにフォールバック）。
-///      ESP32 コントローラ版は inputProviderSource を差し替えるだけでよい。
-/// #32: GameSession が終了中（リザルト）のときは発射しない。
-/// </summary>
+/*
+    検証用のかんたんな発射のクラス。発射の入力で、照準が指しているワールドの場所に向けて
+    弾のプレハブを撃つ。弾には Rigidbody + Collider + OmamoriBullet が必要
+    カーソルを客の真ん中やはしに合わせて当てれば、命中ゾーン（中心/中/外）をためせる
+    OmamoriSelector を入れれば、数字キー1〜5 で撃つお守りの種類を切りかえて、
+    相性◯/✗（#10）もためせる
+
+    #20: 入力は IInputProvider を通す（入っていなければマウスを直接読む）
+         ESP32 のコントローラー版は inputProviderSource を入れかえるだけでいい
+    #32: GameSession が終わっている（リザルト）ときは発射しない
+*/
 public class TestShooter : MonoBehaviour
 {
     [Header("発射するもの")]
@@ -53,7 +53,7 @@ public class TestShooter : MonoBehaviour
 
     void Update()
     {
-        // セッション終了中（リザルト画面）は入力停止（#32）
+        // セッションが終わっている間（リザルト画面）は入力を止める（#32）
         if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
 
         bool fire = _input != null ? _input.FireTriggered : Input.GetMouseButtonDown(0);
@@ -70,36 +70,38 @@ public class TestShooter : MonoBehaviour
         }
         if (cam == null) cam = Camera.main;
 
-        // 照準が指すワールド地点（着弾点）を求める（#20: 入力は抽象化済み）
+        // 照準が指しているワールドの場所（落ちる場所）を出す（#20: 入力はまとめてある）
         Vector3 aimScreenPos = _input != null ? _input.AimScreenPosition : Input.mousePosition;
         Ray ray = cam.ScreenPointToRay(aimScreenPos);
         Vector3 aimPoint;
         if (Physics.Raycast(ray, out RaycastHit hit, maxRayDistance, aimMask, QueryTriggerInteraction.Ignore))
         {
-            // 客や地面など、何かに当たればその点を狙う（壁などは aimMask で除外）
+            // 客や地面など、何かに当たればその点をねらう（かべなどは aimMask で外す）
             aimPoint = hit.point;
         }
         else
         {
-            // 何にも当たらなければ、高さ groundY の水平面との交点を着弾点にする
+            // 何にも当たらなければ、高さ groundY の水平な面と交わる点を落ちる場所にする
             Plane ground = new Plane(Vector3.up, new Vector3(0f, groundY, 0f));
             aimPoint = ground.Raycast(ray, out float d) ? ray.GetPoint(d) : ray.GetPoint(30f);
         }
 
-        // 発射位置
+        // 発射する位置
         Vector3 origin = spawnPoint != null
             ? spawnPoint.position
             : cam.transform.position + cam.transform.forward * 1.0f;
 
-        // 重力を考慮して、flightTime 秒後にちょうど aimPoint へ着弾する初速を計算する。
-        //   aimPoint = origin + v*t + 0.5*g*t^2  →  v = (aimPoint-origin)/t - 0.5*g*t
+        /*
+            重力を考えて、flightTime 秒後にちょうど aimPoint に落ちる最初の速さを計算する
+              aimPoint = origin + v*t + 0.5*g*t^2 なので v = (aimPoint-origin)/t - 0.5*g*t
+        */
         float t = Mathf.Max(0.01f, flightTime);
         Vector3 g = Physics.gravity;
         Vector3 launchVel = (aimPoint - origin) / t - 0.5f * g * t;
 
         GameObject bullet = Instantiate(bulletPrefab, origin, Quaternion.LookRotation(launchVel));
 
-        // 弾に種類を埋め込む（#10 の相性判定で使う）。
+        // 弾に種類を入れる（#10 の相性の判定で使う）
         var ob = bullet.GetComponent<OmamoriBullet>();
         if (ob != null)
             ob.SetType(selector != null ? selector.Current : fallbackType);
@@ -107,8 +109,8 @@ public class TestShooter : MonoBehaviour
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.useGravity = true;          // 弾道計算は重力ありが前提
-            rb.linearVelocity = launchVel; // この初速で投げれば aimPoint に届く
+            rb.useGravity = true;          // 弾の計算は重力があることが前提
+            rb.linearVelocity = launchVel; // この最初の速さで投げれば aimPoint に届く
         }
 
         Destroy(bullet, bulletLife);
