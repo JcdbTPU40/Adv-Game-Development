@@ -13,6 +13,8 @@ public class ScoreHud : MonoBehaviour
 {
     [SerializeField] int fontSize = 26;
     [SerializeField] Color color = Color.white;
+    [Tooltip("#61: 右上は本番向けの ScoreBoardHud（縁・今日のベスト）が使うので、このデバッグ表示は画面の高さのこのわりあいから下に出す。")]
+    [SerializeField, Range(0f, 0.9f)] float topRatio = 0.4f;
 
     [Header("ご加護タイム(#29)の表示（任意）")]
     [SerializeField] GokagoTime gokago;
@@ -124,21 +126,23 @@ public class ScoreHud : MonoBehaviour
         */
         float panelW = 400f;
         float panelX = Screen.width - panelW - 14f;
+        float panelY = Screen.height * topRatio;
 
         // 背景のパネル
         GUI.color = new Color(0f, 0f, 0f, 0.45f);
-        GUI.DrawTexture(new Rect(panelX, 10, panelW, 300), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panelX, panelY, panelW, 300), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
-        float x = panelX + 14f, y = 18, h = fontSize + 8;
-        GUI.Label(new Rect(x, y + h * 0, 400, h), $"縁(En) : {_en}", style);
-        GUI.Label(new Rect(x, y + h * 1, 400, h), $"コンボ : {_combo}  (Max {sm.MaxCombo})", style);
-        GUI.Label(new Rect(x, y + h * 2, 400, h), $"倍率   : x{_multiplier:0.00}", style);
+        float x = panelX + 14f, y = panelY + 8f, h = fontSize + 8;
+        GUI.Label(new Rect(x, y + h * 0, 400, h), $"縁(En) : {_en}{(sm.IsLocked ? "（固定）" : "")}", style);
+        GUI.Label(new Rect(x, y + h * 1, 400, h), $"福の連なり : {_combo}  (Max {sm.MaxCombo})", style);
+        GUI.Label(new Rect(x, y + h * 2, 400, h), $"倍率   : x{_multiplier:0.00}（連なり×ご加護）", style);
         GUI.Label(new Rect(x, y + h * 3, 400, h), $"直近   : {sm.LastZone}  +{sm.LastGain}（精度 +{sm.LastBonus}）", style);
 
-        // 神社の評価（#30）
-        if (_ratingNormalized >= 0f)
-            GUI.Label(new Rect(x, y + h * 4, 400, h), $"神社評価 : {_ratingNormalized * 100f:0}  ランク {_rank}", style);
+        // 神社の評価（#30 / #61: 0〜300、称号はプレイ中の最高ランク）
+        var rating = ShrineRating.Instance;
+        if (_ratingNormalized >= 0f && rating != null)
+            GUI.Label(new Rect(x, y + h * 4, 400, h), $"評価 : {rating.Rating:0}/{rating.RatingMax:0}  ランク {_rank}（最高 {rating.MaxRank}）", style);
 
         // ご加護タイム（#29）
         if (gokago != null && gokago.IsActive)

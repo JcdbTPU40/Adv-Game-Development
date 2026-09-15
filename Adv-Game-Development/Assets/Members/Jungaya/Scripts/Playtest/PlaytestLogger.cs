@@ -181,7 +181,8 @@ namespace Toufuku.Playtest
             {
                 BeginPlay();
             }
-            else if (_recording && !session.IsPlaying)
+            // #61: 3:00 のあとの解決中（受理済みの弾の着弾）も同じプレイとして記録して、スコアを固定したら閉じる
+            else if (_recording && !session.IsPlaying && !session.IsResolving)
             {
                 EndPlay(completed: session.IsFinished);
             }

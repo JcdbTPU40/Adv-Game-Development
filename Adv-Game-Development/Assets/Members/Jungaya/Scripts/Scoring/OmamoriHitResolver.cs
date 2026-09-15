@@ -22,12 +22,17 @@ public readonly struct OmamoriHitInfo
     public readonly int Combo;
     // 着弾をスタートにする時刻（Time.realtimeSinceStartupAsDouble）。フィードバックの遅れの計測に使う
     public readonly double ImpactTime;
+    /*
+        この当たりで救えたときに確定した2つの倍率（#61 / 7章「倍率の保存順」）。救えていなければ IsValid = false
+        この救済客からの笑顔の伝播（#56）は ScoreManager.RegisterPropagation にこの値を渡す
+    */
+    public readonly EnMultiplierSnapshot RescueSnapshot;
 
     // 相性◯で当たりとしてスコアに入ったかどうか
     public bool IsGoodHit => Zone != HitZone.Miss;
 
     public OmamoriHitInfo(GameObject customer, OmamoriType type, HitZone zone, bool isBlackCustomer, bool rescued, int combo, double impactTime,
-        bool priorityRescue = false)
+        bool priorityRescue = false, EnMultiplierSnapshot rescueSnapshot = default)
     {
         Customer = customer;
         Type = type;
@@ -37,6 +42,7 @@ public readonly struct OmamoriHitInfo
         Combo = combo;
         ImpactTime = impactTime;
         PriorityRescue = priorityRescue;
+        RescueSnapshot = rescueSnapshot;
     }
 }
 
@@ -59,10 +65,11 @@ public static class OmamoriHitResolver
         impactTime: 着弾をスタートにする時刻（realtimeSinceStartupAsDouble）。書かなければ呼んだ時刻
         priorityTargetId: 発射（SwingAccepted）したときにこの弾に保存した優先の相手のID（#55）。0 なら優先救済のボーナスはない
           飛んでいる間に二重円が動いても弾に保存した値は変えないので、ここに来るのは「発射したとき」の判断
+        blessingMultiplier: 発射（SwingAccepted）したときにこの弾に保存したご加護倍率（#61）。null なら今のご加護倍率
         返す値: スコアに渡したゾーン。相性✗なら Miss。もう結果が決まっている客なら何も入れないで Miss
     */
     public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null,
-        int priorityTargetId = PriorityRescue.NoTarget)
+        int priorityTargetId = PriorityRescue.NoTarget, float? blessingMultiplier = null)
     {
         double impact = impactTime ?? Time.realtimeSinceStartupAsDouble;
         bool rescued = false;
@@ -72,12 +79,14 @@ public static class OmamoriHitResolver
 
         /*
             黒客にふつうの弾が当たった（企画書 v8 6章）: D も R も動かない終わりの状態。縁は入らないで、
-            福の連なりが切れるペナルティだけが起きる（当たり判定は残してあるので、ここに来るのは仕様どおり）
+            福の連なりが切れるのと、評価 −15（7章 評価値の増減）のペナルティが起きる（当たり判定は残してあるので、ここに来るのは仕様どおり）
         */
         if (isBlack)
         {
             if (ScoreManager.Instance != null)
                 ScoreManager.Instance.RegisterMiss();
+            if (ShrineRating.Instance != null)
+                ShrineRating.Instance.RegisterBlackShot();
 
             int blackCombo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
             HitResolved?.Invoke(new OmamoriHitInfo(customer, type, HitZone.Miss, true, false, blackCombo, impact));
@@ -121,24 +130,29 @@ public static class OmamoriHitResolver
             && priorityTargetId > PriorityRescue.NoTarget
             && PriorityRescue.IsBonusHit(priorityTargetId, CustomerSpawnId.Of(customer), true);
 
+        EnMultiplierSnapshot snapshot = EnMultiplierSnapshot.None;
         if (ScoreManager.Instance != null)
         {
-            // 縁は救えたときだけ入る。とちゅうの当たり（欲張り客の1発目など）は連なりだけのびて 0 点（付録B B-2）
+            // 縁は救えたときだけ入る。とちゅうの当たり（欲張り客の1発目など）は 0 点で、福の連なりも保つだけ（付録B B-2 / 7章）
             int baseScore = state != null ? state.RescueBaseScore : 0;
-            ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore, priorityRescue);
+            ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore, priorityRescue, blessingMultiplier);
+            if (rescued && zone != HitZone.Miss) snapshot = ScoreManager.Instance.LastRescueSnapshot;
         }
 
         int combo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;
-        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact, priorityRescue));
+        HitResolved?.Invoke(new OmamoriHitInfo(customer, type, zone, false, rescued, combo, impact, priorityRescue, snapshot));
 
         return zone;
     }
 
-    // 客以外（地面など）に落ちた＝外れ。コンボが切れる
+    /*
+        客以外（地面など）に落ちた＝外れ（#61）
+        7章で福の連なりを切るのは誤投擲（色ちがい）・黒客への通常弾・5秒無命中だけなので、外れだけでは切らない
+    */
     public static void ApplyMiss()
     {
         if (ScoreManager.Instance != null)
-            ScoreManager.Instance.RegisterMiss();
+            ScoreManager.Instance.RegisterGroundMiss();
     }
 
     /*

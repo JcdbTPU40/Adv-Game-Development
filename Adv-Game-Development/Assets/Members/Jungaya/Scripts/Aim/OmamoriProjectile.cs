@@ -75,6 +75,23 @@ namespace Toufuku.Aim
         OmamoriType _type;
         bool _flying;
         int _priorityTargetId;
+        float _blessingMultiplier = 1f;
+        bool _launchedWhilePlaying;
+        bool _pendingForSession;
+
+        static int s_pendingSessionShots;
+
+        /*
+            3:00 より前に受理して、まだ落ちていない弾の数（#61）
+            GameSession は 3:00 のあと、これが 0 になったらスコアを固定する（7章「全受理済み弾の解決後」）
+        */
+        public static int PendingSessionShots => s_pendingSessionShots;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            s_pendingSessionShots = 0;
+        }
 
         public Vector3 TargetPoint => _target;
         public float FlightSeconds => _seconds;
@@ -87,6 +104,12 @@ namespace Toufuku.Aim
             落ちたときにこのIDと救済した客のIDが同じだったときだけ +50 が入る（企画書 v8 4章「通常弾」、7章 得点表）
         */
         public int PriorityTargetId => _priorityTargetId;
+
+        /*
+            発射（SwingAccepted）した瞬間のご加護倍率（#61 / 7章「ご加護倍率は通常弾の発射時に確定する」）
+            飛んでいる間にご加護タイムが始まっても終わっても、ここは変えない
+        */
+        public float BlessingMultiplier => _blessingMultiplier;
 
         /*
             弾を飛ばし始める
@@ -106,6 +129,16 @@ namespace Toufuku.Aim
             _elapsed = 0f;
             // 色や着弾点と同じで、優先対象もこの瞬間に決めてしまう（v8 4章）。このあと二重円がだれになっても変えない
             _priorityTargetId = priorityTargetId;
+            // #61: ご加護倍率も色・優先対象と同じこの瞬間に決める
+            _blessingMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.GokagoMultiplier : 1f;
+            // #61: 3:00 より前に受理した弾だけ、3:00 のあとも着弾をスコアに入れる。落ちるまで GameSession に待ってもらう
+            GameSession session = GameSession.Instance;
+            _launchedWhilePlaying = session == null || session.IsPlaying;
+            if (session != null && session.IsPlaying && !_pendingForSession)
+            {
+                _pendingForSession = true;
+                s_pendingSessionShots++;
+            }
             // #64: 命中音と救済音の遅れは、この「落ちる予定の時刻」から測る（フレーム単位で着くぶんの遅れも入れる）
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
@@ -115,6 +148,19 @@ namespace Toufuku.Aim
             if (_visualDelaySeconds > 0f) HideVisuals();
 
             AnyLaunched?.Invoke(this);
+        }
+
+        // 落ちる前にこわされたときも、GameSession が待ちつづけないように数から外す
+        void OnDestroy()
+        {
+            ReleasePending();
+        }
+
+        void ReleasePending()
+        {
+            if (!_pendingForSession) return;
+            _pendingForSession = false;
+            s_pendingSessionShots = Mathf.Max(0, s_pendingSessionShots - 1);
         }
 
         // 軌跡を遅らせて出す間だけ、見た目を消しておく
@@ -173,16 +219,22 @@ namespace Toufuku.Aim
             float normalized = float.PositiveInfinity;
             HitZone zone = HitZone.Miss;
 
-            // ゲームが終わったあと（リザルト中）に落ちた弾はスコアに入れない（#32）
-            bool scored = GameSession.Instance == null || GameSession.Instance.IsPlaying;
+            /*
+                ゲームが終わったあと（リザルト中）に落ちた弾はスコアに入れない（#32）
+                #61: 3:00 より前に受理した弾は、3:00 のあとの解決中（最長 3:00.65）に落ちてもスコアに入れる
+            */
+            GameSession session = GameSession.Instance;
+            bool scored = session == null || session.IsPlaying || (session.IsResolving && _launchedWhilePlaying);
             if (scored)
             {
                 hit = FindTarget(_target, out normalized);
                 if (hit != null)
-                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime, _priorityTargetId);
+                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime,
+                        _priorityTargetId, _blessingMultiplier);
                 else
                     OmamoriHitResolver.ApplyMiss();
             }
+            ReleasePending();
 
             var result = new LandingResult(_target, transform.position, hit, normalized, zone, _type, _seconds, _elapsed, scored);
             Landed?.Invoke(result);

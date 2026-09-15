@@ -83,6 +83,9 @@ public class GokagoTime : MonoBehaviour
             return;
         }
 
+        // #61: 3:00 以後の救済から新しいご加護タイムを始めない（7章「3:00境界の処理順」）
+        if (GameSession.Instance != null && !GameSession.Instance.IsPlaying) return;
+
         if (_armed && !IsActive)
             Activate();
     }

@@ -31,7 +31,10 @@ public class SessionHud : MonoBehaviour
         EnsureStyles();
 
         if (session.IsFinished)
-            DrawResult(session);
+        {
+            // #61: 本番向けの ResultScreen が出ているときは、こちらのかんたんなリザルトは重ねない
+            if (!Toufuku.Hud.ResultScreen.IsShowing) DrawResult(session);
+        }
         else
             DrawPlaying(session);
     }
@@ -92,9 +95,10 @@ public class SessionHud : MonoBehaviour
         ty += line + 10;
         GUI.Label(new Rect(x, ty, w, line), $"縁（ハイスコア） : {(sm != null ? sm.En : 0)}", _resultStyle);
         ty += line;
-        GUI.Label(new Rect(x, ty, w, line), $"神社ランク : {(rating != null ? rating.Rank.ToString() : "-")}", _resultStyle);
+        // #61: 称号は最終ランクではなくプレイ中の最高ランク（企画書 v8 7章）
+        GUI.Label(new Rect(x, ty, w, line), $"神社の称号 : {(rating != null ? rating.MaxRank.ToString() : "-")}", _resultStyle);
         ty += line;
-        GUI.Label(new Rect(x, ty, w, line), $"最大コンボ : {(sm != null ? sm.MaxCombo : 0)}", _resultStyle);
+        GUI.Label(new Rect(x, ty, w, line), $"最大の福の連なり : {(sm != null ? sm.MaxCombo : 0)}", _resultStyle);
         ty += line + 16;
 
         if (GUI.Button(new Rect(x + (w - 220) / 2f, ty, 220, 48), "もう一度（リトライ）"))
