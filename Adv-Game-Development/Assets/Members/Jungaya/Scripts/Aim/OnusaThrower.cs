@@ -138,6 +138,10 @@ namespace Toufuku.Aim
             // 優先救済の対象（二重円の客）も、色・着弾点と同じ「発射受理の瞬間」に固定する（#55 / v8 4章）
             int priorityTargetId = PriorityRescue.CurrentTargetIdOrNone;
 
+            // ご加護倍率も同じ瞬間に固定する（#56 / v8 7章「倍率の保存順」）。
+            // この弾が救済を完了させたら、救済客がこの値を持って退場し、3秒後の伝播得点に使う。
+            float gokagoMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.GokagoMultiplier : 1f;
+
             float strength01 = ThrowFlight.Strength01(e.Strength, slowStrength, fastStrength);
             float seconds = ThrowFlight.FlightSeconds(strength01, slowestSeconds, fastestSeconds);
             float width = ThrowFlight.TrailWidth(strength01, thinTrailWidth, thickTrailWidth);
@@ -151,14 +155,16 @@ namespace Toufuku.Aim
             AttachTrail(go, width);
 
             var projectile = go.AddComponent<OmamoriProjectile>();
-            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId);
+            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId,
+                gokagoMultiplier);
 
             ThrowCount++;
             LastProjectile = projectile;
 
             if (logThrows)
                 Debug.Log($"[Throw] 発射 {type} 目標=({target.x:0.00}, {target.z:0.00}) 距離={flat.magnitude:0.0}m 強さ={e.Strength:0} → 飛翔 {seconds:0.00}s 太さ {width:0.00}" +
-                          $" 優先対象ID={(priorityTargetId > 0 ? priorityTargetId.ToString() : "なし")}", this);
+                          $" 優先対象ID={(priorityTargetId > 0 ? priorityTargetId.ToString() : "なし")}" +
+                          $" ご加護倍率={gokagoMultiplier:0.00}", this);
         }
 
         void HandleSwingRejected(SwingRejectedArgs e)

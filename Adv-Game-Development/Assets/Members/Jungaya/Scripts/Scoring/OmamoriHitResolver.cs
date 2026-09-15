@@ -45,6 +45,8 @@ public readonly struct OmamoriHitInfo
 ///
 /// 物理衝突で当てる OmamoriBullet と、着弾点で判定する OmamoriProjectile（#60）の両方から呼ぶ。
 /// #64: 判定し終えた同じ呼び出しの中で <see cref="HitResolved"/> を発火する（命中音・救済音を判定と同時刻に鳴らすため）。
+/// #56: 救済が確定したら、その客に <see cref="SmileCarrier"/> を付けて笑顔を持たせる。倍率スナップショットは
+///      「救済で +1 したあとの福の連なり倍率」と「この弾の発射時のご加護倍率」（v8 7章「倍率の保存順」）。
 /// </summary>
 public static class OmamoriHitResolver
 {
@@ -62,9 +64,13 @@ public static class OmamoriHitResolver
     /// 発射（SwingAccepted）時にこの弾へ保存した優先対象ID（#55）。0 なら優先救済の加点は無い。
     /// 飛翔中に二重円が動いても弾の保存値は変えないので、ここへ渡ってくるのは<b>発射時点</b>の判断。
     /// </param>
+    /// <param name="gokagoMultiplierAtFire">
+    /// 発射（SwingAccepted）時にこの弾へ保存したご加護倍率（#56）。救済が確定したときの伝播用スナップショットに使う。
+    /// null（物理弾 OmamoriBullet など保存していない経路）なら、いまのご加護倍率で代用する。
+    /// </param>
     /// <returns>スコアへ渡したゾーン。相性✗なら Miss。結末確定済みの客なら何も計上せず Miss。</returns>
     public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null,
-        int priorityTargetId = PriorityRescue.NoTarget)
+        int priorityTargetId = PriorityRescue.NoTarget, float? gokagoMultiplierAtFire = null)
     {
         double impact = impactTime ?? Time.realtimeSinceStartupAsDouble;
         bool rescued = false;
@@ -120,6 +126,16 @@ public static class OmamoriHitResolver
             // 縁は救済完了のときだけ。途中命中（欲張り客の1発目など）は連なりだけ伸びて 0 点（付録B B-2）。
             int baseScore = state != null ? state.RescueBaseScore : 0;
             ScoreManager.Instance.RegisterCorrectHit(zone, rescued, baseScore, priorityRescue);
+        }
+
+        // 笑顔の伝播（#56）：救済が確定した客に、この瞬間の倍率を持たせて退場させる。
+        // 福の連なり倍率は RegisterCorrectHit が +1 したあとの値、ご加護倍率は発射時の保存値（v8 7章）。
+        if (rescued)
+        {
+            float fukuChain = ScoreManager.Instance != null ? ScoreManager.Instance.Multiplier : 1f;
+            float gokago = gokagoMultiplierAtFire
+                ?? (ScoreManager.Instance != null ? ScoreManager.Instance.GokagoMultiplier : 1f);
+            SmileCarrier.AttachTo(customer, new SmileMultiplierSnapshot(fukuChain, gokago));
         }
 
         int combo = ScoreManager.Instance != null ? ScoreManager.Instance.Combo : 0;

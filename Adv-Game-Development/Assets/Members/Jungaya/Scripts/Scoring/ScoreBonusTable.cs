@@ -35,6 +35,13 @@ public class ScoreBonusTable : ScriptableObject
              "既定 +50。T2 で「二重円だけを追う」が支配戦略と判定されたら +30 へ下げる（v8 7章）。")]
     [SerializeField] int priorityRescueBonus = 50;
 
+    [Header("笑顔の伝播（付録B B-2・PROPAGATE／#56）")]
+    [Tooltip("伝播1回ぶんの縁（倍率を掛ける前）。既定 +20。")]
+    [SerializeField] int smilePropagationBonus = 20;
+    [Tooltip("1回の救済から伝播できる人数の上限。既定 4人。" +
+             "この2つの積が、遠方客の「基礎200 ＋ 伝播最大 +80」の +80 にあたる。")]
+    [SerializeField] int smilePropagationMaxTargets = 4;
+
     /// <summary>命中精度の加点（中心 / 中間 / 外周）。</summary>
     public int AccuracyCenterBonus => accuracyCenterBonus;
     public int AccuracyInnerBonus => accuracyInnerBonus;
@@ -42,6 +49,18 @@ public class ScoreBonusTable : ScriptableObject
 
     /// <summary>優先救済の加点（付録B B-2）。</summary>
     public int PriorityRescueBonus => priorityRescueBonus;
+
+    /// <summary>笑顔の伝播1回ぶんの縁（倍率を掛ける前。付録B B-2）。</summary>
+    public int SmilePropagationBonus => smilePropagationBonus;
+
+    /// <summary>1回の救済から伝播できる人数の上限（付録B PROPAGATE）。</summary>
+    public int SmilePropagationMaxTargets => smilePropagationMaxTargets;
+
+    /// <summary>
+    /// 1回の救済で伝播から入りうる縁の上限（+20 × 4人 = +80）。
+    /// 遠方客の「基礎200 ＋ 伝播最大 +80」（v8 7章の選択の比較表）の後半をこの表の数字で表す。
+    /// </summary>
+    public int MaxSmilePropagationBonus => smilePropagationBonus * smilePropagationMaxTargets;
 
     /// <summary>命中ゾーンごとの命中精度の加点。</summary>
     public int AccuracyBonusOf(HitZone zone)
@@ -63,6 +82,17 @@ public class ScoreBonusTable : ScriptableObject
             Debug.LogWarning(
                 $"[ScoreBonusTable] {name}: 優先救済の加点が {priorityRescueBonus} です。" +
                 "付録B B-2 にあるのは +50（既定）と +30（T2 で支配的だった場合）だけです。" +
+                "別の値にするなら先に付録B を直してください。", this);
+
+        if (smilePropagationBonus != 20)
+            Debug.LogWarning(
+                $"[ScoreBonusTable] {name}: 笑顔の伝播の縁が {smilePropagationBonus} です。" +
+                "付録B B-2・PROPAGATE は +20 です。別の値にするなら先に付録B を直してください。", this);
+
+        if (smilePropagationMaxTargets != 4)
+            Debug.LogWarning(
+                $"[ScoreBonusTable] {name}: 伝播の上限人数が {smilePropagationMaxTargets} 人です。" +
+                "付録B PROPAGATE は 4 人（＝遠方客の伝播最大 +80）です。" +
                 "別の値にするなら先に付録B を直してください。", this);
     }
 #endif

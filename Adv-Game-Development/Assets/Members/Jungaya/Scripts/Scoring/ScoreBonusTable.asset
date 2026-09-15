@@ -16,3 +16,5 @@ MonoBehaviour:
   accuracyInnerBonus: 20
   accuracyOuterBonus: 0
   priorityRescueBonus: 50
+  smilePropagationBonus: 20
+  smilePropagationMaxTargets: 4

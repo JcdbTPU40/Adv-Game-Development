@@ -15,6 +15,7 @@ namespace Toufuku.Playtest
     /// | 観察者（介入の記録） | <see cref="T1Intervention"/> |
     /// | T2 の試行開始（任意） | <see cref="T2TrialStart"/> |
     /// | #55 優先救済 | 既定で <c>PriorityRescue</c>（二重円と同じ規則）を使う。差し替えたいときだけ <see cref="PriorityTargetProvider"/> を入れる |
+    /// | #56 笑顔の伝播 | <see cref="SmilePropagation"/>（<c>SmileCarrier</c> が成立のたびに呼ぶ） |
     /// </summary>
     public static class PlaytestLog
     {
@@ -77,6 +78,33 @@ namespace Toufuku.Playtest
         public static void T2TrialStart()
         {
             Record(new PlaytestEvent(0, PlaytestEventType.T2TrialStart));
+        }
+
+        /// <summary>
+        /// 笑顔の伝播が 1 件成立した（#56）。<see cref="SmileCarrier"/> から呼ぶ。
+        ///
+        /// 完了条件「倍率スナップショットの値がログで追える」はこの行で満たす。
+        /// multiplier 列に入るのは伝播が起きた時点の倍率ではなく、<b>救済完了時に保存した</b>値
+        /// （福の連なり倍率 × ご加護倍率）。
+        /// </summary>
+        /// <param name="rescuerId">笑顔を配った救済客の生成ID（有向ペアの始点）。</param>
+        /// <param name="targetId">笑顔を受け取った客の生成ID。</param>
+        /// <param name="gain">この 1 回で入った縁。</param>
+        /// <param name="snapshotMultiplier">救済時に保存した倍率（福の連なり × ご加護）。</param>
+        /// <param name="order">この救済で何人目か（1〜4）。</param>
+        /// <param name="en">計上後の累計縁。分からなければ null。</param>
+        public static void SmilePropagation(int rescuerId, int targetId, int gain, double snapshotMultiplier,
+            int order, int? en = null)
+        {
+            Record(new PlaytestEvent(0, PlaytestEventType.Propagate)
+            {
+                TargetId = targetId,
+                Gain = gain,
+                En = en,
+                Multiplier = snapshotMultiplier,
+                Value = order,
+                Detail = $"from:{rescuerId}"
+            });
         }
 
         /// <summary>任意の目印を残す（event 列 = eventType）。</summary>

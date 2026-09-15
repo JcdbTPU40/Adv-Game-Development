@@ -20,6 +20,11 @@ namespace Toufuku.Playtest
         public const string Hit = "hit";
         /// <summary>救済成功。</summary>
         public const string Rescue = "rescue";
+        /// <summary>
+        /// 笑顔の伝播が 1 件成立した（#56）。target_id = 伝播を受けた客、gain = その 1 回で入った縁、
+        /// multiplier = 救済時の倍率スナップショット、value = この救済で何人目か、detail = from:救済客ID。
+        /// </summary>
+        public const string Propagate = "propagate";
         /// <summary>黒客化（ゲージ満タン）。</summary>
         public const string BlackConversion = "black_conversion";
         public const string Rating = "rating";

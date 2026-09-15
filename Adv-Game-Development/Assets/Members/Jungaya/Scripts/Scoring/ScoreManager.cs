@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Serialization;
+using Toufuku.Rescue;
 
 /// <summary>
 /// スコア（縁）とコンボの一元管理。シーンに1つだけ置く。— Issue #22 / #31
@@ -12,6 +13,9 @@ using UnityEngine.Serialization;
 ///
 /// #55: 優先救済（二重円）の加点を足す。加点の数値は付録B B-2 の写しである
 ///      <see cref="ScoreBonusTable"/>（未割り当てなら下のフォールバック値）から引く。
+///
+/// #56: 笑顔の伝播の縁（<see cref="RegisterSmilePropagation"/>）を足す。伝播は救済ではないので
+///      福の連なり C を伸ばさず、途切れさせもしない。得点は救済時の倍率スナップショットで計算する。
 ///
 /// 獲得縁の計算式:
 ///   獲得 = (基礎点 + 命中精度ボーナス + 優先救済ボーナス) × コンボ倍率(Multiplier) × ご加護倍率(#29) × 神社評価倍率(#30)
@@ -42,6 +46,12 @@ public class ScoreManager : MonoBehaviour
     [Header("フォールバック：優先救済ボーナス（#55 / 付録B B-2）")]
     [Tooltip("発射時に保存した二重円の客を、その弾で救済完了させたときの加点。数値表が未割り当てのときだけ使う。")]
     [SerializeField] int priorityRescueBonus = 50;
+
+    [Header("フォールバック：笑顔の伝播（#56 / 付録B B-2・PROPAGATE）")]
+    [Tooltip("伝播1回ぶんの縁（倍率を掛ける前）。数値表が未割り当てのときだけ使う。")]
+    [SerializeField] int smilePropagationBonus = 20;
+    [Tooltip("1回の救済から伝播できる人数の上限。数値表が未割り当てのときだけ使う。")]
+    [SerializeField] int smilePropagationMaxTargets = 4;
 
     [Header("コンボ倍率")]
     [Tooltip("コンボ1つごとに倍率へ加算する量（例:0.1 → x1.0, x1.1, x1.2...）")]
@@ -77,8 +87,29 @@ public class ScoreManager : MonoBehaviour
     /// <summary>直近の優先救済ボーナス（倍率を掛ける前。0 なら二重円の客ではなかった。HUD表示・確認用）。</summary>
     public int LastPriorityBonus { get; private set; }
 
+    /// <summary>直近の伝播1回で入った縁（#56。HUD表示・確認用）。</summary>
+    public int LastPropagationGain { get; private set; }
+    /// <summary>このプレイで成立した伝播の回数（#56。リザルト・確認用）。</summary>
+    public int PropagationCount { get; private set; }
+    /// <summary>このプレイで伝播から入った縁の合計（#56。リザルト・確認用）。</summary>
+    public int PropagationEn { get; private set; }
+
     /// <summary>優先救済（二重円）の加点（付録B B-2）。数値表が割り当てられていればその値。</summary>
     public int PriorityRescueBonus => bonusTable != null ? bonusTable.PriorityRescueBonus : priorityRescueBonus;
+
+    /// <summary>笑顔の伝播1回ぶんの縁（倍率を掛ける前。付録B B-2）。数値表が割り当てられていればその値。</summary>
+    public int SmilePropagationBonus =>
+        bonusTable != null ? bonusTable.SmilePropagationBonus : smilePropagationBonus;
+
+    /// <summary>1回の救済から伝播できる人数の上限（付録B PROPAGATE）。数値表が割り当てられていればその値。</summary>
+    public int SmilePropagationMaxTargets =>
+        bonusTable != null ? bonusTable.SmilePropagationMaxTargets : smilePropagationMaxTargets;
+
+    /// <summary>
+    /// 1回の救済で伝播から入りうる縁の上限（＝ +20 × 4人 = +80）。
+    /// 遠方客の「基礎200 ＋ 伝播最大 +80」（付録B B-2 / v8 7章の選択の比較表）の後半はこの値。
+    /// </summary>
+    public int MaxSmilePropagationBonusPerRescue => SmilePropagationBonus * SmilePropagationMaxTargets;
 
     /// <summary>現在のコンボ倍率。コンボ1で x1.0、以降 comboStep ずつ上昇。</summary>
     public float Multiplier =>
@@ -153,6 +184,33 @@ public class ScoreManager : MonoBehaviour
     public void RegisterHit(HitZone zone) => RegisterCorrectHit(zone, rescued: true, rescueBaseScore: hitScore);
 
     /// <summary>
+    /// 笑顔の伝播が 1 回成立した（#56 / 企画書 v8 6章・7章）。
+    ///
+    ///   伝播得点 = round(20 × 救済時に保存した福の連なり倍率 × 救済時に保存したご加護倍率)
+    ///
+    /// 伝播は救済ではないので<b>福の連なり C を伸ばさず、途切れさせもしない</b>。ご加護専用進捗 G も数えない
+    /// （v8 10章「ご加護専用進捗」）。倍率は伝播が起きた時点ではなく、<b>救済時のスナップショット</b>を使う。
+    /// </summary>
+    /// <param name="snapshot">救済完了時に確定した倍率（<see cref="SmileCarrier"/> が持ち回る）。</param>
+    /// <returns>この 1 回で入った縁。</returns>
+    public int RegisterSmilePropagation(SmileMultiplierSnapshot snapshot)
+    {
+        int gain = snapshot.ScoreOf(SmilePropagationBonus);
+
+        En += gain;
+        PropagationEn += gain;
+        PropagationCount++;
+        LastPropagationGain = gain;
+
+        Debug.Log($"[Score] 笑顔の伝播: {SmilePropagationBonus} x{snapshot.Product:0.00}（{snapshot}） = +{gain}" +
+                  $"  (伝播 {PropagationCount}回 / 伝播の縁 {PropagationEn} / 縁 {En})");
+
+        // 連なりも合計倍率も変わらないので、配るのは縁の変化だけ。
+        onEnChanged?.Invoke(En);
+        return gain;
+    }
+
+    /// <summary>
     /// ミス（外し／相性の合わないお守り）を記録する。コンボが途切れる。
     /// </summary>
     public void RegisterMiss()
@@ -186,6 +244,9 @@ public class ScoreManager : MonoBehaviour
         LastGain = 0;
         LastBonus = 0;
         LastPriorityBonus = 0;
+        LastPropagationGain = 0;
+        PropagationCount = 0;
+        PropagationEn = 0;
         GokagoMultiplier = 1f;
         Debug.Log("[Score] Reset");
 

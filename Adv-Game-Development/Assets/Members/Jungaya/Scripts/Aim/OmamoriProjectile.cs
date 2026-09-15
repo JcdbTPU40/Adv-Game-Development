@@ -75,6 +75,7 @@ namespace Toufuku.Aim
         OmamoriType _type;
         bool _flying;
         int _priorityTargetId;
+        float _gokagoMultiplier = 1f;
 
         public Vector3 TargetPoint => _target;
         public float FlightSeconds => _seconds;
@@ -88,12 +89,22 @@ namespace Toufuku.Aim
         /// </summary>
         public int PriorityTargetId => _priorityTargetId;
 
+        /// <summary>
+        /// 発射（SwingAccepted）の瞬間のご加護倍率 — Issue #56。
+        /// この弾が救済を完了させたとき、救済客が持ち回る<b>伝播用の倍率スナップショット</b>の片方になる
+        /// （仕様書 v8 7章「倍率の保存順：ご加護倍率は通常弾の発射時に確定する」）。
+        /// ご加護中でなければ 1。
+        /// </summary>
+        public float GokagoMultiplier => _gokagoMultiplier;
+
         /// <summary>飛ばし始める。</summary>
         /// <param name="lingerSeconds">着弾後に軌跡を残してから消えるまでの秒数</param>
         /// <param name="visualDelaySeconds">#49 T0-A/B: 見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時</param>
         /// <param name="priorityTargetId">#55: この瞬間の優先対象（二重円の客）の生成ID。0 なら優先救済の加点なし</param>
+        /// <param name="gokagoMultiplier">#56: この瞬間のご加護倍率。救済させたときの伝播用スナップショットに使う</param>
         public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type,
-            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget)
+            float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget,
+            float gokagoMultiplier = 1f)
         {
             _start = start;
             _target = target;
@@ -104,6 +115,8 @@ namespace Toufuku.Aim
             _elapsed = 0f;
             // 色・着弾点と同じく、優先対象もこの瞬間に固定する（v8 4章）。以後は誰が二重円でも変えない。
             _priorityTargetId = priorityTargetId;
+            // #56: ご加護倍率も同じ瞬間に固定する。3秒後に起きる伝播の得点はこの値で計算する（v8 7章）。
+            _gokagoMultiplier = gokagoMultiplier > 1f ? gokagoMultiplier : 1f;
             // #64: 命中音・救済音の遅延はこの「着弾予定時刻」から測る（フレーム単位で着くぶんの遅れも含める）
             _impactRealtime = Time.realtimeSinceStartupAsDouble + _seconds;
             _flying = true;
@@ -177,7 +190,7 @@ namespace Toufuku.Aim
             {
                 hit = FindTarget(_target, out normalized);
                 if (hit != null)
-                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime, _priorityTargetId);
+                    zone = OmamoriHitResolver.ApplyHit(hit.gameObject, _type, HitAccuracy.ZoneOf(normalized), _impactRealtime, _priorityTargetId, _gokagoMultiplier);
                 else
                     OmamoriHitResolver.ApplyMiss();
             }
