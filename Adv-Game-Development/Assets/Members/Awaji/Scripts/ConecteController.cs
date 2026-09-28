@@ -45,7 +45,7 @@ public class ConecteController : MonoBehaviour
                 Debug.Log($"検索中 : {portName}");
 
                 SerialPort testPort = new SerialPort(portName, 115200);
-                testPort.ReadTimeout = 1000;
+                testPort.ReadTimeout = 100;
                 testPort.Open();
 
                 bool found = false;
