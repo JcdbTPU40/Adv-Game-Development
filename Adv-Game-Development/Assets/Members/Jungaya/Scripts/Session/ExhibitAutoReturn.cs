@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
     展示の自動復帰（#65 / 企画書 v8 11章「リザルト／自動復帰」、13章「1試遊サイクル」リザルト 20秒、17章 T7）
 
     ・リザルトを出してから returnAfterResultSeconds（20秒）たったら、タイトルのシーンへもどる（アテンドが何もしなくても次の人が遊べる）
+      リザルトは GameSession のスコア固定（IsFinished）か、ResultScreen が出ている（ResultScene）のどちらかで数えはじめる
     ・アテンドが returnKey（F12）を holdSeconds（1.5秒）長押しすると、プレイ中でもすぐタイトルへもどる
       （画面は動いているのに進まない・おかしくなった、のときの手順1。まちがって押しても長押しでないと効かない）
     ・タイトルのシーンが Build Settings に入っていないときは、何もしないで警告だけ出す
@@ -40,7 +41,7 @@ public class ExhibitAutoReturn : MonoBehaviour
 
         double now = Time.realtimeSinceStartupAsDouble;
         GameSession session = GameSession.Instance;
-        bool finished = session != null && session.IsFinished;
+        bool finished = (session != null && session.IsFinished) || Toufuku.Hud.ResultScreen.IsShowing;
         if (!finished) _finishedAt = double.NaN;
         else if (double.IsNaN(_finishedAt)) _finishedAt = now;
 

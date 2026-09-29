@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Toufuku.Hud
@@ -16,6 +17,9 @@ namespace Toufuku.Hud
             最大の福の連なり
         ・「もう一度」ボタンで GameSession.Retry()
         ・Canvas はコードで組み立てるので、シーンの空の GameObject に付けるだけで動く。EventSystem がなければ足す（ボタンを押せるように）
+        ・showLastResult を ON にすると、リザルト専用のシーン（ResultScene）用になる
+            開いたらすぐ LastSessionResult（GameScene で ResultSceneTransition が写した値）を出す
+            「もう一度」は retrySceneName のシーン（GameScene）を開きなおす
     */
     public class ResultScreen : MonoBehaviour
     {
@@ -25,6 +29,12 @@ namespace Toufuku.Hud
         [Header("フォント（NotoSansJP の .ttf を入れる。未設定なら組み込みフォント）")]
         [SerializeField] Font font;
         [SerializeField] int sortingOrder = 60;
+
+        [Header("リザルト専用のシーン（ResultScene）で使うとき")]
+        [Tooltip("ON なら開いたらすぐ LastSessionResult を出す（GameSession を見ない）")]
+        [SerializeField] bool showLastResult;
+        [Tooltip("「もう一度」で開くシーン名（showLastResult が ON のとき）")]
+        [SerializeField] string retrySceneName = "GameScene";
 
         [Header("色")]
         [SerializeField] Color titleColor = Color.white;
@@ -66,6 +76,12 @@ namespace Toufuku.Hud
 
         void Update()
         {
+            if (showLastResult)
+            {
+                if (!_shown) Show();
+                return;
+            }
+
             GameSession session = GameSession.Instance;
             bool show = session != null && session.IsFinished;
             if (show && !_shown) Show();
@@ -90,19 +106,31 @@ namespace Toufuku.Hud
 
         void Populate()
         {
+            if (showLastResult)
+            {
+                Fill(LastSessionResult.En, LastSessionResult.MaxRank, LastSessionResult.NewRecord,
+                    LastSessionResult.TodayBest, LastSessionResult.MaxCombo);
+                return;
+            }
+
             ScoreManager sm = ScoreManager.Instance;
             ShrineRating rating = ShrineRating.Instance;
             DailyBestRecorder best = DailyBestRecorder.Instance;
 
-            ShownEn = sm != null ? sm.En : 0;
-            ShownTitle = rating != null ? rating.MaxRank : ShrineRank.C;
-            ShownNewRecord = best != null && best.LastPlayWasNewRecord;
+            Fill(sm != null ? sm.En : 0, rating != null ? rating.MaxRank : ShrineRank.C, best != null && best.LastPlayWasNewRecord,
+                best != null ? best.TodayBest : 0, sm != null ? sm.MaxCombo : 0);
+        }
+
+        void Fill(int en, ShrineRank title, bool newRecord, int todayBest, int maxCombo)
+        {
+            ShownEn = en;
+            ShownTitle = title;
+            ShownNewRecord = newRecord;
 
             _enValue.text = HudUi.FormatScore(ShownEn);
             _titleValue.text = ShownTitle.ToString();
             _titleValue.color = HudUi.RankColor(ShownTitle);
 
-            int todayBest = best != null ? best.TodayBest : 0;
             if (ShownNewRecord)
             {
                 _bestText.text = $"★ 今日のベスト更新！ {HudUi.FormatScore(todayBest)} ★";
@@ -116,11 +144,22 @@ namespace Toufuku.Hud
                 _bestText.fontSize = 64;
             }
 
-            _chainText.text = $"最大の福の連なり  {(sm != null ? sm.MaxCombo : 0)}";
+            _chainText.text = $"最大の福の連なり  {maxCombo}";
         }
 
         void OnRetry()
         {
+            if (showLastResult)
+            {
+                if (string.IsNullOrEmpty(retrySceneName) || !Application.CanStreamedLevelBeLoaded(retrySceneName))
+                {
+                    Debug.LogWarning($"[ResultScreen] 「もう一度」のシーン「{retrySceneName}」が Build Settings にありません", this);
+                    return;
+                }
+                SceneManager.LoadScene(retrySceneName, LoadSceneMode.Single);
+                return;
+            }
+
             if (GameSession.Instance != null) GameSession.Instance.Retry();
         }
 
