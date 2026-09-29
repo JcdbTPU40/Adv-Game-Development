@@ -103,7 +103,7 @@ public class ConecteController : MonoBehaviour
                 Debug.Log($"検索中 : {name}");
 
                 testPort = new SerialPort(name, 115200);
-                testPort.ReadTimeout = 1000;
+                testPort.ReadTimeout = 100;
                 testPort.Open();
 
                 bool found = false;
