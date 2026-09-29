@@ -144,9 +144,39 @@ namespace Toufuku.Tutorial.Tests
             Assert.IsTrue(plan.PriorityRescued);
 
             plan.Advance(30.0);
-            CollectionAssert.IsSubsetOf(new[] { "end:Discern:achieved@22", "start:FreePractice@22", "free:8@30", "competition@30" }, r.Events);
+            CollectionAssert.IsSubsetOf(new[] { "end:Discern:achieved@22", "start:FreePractice@22", "free:6@28", "competition@28" }, r.Events);
             Assert.IsFalse(r.Events.Exists(e => e.Contains("after_learning")), "見抜くを達成したら 0:30 のゴーストは出さない");
             Assert.AreEqual(LearningGhost.None, plan.AfterLearningGhost);
+        }
+
+        [Test]
+        public void 自由練習は6秒で切り上げて競技を始める()
+        {
+            StagedLearningPlan plan = Started(out Recorder r);
+            plan.NoteRescue(2.0, false);
+            plan.NoteRescue(4.0, false);
+            plan.NoteRescue(5.0, false);
+            plan.NoteRescue(9.0, isPriorityCustomer: true);
+            Assert.AreEqual(LearningStage.FreePractice, plan.Stage);
+
+            Run(plan, 9.0, 14.9);
+            Assert.AreEqual(LearningStage.FreePractice, plan.Stage, "6秒たつまでは自由練習");
+
+            plan.Advance(15.2);
+            Assert.AreEqual(LearningStage.Competition, plan.Stage);
+            Assert.AreEqual(15.0, plan.StageStartSeconds, 1e-9, "競技は切り上げた時刻から");
+            CollectionAssert.IsSubsetOf(new[] { "free:6@15", "competition@15" }, r.Events);
+        }
+
+        [Test]
+        public void 自由練習が0時30分をこえるときは0時30分で競技を始める()
+        {
+            StagedLearningPlan plan = Started(out Recorder r);
+            plan.Advance(18.0);
+            plan.NoteRescue(27.0, isPriorityCustomer: true);
+            plan.Advance(31.0);
+
+            CollectionAssert.IsSubsetOf(new[] { "free:3@30", "competition@30" }, r.Events);
         }
 
         // ── ゴースト ──────────────────────────────────

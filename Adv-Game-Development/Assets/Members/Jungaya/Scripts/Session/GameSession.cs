@@ -62,7 +62,7 @@ public class GameSession : MonoBehaviour
     [SerializeField] float resolveGraceSeconds = 0.5f;
 
     [Header("学習と競技の区切り（8章）")]
-    [Tooltip("開始からこの秒数は学習専用（競技計時は 0:30.000 から）。ランクC停滞タイマーと段階学習（#58 StagedLearningDirector）が見る。")]
+    [Tooltip("開始からこの秒数は学習専用（競技計時は 0:30.000 から）。ランクC停滞タイマーと段階学習（#58 StagedLearningDirector）が見る。段階学習が自由練習を切り上げたら、それより早く競技を始める（StartCompetitionEarly）。")]
     [SerializeField, Min(0f)] float learningSeconds = 30f;
 
     [Header("時計（#65）")]
@@ -88,7 +88,7 @@ public class GameSession : MonoBehaviour
     public event Action<SessionHoldReason> HoldChanged;
 
     /*
-        #58: 時計が learningSeconds（0:30.000）に届いた。1プレイに1回。引数: 学習の秒数（=競技の始まりの時計の秒）
+        #58: 時計が learningSeconds（0:30.000）に届いたか、StartCompetitionEarly で早めに始めた。1プレイに1回。引数: 競技の始まりの時計の秒
         このクラスは入力（-100）より先に動くので、受け取った側がカウンタを初期化すると、同じフレームの着弾から競技として数えられる
     */
     public event Action<double> CompetitionStarted;
@@ -114,9 +114,9 @@ public class GameSession : MonoBehaviour
     // 全部の月の数（HUD の表示用）
     public int TotalMonths => totalMonths;
 
-    // #65: 学習専用の秒数（8章 0:00〜0:30）と、今が学習中か
-    public float LearningSeconds => learningSeconds;
-    public bool IsLearning => IsPlaying && _clock.Elapsed < learningSeconds;
+    // #65: 学習専用の秒数（8章 0:00〜0:30）と、今が学習中か。StartCompetitionEarly で早めに始めたら、その時刻
+    public float LearningSeconds => _competitionStartSeconds;
+    public bool IsLearning => IsPlaying && _clock.Elapsed < _competitionStartSeconds;
     // #58: このプレイで 0:30.000 を通って、競技が始まったか（CompetitionStarted を出したか）
     public bool HasCompetitionStarted { get; private set; }
     // #65: このフレームで進んだプレイの秒（[0, 3:00) と重なるぶん）。危険度 D・スポーン・ご加護の残り時間に使う
@@ -134,6 +134,8 @@ public class GameSession : MonoBehaviour
 
     readonly SessionClock _clock = new SessionClock();
     double _lastUpdateElapsed;
+    // このプレイの競技の始まり（ふつうは learningSeconds。StartCompetitionEarly で早まる）
+    float _competitionStartSeconds = 30f;
     SessionBoundaryReport _report = new SessionBoundaryReport();
     ThrowInputController _input;
     float _timeScaleBeforeHold = 1f;
@@ -184,17 +186,13 @@ public class GameSession : MonoBehaviour
         double after = _clock.Elapsed;
         _lastUpdateElapsed = after;
         PlayDeltaSeconds = IsPlaying ? (float)SessionBoundary.Overlap(before, after, 0.0, TotalSeconds) : 0f;
-        CompetitionDeltaSeconds = IsPlaying ? (float)SessionBoundary.Overlap(before, after, learningSeconds, TotalSeconds) : 0f;
+        CompetitionDeltaSeconds = IsPlaying ? (float)SessionBoundary.Overlap(before, after, _competitionStartSeconds, TotalSeconds) : 0f;
 
         if (IsPlaying)
         {
             // #58: 0:30.000 に届いたフレームで1回だけ知らせる（学習の時間が 0 なら最初のフレーム）
-            if (!HasCompetitionStarted && after >= learningSeconds)
-            {
-                HasCompetitionStarted = true;
-                Debug.Log($"[Session] 競技開始 {learningSeconds:0.000}秒（見つけたフレーム {after:0.000}秒）");
-                CompetitionStarted?.Invoke(learningSeconds);
-            }
+            if (!HasCompetitionStarted && after >= _competitionStartSeconds)
+                BeginCompetition(_competitionStartSeconds, after);
 
             UpdateMonth();
 
@@ -223,6 +221,7 @@ public class GameSession : MonoBehaviour
         _clock.MaxStepSeconds = Math.Max(0.05, maxClockStepSeconds);
         _clock.Start(Now);
         _lastUpdateElapsed = 0.0;
+        _competitionStartSeconds = learningSeconds;
         PlayDeltaSeconds = 0f;
         CompetitionDeltaSeconds = 0f;
         _report = new SessionBoundaryReport();
@@ -237,6 +236,25 @@ public class GameSession : MonoBehaviour
         Debug.Log($"[Session] 開始（{totalMonths}ヶ月 / {TotalSeconds:0}秒）" + (IsHeld ? $" 時計は {HoldReasons} で止めています" : ""));
         onSessionStart?.Invoke();
         onMonthChanged?.Invoke(CurrentMonth);
+    }
+
+    /*
+        #58: 段階学習が自由練習を切り上げたときに、learningSeconds を待たずに時計の秒 at から競技を始める
+        at は今の時計の秒より前でもよい（そのフレームで見つけた締切の時刻）。すでに始まっていたら何もしないで false
+    */
+    public bool StartCompetitionEarly(double at)
+    {
+        if (!IsPlaying || HasCompetitionStarted) return false;
+        _competitionStartSeconds = (float)Math.Max(0.0, Math.Min(at, learningSeconds));
+        BeginCompetition(_competitionStartSeconds, _clock.Elapsed);
+        return true;
+    }
+
+    void BeginCompetition(float at, double detected)
+    {
+        HasCompetitionStarted = true;
+        Debug.Log($"[Session] 競技開始 {at:0.000}秒（見つけたフレーム {detected:0.000}秒）");
+        CompetitionStarted?.Invoke(at);
     }
 
     /*
