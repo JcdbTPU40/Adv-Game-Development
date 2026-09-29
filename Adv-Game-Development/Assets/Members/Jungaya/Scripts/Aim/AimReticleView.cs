@@ -8,6 +8,7 @@ namespace Toufuku.Aim
         照準の見た目を担当するクラス（#60 / 企画書 v8 4章）
 
         ・照準マーク: 紙垂（しで）っぽい輪を、弾が落ちる予定の場所の画面上にずっと出しておく
+          マウスで客の体を指しているときだけは、カーソルが指す体の上に出す（ReticleScreenPosition）
         ・着弾予測点: 地面にうすく光る輪を置く。輪の大きさは客の当たり判定と同じにして、中心40%の目安もうすく描く
         ・クールダウン中に振ったとき: FlashRejected で 80ms だけ両方を灰色にする
         ちゃんとした素材が来るまでは、Canvas もテクスチャもマテリアルも実行中に作っている
@@ -105,7 +106,8 @@ namespace Toufuku.Aim
             }
             SetVisible(true);
 
-            Vector3 screen = aim.ScreenPosition;
+            // マークはカーソルが指す客の体の上、地面の輪は実際に落ちる足元（客を指していないときは同じ場所）
+            Vector3 screen = aim.ReticleScreenPosition;
             float scale = _canvas.scaleFactor > 0f ? _canvas.scaleFactor : 1f;
             _reticleRect.gameObject.SetActive(screen.z > 0f);
             _reticleRect.anchoredPosition = new Vector2(screen.x, screen.y) / scale;

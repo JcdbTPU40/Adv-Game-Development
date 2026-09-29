@@ -17,6 +17,7 @@ namespace Toufuku.Aim
         毎フレーム、大幣の向きから「弾が落ちる予定の地面の点」を1つ決める
         ・ヨー（キャリブレーションした正面からの角度）で左右、ピッチで地面の 3〜18m を決める
         ・マウスのときは、カーソルが指す地面を同じヨーと距離の範囲におさめて使う
+          カーソルが客の体を指しているときは、そのうしろの地面ではなく客の足元を使う（TryPickCustomerPoint）
         ・予測点が画面の外に出そうなときは、画面の内側に押しもどす（範囲より押しもどしを優先する）
         ・振りの強さは使わない。SwingAccepted の瞬間の予測点が、そのまま着弾目標点になる（GetLockedTarget）
         ・発射する側（OnusaThrower）より先にこのフレームの照準を決めておきたいので、ThrowInputController（-100）より前に動かしている
@@ -51,6 +52,14 @@ namespace Toufuku.Aim
         [SerializeField, Range(0f, 180f)] float maxYaw = 60f;
         [SerializeField] bool invertYaw = false;
 
+        [Header("マウスで客を指したとき")]
+        [Tooltip("カーソルが客の体（Collider）を指していたら、地面の奥ではなくその客の足元を狙う")]
+        [SerializeField] bool snapToCustomer = true;
+        [Tooltip("客をさがすレイが当たるレイヤー")]
+        [SerializeField] LayerMask customerMask = ~0;
+        [Tooltip("客をさがすレイの長さ（m）")]
+        [SerializeField, Min(0f)] float customerRayDistance = 100f;
+
         [Header("画面外への押し戻し")]
         [Tooltip("ビューポートの縁からこの割合より内側に照準を留める")]
         [SerializeField, Range(0f, 0.45f)] float viewportMargin = 0.06f;
@@ -61,6 +70,9 @@ namespace Toufuku.Aim
         [SerializeField, Range(0f, 0.3f)] float lockLookbackSeconds = 0f;
 
         const int HistoryCapacity = 64;
+        const int CustomerRayCapacity = 16;
+        const float SnapKeepToleranceSqr = 0.05f * 0.05f;
+        static readonly RaycastHit[] s_customerHits = new RaycastHit[CustomerRayCapacity];
         const float PushBackStep = 0.03f;
         const int PushBackMaxSteps = 12;
 
@@ -86,6 +98,19 @@ namespace Toufuku.Aim
         public bool UsingYawPitch { get; private set; }
         // このフレームの照準が画面の内側に押しもどされたかどうか
         public bool PushedBack { get; private set; }
+        // このフレームの照準が、マウスで指した客の足元に移されたかどうか
+        public bool SnappedToCustomer { get; private set; }
+        /*
+            照準マークを出すスクリーン座標（z はカメラからの奥行き）
+            ふだんは ScreenPosition と同じ。客を指して足元に移したときだけ、カーソルが指している体の上の点にする
+            （着弾点が足元に下がっても、マークがカーソルから離れてバグに見えないようにするため。弾は TargetPoint に落ちる）
+        */
+        public Vector3 ReticleScreenPosition { get; private set; }
+
+        // MouseToPolar が客を拾ったときの、足元の点と体に当たった点
+        bool _pickedCustomer;
+        Vector3 _pickedGroundPoint;
+        Vector3 _pickedBodyPoint;
 
         public float GroundY => groundY;
         public Vector3 Origin => origin != null ? origin.position : transform.position;
@@ -140,6 +165,7 @@ namespace Toufuku.Aim
         void Recompute()
         {
             UsingYawPitch = ShouldUseYawPitch();
+            _pickedCustomer = false;
 
             float relativeYaw;
             float distance;
@@ -165,6 +191,12 @@ namespace Toufuku.Aim
             Distance = finalDistance;
             RelativeYaw = pushed ? Mathf.DeltaAngle(_referenceYaw, worldYaw) : relativeYaw;
             ScreenPosition = cam.WorldToScreenPoint(point);
+
+            // 範囲や画面の制限で足元の点が動かされていたら、そっちが本当の着弾点なので、マークもそこに出す
+            Vector3 pickedFlat = _pickedGroundPoint - point;
+            pickedFlat.y = 0f;
+            SnappedToCustomer = _pickedCustomer && !pushed && pickedFlat.sqrMagnitude < SnapKeepToleranceSqr;
+            ReticleScreenPosition = SnappedToCustomer ? cam.WorldToScreenPoint(_pickedBodyPoint) : ScreenPosition;
             HasAim = true;
 
             Record(Time.realtimeSinceStartupAsDouble, point);
@@ -188,9 +220,22 @@ namespace Toufuku.Aim
 
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
             var ground = new Plane(Vector3.up, new Vector3(0f, groundY, 0f));
-            if (ground.Raycast(ray, out float enter))
+            Vector3 aimed;
+            bool found = TryPickCustomerPoint(ray, out aimed, out Vector3 bodyPoint);
+            if (found)
             {
-                Vector3 d = ray.GetPoint(enter) - Origin;
+                _pickedCustomer = true;
+                _pickedGroundPoint = aimed;
+                _pickedBodyPoint = bodyPoint;
+            }
+            else if (ground.Raycast(ray, out float enter))
+            {
+                aimed = ray.GetPoint(enter);
+                found = true;
+            }
+            if (found)
+            {
+                Vector3 d = aimed - Origin;
                 d.y = 0f;
                 // 基準点より手前（カメラ側）を指したときに左右へ飛んでいかないように、前向きの成分を少しだけ残しておく
                 float f = Mathf.Max(Vector3.Dot(d, forward), 0.01f);
@@ -204,6 +249,49 @@ namespace Toufuku.Aim
                 relativeYaw = Mathf.DeltaAngle(_referenceYaw, AimSolver.YawOf(ray.direction, _referenceYaw));
                 distance = Mathf.Max(nearDistance, farDistance);
             }
+        }
+
+        /*
+            カーソルが客の体を指していたら、その客の足元の点を返す
+            地面だけにレイを当てると、体を指したときに客のうしろの地面が目標になって、判定の円から外れてしまうため
+            ・客の中心から、画面の左右方向にずれたぶんだけ横にずらす（体のまん中を指せば中心、はしを指せば外側になる）
+            ・当たり判定が消えている客（救済の演出中）は拾わないで、そのうしろの客か地面をさがす
+        */
+        bool TryPickCustomerPoint(Ray ray, out Vector3 point, out Vector3 bodyPoint)
+        {
+            point = default;
+            bodyPoint = default;
+            if (!snapToCustomer) return false;
+
+            int count = Physics.RaycastNonAlloc(ray, s_customerHits, customerRayDistance, customerMask, QueryTriggerInteraction.Collide);
+            HitZoneTarget best = null;
+            float bestDistance = float.PositiveInfinity;
+            Vector3 bestHitPoint = default;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = s_customerHits[i];
+                if (hit.distance >= bestDistance) continue;
+                HitZoneTarget target = hit.collider.GetComponentInParent<HitZoneTarget>();
+                if (target == null || !target.IsHittable) continue;
+                best = target;
+                bestDistance = hit.distance;
+                bestHitPoint = hit.point;
+            }
+            if (best == null) return false;
+
+            // 画面の左右方向（水平）のずれだけ残す。奥行きのずれは消して、客の中心の奥行きにそろえる
+            Vector3 right = cam.transform.right;
+            right.y = 0f;
+            Vector3 center = best.Center;
+            if (right.sqrMagnitude > 1e-6f)
+            {
+                right.Normalize();
+                center += right * Vector3.Dot(bestHitPoint - center, right);
+            }
+            center.y = groundY;
+            point = center;
+            bodyPoint = bestHitPoint;
+            return true;
         }
 
         Vector3 PushInsideScreen(Vector3 point, out bool pushed)
