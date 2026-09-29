@@ -22,7 +22,9 @@ namespace Toufuku.Tutorial
           ・誤投擲は「色が違う」の短い表示だけ（罰なし）。二重円の客を救えたら「先に救えた！」と onPriorityRescued
           ・0:30.000（GameSession.CompetitionStarted）: 練習中をやめて、縁=0・評価=0・福の連なり C=0・ご加護・現在/最高ランク=C・
                   ランクC停滞タイマー=0 から始める（ScoreManager.ResetAll / ShrineRating.ResetAll）。学習の客は D の固定を外して D=0 から進める。
-                  ふつうの補充を再開する（時間割どおり通常客から）。学習の達成状況にかかわらず、固定時刻に始める
+                  ふつうの補充を再開する（時間割どおり通常客から）。見抜くが未達なら、達成状況にかかわらず 0:30 に始める
+          ・見抜くを達成したら、自由練習を freePracticeSeconds（6秒）で切り上げて、その時刻から競技を始める
+                  （GameSession.StartCompetitionEarly。そのぶん競技の時間がのびる。3:00 の終わりは変わらない）
           ・T1 の記録（19章）: 段階の開始・終わり（achieved / timeout）、自由練習の秒、0:30 のカウンタ初期化、ゴースト、
                   0:30 のあとのゴーストの介入、スタッフの介入（staffInterventionKey）を PlaytestLog に残す
                   初救済秒・色誤り・3秒停止は PlaytestLogger がふだんのイベントから集計する
@@ -269,7 +271,7 @@ namespace Toufuku.Tutorial
             if (_source != null) _source.AutoSpawnSuspended = true;
             if (cueView != null) cueView.SetButtonRowVisible(true);
 
-            Log("段階学習を始めます（競技は 0:30.000 から。学習中は縁・評価を加算しません）");
+            Log($"段階学習を始めます（競技は 0:30.000 から。見抜くを達成したら自由練習 {settings.freePracticeSeconds:0.#}秒 で始めます。学習中は縁・評価を加算しません）");
             _plan.Start(0.0);
             _plan.Advance(_session.ElapsedTime);
         }
@@ -297,9 +299,12 @@ namespace Toufuku.Tutorial
             TryPlayPendingGhost();
         }
 
-        // 0:30.000: 学習の値を捨てて、競技を 0 から始める（8章「学習中の値を破棄し、縁=0、評価=0、C=0、G=0、現在／最高ランク=C」）
+        // 0:30.000（自由練習を切り上げたらその時刻）: 学習の値を捨てて、競技を 0 から始める（8章「学習中の値を破棄し、縁=0、評価=0、C=0、G=0、現在／最高ランク=C」）
         void HandlePlanCompetitionStarted(double t)
         {
+            // 自由練習を切り上げたときは、GameSession の競技（C停滞タイマーなど）もこの時刻から始める
+            if (_session != null && !_session.HasCompetitionStarted) _session.StartCompetitionEarly(t);
+
             SetPractice(false);
             if (ScoreManager.Instance != null) ScoreManager.Instance.ResetAll();   // 縁・福の連なり C・救済数。onReset でご加護もやめる
             if (ShrineRating.Instance != null) ShrineRating.Instance.ResetAll();   // 評価・現在/最高ランク・ランクC停滞タイマー

@@ -16,9 +16,9 @@ namespace Toufuku.Tutorial
         Choose = 2,
         // 教える3「見抜く」: 3色・3人、1人だけ D=65 と二重円（〜0:30）
         Discern = 3,
-        // 見抜くを達成したあと、0:30 までの自由練習
+        // 見抜くを達成したあとの自由練習（freePracticeSeconds か 0:30 の早いほうまで）
         FreePractice = 4,
-        // 0:30.000 からの競技
+        // 0:30.000（自由練習を切り上げたらその時刻）からの競技
         Competition = 5
     }
 
@@ -51,6 +51,8 @@ namespace Toufuku.Tutorial
         [Header("早期達成の条件")]
         [Tooltip("教える2で「見抜く」へ進むのに必要な救済人数（8章「2人救済で直ちに次へ」）。")]
         [Min(1)] public int chooseRequiredRescues = 2;
+        [Tooltip("見抜くを達成してから競技を始めるまでの自由練習の秒数（5〜8秒をめやすに）。0:30 をこえるときは 0:30 で競技。")]
+        [Min(0f)] public float freePracticeSeconds = 6f;
 
         [Header("場面（色）")]
         [Tooltip("教える1の客の色。18章「緑1色・1人」。")]
@@ -146,7 +148,8 @@ namespace Toufuku.Tutorial
             段階の始まりか最後の振りから3秒振らなかったら、大幣ゴーストを1回だけ（1プレイに1回）
           ・教える2「選ぶ」: この段階で2人救えたら直ちに「見抜く」。未達でも 0:18 で「見抜く」
           ・教える3「見抜く」: 二重円の客を救えたら直ちに自由練習。未達でも 0:30 で競技
-          ・0:30.000: 競技の始まり。見抜くが未達なら、足りない操作のゴーストを1つ決めて合図する
+          ・自由練習: freePracticeSeconds（6秒）たったら競技。0:30 のほうが早ければ 0:30 で競技
+          ・競技の始まり（ふつうは 0:30.000）。見抜くが未達なら、足りない操作のゴーストを1つ決めて合図する
         締切ちょうどの時刻に起きたことは次の段階として数える（0:08.000 に救えたら「選ぶ」の1人目）
         いくつかの締切をいっぺんにこえた（おそいフレーム）ときも、締切の時刻の順に1つずつ進める
 
@@ -205,6 +208,10 @@ namespace Toufuku.Tutorial
 
         double DeliverEnd => Math.Min(_settings.deliverEndSeconds, _settings.learningSeconds);
         double ChooseEnd => Math.Min(_settings.chooseEndSeconds, _settings.learningSeconds);
+        // 学習の終わり。自由練習に入っていたら freePracticeSeconds で切り上げる
+        double LearningEnd => FreePracticeStartSeconds.HasValue
+            ? Math.Min(FreePracticeStartSeconds.Value + _settings.freePracticeSeconds, _settings.learningSeconds)
+            : _settings.learningSeconds;
 
         // 段階 stage（届ける・選ぶ・見抜く）を早期達成したか
         public bool IsAchieved(LearningStage stage)
@@ -263,8 +270,9 @@ namespace Toufuku.Tutorial
                 }
                 else
                 {
-                    if (t < _settings.learningSeconds) break;
-                    FinishLearning(_settings.learningSeconds);
+                    double end = LearningEnd;
+                    if (t < end) break;
+                    FinishLearning(end);
                 }
             }
 
