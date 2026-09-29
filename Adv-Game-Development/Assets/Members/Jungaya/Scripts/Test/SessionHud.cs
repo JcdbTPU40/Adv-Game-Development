@@ -32,8 +32,8 @@ public class SessionHud : MonoBehaviour
 
         if (session.IsFinished)
         {
-            // #61: 本番向けの ResultScreen が出ているときは、こちらのかんたんなリザルトは重ねない
-            if (!Toufuku.Hud.ResultScreen.IsShowing) DrawResult(session);
+            // #61: 本番向けの ResultScreen が出ているとき・ResultScene へ移るのを待っているときは、こちらのかんたんなリザルトは重ねない
+            if (!Toufuku.Hud.ResultScreen.IsShowing && !ResultSceneTransition.IsPending) DrawResult(session);
         }
         else
             DrawPlaying(session);
