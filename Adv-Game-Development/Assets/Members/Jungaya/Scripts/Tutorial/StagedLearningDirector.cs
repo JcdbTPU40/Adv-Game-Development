@@ -228,13 +228,15 @@ namespace Toufuku.Tutorial
             _plan.Advance(_session.ElapsedTime);
             TryPlayPendingGhost();
 
+            // ボタンの列は競技中も出したままなので、選んでいる色は学習のあとも配る
+            if (cueView != null && input != null) cueView.SetSelectedColor(input.SelectedColor);
+
             if (!_plan.IsLearning) return;
 
             SweepCustomers();
             EnsureStageCustomers();
             UpdatePulses();
             UpdateAimReaction();
-            if (cueView != null && input != null) cueView.SetSelectedColor(input.SelectedColor);
         }
 
         // ---------- 始まりと終わり ----------
@@ -305,7 +307,7 @@ namespace Toufuku.Tutorial
 
             ReleaseCustomers();
             if (_source != null) _source.AutoSpawnSuspended = false;
-            if (cueView != null) cueView.SetButtonRowVisible(false);
+            // ボタンの列は消さない（競技中の「今選んでいる色」の表示を兼ねる）。脈動は ReleaseCustomers で止まっている
 
             Log($"{t:0.000}秒 競技開始: 学習の値を捨てて、縁・評価・福の連なり・ランク・C停滞タイマーを 0 から数えます" +
                 (_plan.IsAchieved(LearningStage.Discern) ? "" : "（見抜くは未達）"));
