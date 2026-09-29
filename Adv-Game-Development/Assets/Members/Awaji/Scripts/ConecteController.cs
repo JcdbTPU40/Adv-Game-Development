@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Toufuku.GameInput;
 using UnityEngine;
@@ -37,6 +38,9 @@ public class ConecteController : MonoBehaviour
     /// <summary>#51: ファームウェアがボタンを送ってきているか。</summary>
     public bool hasButtons { get; private set; }
 
+    public bool isDesignation = false;
+    public string COMNo;
+
     /// <summary>#51: 1 行受信するたびに発火する（振りピーク検出用に全行を配る）。</summary>
     public event Action<ControllerSample> SampleReceived;
 
@@ -48,7 +52,39 @@ public class ConecteController : MonoBehaviour
 
     void Start()
     {
-        Connect();
+        if(!isDesignation)
+        {
+            Connect();
+        }
+        else
+        {
+            Designation();
+        }
+    }
+
+    void Designation()
+    {
+        try
+        {
+            Debug.Log($"指定COMポートへ接続 : {COMNo}");
+
+            SerialPort port = new SerialPort(COMNo, 115200);
+            port.ReadTimeout = 100;
+
+            port.Open();
+
+            Adopt(port);
+
+            Debug.Log($"[ConecteController] {portName} に接続しました");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning(
+                $"[ConecteController] 指定COMポート {COMNo} に接続できませんでした: {e.Message}"
+            );
+
+            CloseSerial();
+        }
     }
 
     void Connect()
@@ -65,25 +101,110 @@ public class ConecteController : MonoBehaviour
     public void BeginReconnect()
     {
         AdoptScanResult();
-        if (isScanning) return;
+
+        if (isScanning)
+            return;
 
         CloseSerial();
 
+        // 指定COMモード
+        if (isDesignation)
+        {
+            BeginDesignationReconnect();
+            return;
+        }
+
+        // 総当たりモード
+        BeginAutoReconnect();
+    }
+
+    void BeginAutoReconnect()
+    {
         string id = deviceID;
         string previous = _lastPortName;
         string[] ports = SerialPort.GetPortNames();
+
         _scanCancel = false;
+
         _scanThread = new Thread(() =>
         {
-            SerialPort found = ProbePorts(id, ports, previous, () => _scanCancel);
-            if (found == null) return;
-            if (_scanCancel) SafeClose(found);
-            else _scanResult = found;
+            SerialPort found = ProbePorts(
+                id,
+                ports,
+                previous,
+                () => _scanCancel
+            );
+
+            if (found == null)
+                return;
+
+            if (_scanCancel)
+            {
+                SafeClose(found);
+            }
+            else
+            {
+                _scanResult = found;
+            }
         })
         {
             IsBackground = true,
             Name = "ConecteController.Scan"
         };
+
+        _scanThread.Start();
+    }
+
+    void BeginDesignationReconnect()
+    {
+        string targetPort = COMNo;
+
+        if (string.IsNullOrEmpty(targetPort))
+        {
+            Debug.LogWarning("[ConecteController] 指定COMポートが設定されていません");
+            return;
+        }
+
+        _scanCancel = false;
+
+        _scanThread = new Thread(() =>
+        {
+            SerialPort found = null;
+
+            try
+            {
+                Debug.Log($"[ConecteController] 指定COMを再接続 : {targetPort}");
+
+                if (_scanCancel)
+                    return;
+
+                found = new SerialPort(targetPort, 115200);
+                found.ReadTimeout = 100;
+                found.Open();
+
+                // 指定モードではポートが開けば採用
+                if (_scanCancel)
+                {
+                    SafeClose(found);
+                    return;
+                }
+
+                _scanResult = found;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning(
+                    $"[ConecteController] {targetPort} に再接続できませんでした: {e.Message}"
+                );
+
+                SafeClose(found);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "ConecteController.DesignationReconnect"
+        };
+
         _scanThread.Start();
     }
 

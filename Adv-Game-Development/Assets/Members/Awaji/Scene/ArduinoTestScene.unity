@@ -1142,6 +1142,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1452209356}
   - component: {fileID: 1452209357}
+  - component: {fileID: 1452209358}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1177,6 +1178,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
+  isDesignation: 1
+  COMNo: COM24
+--- !u!114 &1452209358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1452209354}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f504a8a93ad1d694482027dd2508bda5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BNOReceiver
+  yaw: 0
+  pitch: 0
+  roll: 0
+  conName: COM24
 --- !u!1 &1496810646
 GameObject:
   m_ObjectHideFlags: 0
@@ -1427,6 +1446,7 @@ GameObject:
   - component: {fileID: 1603664614}
   - component: {fileID: 1603664612}
   - component: {fileID: 1603664615}
+  - component: {fileID: 1603664616}
   m_Layer: 0
   m_Name: ShootObjeMain
   m_TagString: Untagged
@@ -1481,6 +1501,45 @@ MonoBehaviour:
   con: {fileID: 1452209357}
   selector: {fileID: 0}
   fallbackType: 0
+--- !u!114 &1603664616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603664611}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 031ce4ce42c3b9648896470ce03ff470, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.ThrowInputController
+  rawSourceSource: {fileID: 0}
+  cooldownPreset: 1
+  customCooldownSeconds: 0.5
+  cooldownHotkeys: 1
+  frontHoldSeconds: 1
+  initialYawOffset: 180
+  oharaeEnabled: 0
+  oharaeChargeSeconds: 0.8
+  initialSelection: 0
+  throwFeedbackSource: {fileID: 0}
+  seSource: {fileID: 0}
+  throwSe: {fileID: 0}
+  cooldownRejectSe: {fileID: 0}
+  synthesizeRejectSe: 1
+  requireSessionPlaying: 1
+  aim: {fileID: 0}
+  showDebugHud: 1
+  logEvents: 1
+  onSwingAccepted:
+    m_PersistentCalls:
+      m_Calls: []
+  onSelectionChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onYawCalibrated:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2021296081
 GameObject:
   m_ObjectHideFlags: 0

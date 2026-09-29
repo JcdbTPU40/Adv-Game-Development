@@ -1,51 +1,36 @@
 using UnityEngine;
-using System.Collections;
-using Toufuku.GameInput;
 
 public class PlayerDirect : MonoBehaviour
 {
     public ConecteController con;
-    [Tooltip("#51: 正面ボタン1秒長押しのキャリブレーション結果で向く。未設定ならシーン内から探し、無ければ従来の A キー即時リセット")]
-    public ThrowInputController inputController;
-    Quaternion targetRot;
-    float yawOffset = 180f;
+
+    float yawOffset;
 
     void Start()
     {
-        yawOffset = 180f;
+        if (con == null)
+            con = FindAnyObjectByType<ConecteController>();
 
-        if (inputController == null)
-            inputController = FindAnyObjectByType<ThrowInputController>();
+        yawOffset = con != null ? con.yaw : 0f;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        float relativeYaw;
-        if (inputController != null)
+        if (con == null)
+            return;
+
+        // Aキーを押した方向を「正面」にする
+        if (Input.GetKeyDown(KeyCode.A))
         {
-            // #51: キャリブレーションは ThrowInputController に一本化
-            relativeYaw = inputController.RelativeYaw;
-        }
-        else
-        {
-            if (Input.GetKeyDown(KeyCode.A))
-                yawOffset = con.yaw;
-            relativeYaw = con.yaw - yawOffset;
+            yawOffset = con.yaw;
         }
 
-        targetRot =
-            Quaternion.Euler(
-                0,
-                relativeYaw,
-                0
-            );
+        float relativeYaw = con.yaw - yawOffset;
 
-        transform.rotation =
-            Quaternion.Lerp(
-                transform.rotation,
-                targetRot,
-                Time.deltaTime * 10f
-            );
+        transform.rotation = Quaternion.Euler(
+            0f,
+            relativeYaw,
+            0f
+        );
     }
 }
