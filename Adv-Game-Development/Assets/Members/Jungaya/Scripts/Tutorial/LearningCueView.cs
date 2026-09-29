@@ -11,7 +11,8 @@ namespace Toufuku.Tutorial
 
         ・ボタンの列: ボタン箱と同じならび（左から 健康・学業成就・厄除け安全・縁結び・金運）の5色の四角を画面の下に出す
           脈動させる色を明るく大きくする。ボタン箱の LED を光らせられるようになるまでの代わり
-          （LED は StagedLearningDirector.ButtonPulseChanged につなぐ）。今選んでいる色は白い枠で囲む
+          （LED は StagedLearningDirector.ButtonPulseChanged につなぐ）。今選んでいる色は濃く少し大きくして白い枠で囲む
+          競技が始まっても列は出したまま（今選んでいる色の表示を兼ねる。右下の OmamoriSelectHud の代わり）
         ・ゴースト: うすい照準マークが今の照準から相手の客へすべり、うすい大幣が一振りする。1回だけ再生して消える
         ・短い表示: 「色が違う」（誤投擲。罰はない）と「先に救えた！」（二重円の客を救えた）。18章に書いてある2つだけ
 
@@ -50,6 +51,8 @@ namespace Toufuku.Tutorial
         [SerializeField, Range(0f, 1f)] float idleButtonAlpha = 0.45f;
         [Tooltip("脈動がいちばん強いときの大きさ（倍）。")]
         [SerializeField, Range(1f, 2f)] float pulseScale = 1.35f;
+        [Tooltip("今選んでいる色のボタンの大きさ（倍）。濃さは脈動なしでもいちばん濃くする。")]
+        [SerializeField, Range(1f, 2f)] float selectedScale = 1.15f;
 
         [Header("ゴースト")]
         [SerializeField] Color ghostColor = new Color(1f, 1f, 1f, 0.6f);
@@ -120,11 +123,12 @@ namespace Toufuku.Tutorial
             {
                 if (_buttons[i] == null) continue;
                 float amount = Mathf.Clamp01(Mathf.Max(_pulse[i], _ghostPulse[i]));
+                bool selected = i == _selected;
                 Color c = ColorOf(i);
-                c.a = Mathf.Lerp(idleButtonAlpha, 1f, amount);
+                c.a = selected ? 1f : Mathf.Lerp(idleButtonAlpha, 1f, amount);
                 _buttons[i].color = Color.Lerp(c, Color.white, amount * 0.25f);
-                _buttonRects[i].localScale = Vector3.one * Mathf.Lerp(1f, pulseScale, amount);
-                _selectFrames[i].enabled = i == _selected;
+                _buttonRects[i].localScale = Vector3.one * Mathf.Max(selected ? selectedScale : 1f, Mathf.Lerp(1f, pulseScale, amount));
+                _selectFrames[i].enabled = selected;
             }
         }
 
@@ -140,7 +144,7 @@ namespace Toufuku.Tutorial
             font = next;
         }
 
-        // ボタンの列を出すか（学習中だけ出す）
+        // ボタンの列を出すか（学習の始まりから出して、競技中も出したまま）
         public void SetButtonRowVisible(bool visible)
         {
             _rowRequested = visible;
