@@ -16,7 +16,7 @@ namespace Toufuku.GameInput
         float Yaw { get; }
 
         // そのままのピッチ角（度）。照準の奥行き（#60: 地面の 3〜18m）に使う
-        float Pitch { get; }
+        float Roll { get; }
 
         // 色ボタン（0〜4、OmamoriType の順番＝ボタン箱の左から右）が押されているかどうか
         bool IsColorHeld(int index);

@@ -48,18 +48,18 @@ namespace Toufuku.GameInput
         [SerializeField] float maxPitch = 60f;
 
         float _yaw;
-        float _pitch;
+        float _roll;
         int _consumedFrame = -1;
 
         public bool IsConnected => true;
         public float Yaw => _yaw;
-        public float Pitch => _pitch;
+        public float Roll => _roll;
         public bool IsFrontHeld => Input.GetKey(frontKey);
 
         void Awake()
         {
             _yaw = initialYaw;
-            _pitch = initialPitch;
+            _roll = initialPitch;
         }
 
         void Update()
@@ -72,7 +72,7 @@ namespace Toufuku.GameInput
 
             float scroll = Input.mouseScrollDelta.y;
             if (scroll != 0f)
-                _pitch = Mathf.Clamp(_pitch + scroll * pitchPerScroll, minPitch, maxPitch);
+                _roll = Mathf.Clamp(_roll + scroll * pitchPerScroll, minPitch, maxPitch);
         }
 
         public bool IsColorHeld(int index)

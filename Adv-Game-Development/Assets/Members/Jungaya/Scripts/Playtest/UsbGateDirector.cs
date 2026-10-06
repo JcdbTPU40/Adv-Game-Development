@@ -709,7 +709,7 @@ namespace Toufuku.Playtest
             row.Label = label;
             row.Value = screen.x / Screen.width;
             row.Flag = connected && _still.IsStill;
-            float pitch = input != null && input.RawSource != null ? input.RawSource.Pitch : 0f;
+            float pitch = input != null && input.RawSource != null ? input.RawSource.Roll : 0f;
             row.Detail = FormattableString.Invariant(
                 $"yaw={(input != null ? input.RelativeYaw : 0f):0.00};pitch={pitch:0.00};y={screen.y / Mathf.Max(1, Screen.height):0.0000};connected={(connected ? 1 : 0)}");
             return true;

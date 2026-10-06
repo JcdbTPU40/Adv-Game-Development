@@ -172,7 +172,7 @@ namespace Toufuku.Aim
             if (UsingYawPitch)
             {
                 relativeYaw = input.RelativeYaw * (invertYaw ? -1f : 1f);
-                distance = AimSolver.PitchToDistance(input.RawSource.Pitch, pitchAtNear, pitchAtFar, nearDistance, farDistance);
+                distance = AimSolver.PitchToDistance(input.RawSource.Roll, pitchAtNear, pitchAtFar, nearDistance, farDistance);
             }
             else
             {
@@ -200,6 +200,7 @@ namespace Toufuku.Aim
             HasAim = true;
 
             Record(Time.realtimeSinceStartupAsDouble, point);
+            Debug.Log($"Yaw={input.RawSource.Yaw}, RelativeYaw={relativeYaw}");
         }
 
         bool ShouldUseYawPitch()

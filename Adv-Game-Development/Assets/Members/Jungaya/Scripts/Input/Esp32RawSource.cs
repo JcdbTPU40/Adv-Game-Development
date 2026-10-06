@@ -62,7 +62,7 @@ namespace Toufuku.GameInput
 
         public bool IsConnected => con != null && con.isConnected;
         public float Yaw => con != null ? con.yaw : 0f;
-        public float Pitch => con != null ? con.pitch : 0f;
+        public float Roll => con != null ? con.roll : 0f;
 
         // ファームウェアがボタンの情報を送ってきているかどうか
         public bool HasHardwareButtons => _latest.HasButtons;
@@ -111,7 +111,7 @@ namespace Toufuku.GameInput
             _detectorTime = t;
 
             // ピークの時刻は受け取った時刻で返す（#52 の遅れの計測とそろえるため）
-            if (_detector.AddSample(sample.Pitch, t, out float peakVelocity))
+            if (_detector.AddSample(sample.Roll, t, out float peakVelocity))
                 _peaks.Enqueue((peakVelocity, sample.Time, sample.DeviceTime));
         }
 

@@ -1178,7 +1178,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
   isDesignation: 1
-  COMNo: COM24
+  COMNo: COM25
 --- !u!1 &1496810646
 GameObject:
   m_ObjectHideFlags: 0

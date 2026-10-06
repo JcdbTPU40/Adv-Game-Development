@@ -5,6 +5,7 @@ public class PlayerDirect : MonoBehaviour
     public ConecteController con;
 
     float yawOffset;
+    float rollOffset;
 
     void Start()
     {
@@ -12,6 +13,7 @@ public class PlayerDirect : MonoBehaviour
             con = FindAnyObjectByType<ConecteController>();
 
         yawOffset = con != null ? con.yaw : 0f;
+        rollOffset = con != null ? con.roll : 0f;
     }
 
     void Update()
@@ -23,12 +25,14 @@ public class PlayerDirect : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.A))
         {
             yawOffset = con.yaw;
+            rollOffset = con.roll;
         }
 
         float relativeYaw = con.yaw - yawOffset;
+        float relativeRoll = con.roll - rollOffset;
 
         transform.rotation = Quaternion.Euler(
-            0f,
+            -relativeRoll,
             relativeYaw,
             0f
         );
