@@ -594,6 +594,7 @@ MonoBehaviour:
     chooseEndSeconds: 18
     learningSeconds: 30
     chooseRequiredRescues: 2
+    freePracticeSeconds: 6
     deliverColors: 00000000
     chooseColors: 0000000001000000
     discernColors: 000000000100000003000000
@@ -1270,6 +1271,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Hud.ResultScreen
   font: {fileID: 12800000, guid: d06905215612c1b4fb21696472763115, type: 3}
   sortingOrder: 60
+  showLastResult: 0
+  retrySceneName: GameScene
   titleColor: {r: 1, g: 1, b: 1, a: 1}
   enColor: {r: 1, g: 1, b: 1, a: 1}
   bestColor: {r: 1, g: 0.84, b: 0.3, a: 1}
@@ -1902,6 +1905,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
+  isDesignation: 1
+  COMNo: 
 --- !u!4 &1624669430
 Transform:
   m_ObjectHideFlags: 0
@@ -2395,6 +2400,11 @@ MonoBehaviour:
   pitchAtFar: 20
   maxYaw: 60
   invertYaw: 0
+  snapToCustomer: 1
+  customerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  customerRayDistance: 100
   viewportMargin: 0.06
   lockLookbackSeconds: 0
 --- !u!4 &2098549821
@@ -3819,7 +3829,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDirect
   con: {fileID: 1624669429}
-  inputController: {fileID: 969830203}
 --- !u!114 &4748935194137684865
 MonoBehaviour:
   m_ObjectHideFlags: 0

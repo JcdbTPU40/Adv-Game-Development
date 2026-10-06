@@ -481,7 +481,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -500,6 +500,8 @@ RectTransform:
   m_Children:
   - {fileID: 1079846406}
   - {fileID: 2089011118}
+  - {fileID: 1624669430}
+  - {fileID: 1203782101}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -725,6 +727,143 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1 &1203782100
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1203782101}
+  - component: {fileID: 1203782103}
+  - component: {fileID: 1203782102}
+  m_Layer: 0
+  m_Name: Text (TMP)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1203782101
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1203782100}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198868339}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 28.7602, y: -28.5035}
+  m_SizeDelta: {x: 257.5205, y: 107.0068}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1203782102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1203782100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
+  m_sharedMaterial: {fileID: -6761985701646665310, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 36
+  m_fontSizeBase: 36
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 1
+  m_VerticalAlignment: 256
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &1203782103
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1203782100}
+  m_CullTransparentMesh: 1
 --- !u!1 &1320574902
 GameObject:
   m_ObjectHideFlags: 0
@@ -1091,6 +1230,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
+  isDesignation: 1
+  COMNo: 0
 --- !u!4 &1624669430
 Transform:
   m_ObjectHideFlags: 0
@@ -1099,12 +1240,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1624669428}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.62057, y: 1.28953, z: 35}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -959.37946, y: -538.71045, z: 35}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 198868339}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1624669431
 MonoBehaviour:
@@ -1148,10 +1289,19 @@ MonoBehaviour:
   secondsPerMonth: 5
   totalMonths: 3
   autoStart: 1
+  resolveGraceSeconds: 0.5
+  learningSeconds: 30
+  maxClockStepSeconds: 0.5
+  freezeWorldWhileHeld: 1
+  pauseKey: 290
+  logBoundaryReport: 1
   onMonthChanged:
     m_PersistentCalls:
       m_Calls: []
   onSessionStart:
+    m_PersistentCalls:
+      m_Calls: []
+  onTimeUp:
     m_PersistentCalls:
       m_Calls: []
   onSessionEnd:
@@ -1181,23 +1331,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f9794384396afa49a39b8d4a480cb69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShrineRating
-  maxRating: 100
-  startRating: 50
-  resolveGain: 5
-  angryLoss: 10
-  rankSThreshold: 80
-  rankAThreshold: 60
-  rankBThreshold: 40
-  multiplierC: 0.8
-  multiplierB: 1
-  multiplierA: 1.2
-  multiplierS: 1.5
+  ratingMax: 300
+  initialRating: 0
+  fallbackRescueGain: 10
+  fallbackBlackLoss: 20
+  blackShotLoss: 15
+  thresholds:
+    promoteToB: 60
+    promoteToA: 150
+    promoteToS: 250
+    demoteToC: 40
+    demoteToB: 120
+    demoteToA: 210
   onRatingChanged:
     m_PersistentCalls:
       m_Calls: []
   onRankChanged:
     m_PersistentCalls:
       m_Calls: []
+  onMaxRankChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1624669435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624669428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c110f38ee95e7b14db19c79420ca53ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoTitleScript
+  sceneName: Start
 --- !u!114 &1624669436
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1212,19 +1379,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
   displayImage: {fileID: 2089011119}
   timeUpSprite: {fileID: 21300000, guid: 3b5629b42dccfa04d89c0b4b2abf10df, type: 3}
---- !u!114 &1624669435
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1624669428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c110f38ee95e7b14db19c79420ca53ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GoTitleScript
-  sceneName: Start
 --- !u!1 &1680664380
 GameObject:
   m_ObjectHideFlags: 0
@@ -2690,6 +2844,9 @@ MonoBehaviour:
   worldHeightOffset: 2
   barWidth: 80
   barHeight: 10
+  remainingPipOffset: 14
+  remainingPipWidth: 16
+  remainingColor: {r: 1, g: 1, b: 1, a: 0.9}
   emptyColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   fullColor: {r: 0.95, g: 0.2, b: 0.2, a: 1}
   backColor: {r: 0, g: 0, b: 0, a: 0.6}
@@ -2884,11 +3041,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e4c3a33f83f0874bbdc7aed11ea9bbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
-  outerScore: 100
-  innerScore: 200
-  centerScore: 300
-  comboStep: 0.1
-  maxMultiplier: 3
+  hitScore: 100
+  bonusTable: {fileID: 0}
+  centerBonus: 50
+  innerBonus: 20
+  outerBonus: 0
+  priorityRescueBonus: 50
 --- !u!4 &4748935194137684862
 Transform:
   m_ObjectHideFlags: 0
@@ -3255,6 +3413,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ScoreHud
   fontSize: 26
   color: {r: 1, g: 1, b: 1, a: 1}
+  topRatio: 0.4
   gokago: {fileID: 8734802895695332746}
 --- !u!33 &6843884597414136853
 MeshFilter:
@@ -3747,7 +3906,4 @@ SceneRoots:
   - {fileID: 839193287}
   - {fileID: 28046679}
   - {fileID: 1612996222}
-  - {fileID: 1624669430}
   - {fileID: 198868339}
-
-
