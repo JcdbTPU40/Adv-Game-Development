@@ -25,6 +25,7 @@ GameScene の背景・ライティング・日周表現の土台です。モデ�
 3. **コライダーを付けない**: 地面の当たり判定は GameScene の Plane が受け持ちます。
 4. **篝火**は `Flame`（灯ったときだけ表示）と `FireLight` の2つの子を残してください。`BonfireProgress` がこの2つを参照しています。
 5. **灯籠の火袋**（`Hibukuro`）は夜に光ります。`DayCycleController.nightGlowRenderers` に入っているレンダラーの `_EmissionColor` を上書きする仕組みです。
+6. **狐火**（`Prefabs/Kitsunebi.prefab`）は飾りです。子の `Wisp_xx`（ParticleSystem）1つが狐火1つで、`KitsunebiWisps` が置いた位置のまわりを漂わせます。動く幅は 0.35m なので、置き場所は `|x| ≥ 10` か鳥居より奥（z < 7）にしてください。色は輪郭5色（特に学業の青）とまぎれないよう、彩度を落とした青白（`Materials/Env_Kitsunebi.mat`）です。
 
 ## ライティング
 
