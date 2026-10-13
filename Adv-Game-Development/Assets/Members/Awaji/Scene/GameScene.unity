@@ -1014,7 +1014,7 @@ MonoBehaviour:
   customCooldownSeconds: 0.5
   cooldownHotkeys: 1
   frontHoldSeconds: 1
-  initialYawOffset: 180
+  initialYawOffset: 0
   oharaeEnabled: 0
   oharaeChargeSeconds: 0.8
   initialSelection: 0
@@ -1931,7 +1931,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
   isDesignation: 1
-  COMNo: COM25
+  COMNo: COM21
 --- !u!4 &1624669430
 Transform:
   m_ObjectHideFlags: 0
@@ -3824,7 +3824,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4543673335870321239}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c7633ad493fc2d46b19b14a7ced7675, type: 3}
   m_Name: 
@@ -3861,7 +3861,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4543673335870321239}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db0094036a4f5344a96fce4d0100a39b, type: 3}
   m_Name: 
