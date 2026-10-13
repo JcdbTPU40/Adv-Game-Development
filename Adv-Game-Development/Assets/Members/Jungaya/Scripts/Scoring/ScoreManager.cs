@@ -60,6 +60,8 @@ public class ScoreManager : MonoBehaviour
     public event Action<float> onMultiplierChanged;
     // 誤投擲（相性✗）か黒客への通常弾で、福の連なりが切れた。コンボが切れる演出や効果音用
     public event Action onMiss;
+    // 通常弾で救済が完了した。救済得点を足した直後に呼ぶ（ご加護の進捗 G 用。#29）
+    public event Action onRescued;
     // ResetAll が呼ばれた（リトライ用。#32 のゲーム管理が受け取る）
     public event Action onReset;
     // 笑顔の伝播で縁が入った（引数: 入った点）（#61 / #56）
@@ -225,6 +227,7 @@ public class ScoreManager : MonoBehaviour
 
         NotifyChainChanged();
         onEnChanged?.Invoke(En);
+        onRescued?.Invoke();
     }
 
     /*

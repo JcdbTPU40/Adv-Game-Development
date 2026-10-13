@@ -212,5 +212,38 @@ namespace Toufuku.Scoring.Tests
             Rescue(); Rescue(); Rescue();
             Assert.AreEqual(_score.Multiplier * _score.GokagoMultiplier, _score.TotalMultiplier);
         }
+
+        // ── ご加護の進捗 G 用のイベント（#29） ─────────────────────────────
+
+        [Test]
+        public void 救済完了のときだけonRescuedが出て_縁はもう足されている()
+        {
+            int calls = 0;
+            int enAtCall = -1;
+            _score.onRescued += () => { calls++; enAtCall = _score.En; };
+
+            _score.RegisterCorrectHit(HitZone.Outer, rescued: false, rescueBaseScore: 300); // 途中の命中
+            _score.RegisterMiss();
+            _score.RegisterGroundMiss();
+            Assert.AreEqual(0, calls);
+
+            Rescue();
+            Assert.AreEqual(1, calls);
+            Assert.AreEqual(100, enAtCall);
+        }
+
+        [Test]
+        public void 練習中と固定後はonRescuedが出ない()
+        {
+            int calls = 0;
+            _score.onRescued += () => calls++;
+
+            _score.SetPractice(true);
+            Rescue();
+            _score.SetPractice(false);
+            _score.LockScore();
+            Rescue();
+            Assert.AreEqual(0, calls);
+        }
     }
 }

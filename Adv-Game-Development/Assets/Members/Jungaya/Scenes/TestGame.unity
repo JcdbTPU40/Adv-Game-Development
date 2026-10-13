@@ -526,6 +526,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &395527646
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 395527648}
+  - component: {fileID: 395527647}
+  m_Layer: 0
+  m_Name: GokagoCutIn
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &395527647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 395527646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e99241f771fc8c4bbf82da4bf9ea74a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Feedback.GokagoCutIn
+  gokago: {fileID: 8734802895695332746}
+  godModelPrefab: {fileID: 1247641193626720931, guid: 603cccea0bd1def41bfbd35e9acec2f5, type: 3}
+  godSprite: {fileID: 0}
+  font: {fileID: 12800000, guid: d06905215612c1b4fb21696472763115, type: 3}
+  bellSe: {fileID: 0}
+  bellVolume: 0.9
+  gold: {r: 1, g: 0.82, b: 0.32, a: 1}
+  edgeWidth: 0.14
+  figureMaxAlpha: 0.65
+  figureHeight: 0.95
+  labelSize: 0.07
+  sortingOrder: 60
+  stageOffset: {x: 0, y: -5000, z: 0}
+  modelTextureSize: {x: 576, y: 768}
+  modelCameraPosition: {x: 0, y: 1.35, z: -5.3}
+  modelLookAt: {x: 0, y: 1.35, z: 0}
+  modelCameraFov: 36
+  totalSeconds: 0.8
+--- !u!4 &395527648
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 395527646}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &756149432
 GameObject:
   m_ObjectHideFlags: 0
@@ -2720,9 +2782,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af37d8231b4e2464ca188e2a51a4afab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GokagoTime
-  comboThreshold: 10
-  duration: 10
-  scoreMultiplier: 2
+  progressThreshold: 10
+  durationSeconds: 12
+  blessingMultiplier: 1.25
   onGokagoStart:
     m_PersistentCalls:
       m_Calls: []
@@ -2756,3 +2818,4 @@ SceneRoots:
   - {fileID: 1072269765}
   - {fileID: 261272472}
   - {fileID: 756149435}
+  - {fileID: 395527648}
