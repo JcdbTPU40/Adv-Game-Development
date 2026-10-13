@@ -9,6 +9,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
 {
     [Header("表示")]
     [SerializeField] private Font japaneseFont;
+    [SerializeField] private TMP_FontAsset sdfFont;
     [SerializeField, Min(1f)] private float fontSize = 48f;
     [SerializeField] private Color textColor = Color.white;
     [SerializeField] private string labelPrefix = "縁";
@@ -64,10 +65,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
         rect.anchoredPosition = topRightOffset;
 
         scoreText = textObject.GetComponent<TextMeshProUGUI>();
-        if (japaneseFont != null)
-        {
-            scoreText.font = TMP_FontAsset.CreateFontAsset(japaneseFont);
-        }
+        scoreText.font = sdfFont != null ? sdfFont : (japaneseFont != null ? TMP_FontAsset.CreateFontAsset(japaneseFont) : null);
         scoreText.fontSize = fontSize;
         scoreText.color = textColor;
         scoreText.alignment = TextAlignmentOptions.TopRight;

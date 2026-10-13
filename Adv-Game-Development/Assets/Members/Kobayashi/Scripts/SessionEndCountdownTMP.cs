@@ -9,6 +9,7 @@ public class SessionEndCountdownTMP : MonoBehaviour
 {
     [Header("表示内容")]
     [SerializeField] private Font japaneseFont;
+    [SerializeField] private TMP_FontAsset sdfFont;
     [SerializeField, Min(1f)] private float fontSize = 220f;
     [SerializeField] private Color textColor = Color.white;
     [SerializeField, Range(0f, 1f)] private float opacity = 0.68f;
@@ -89,10 +90,7 @@ public class SessionEndCountdownTMP : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
 
         countdownText = textObject.GetComponent<TextMeshProUGUI>();
-        if (japaneseFont != null)
-        {
-            countdownText.font = TMP_FontAsset.CreateFontAsset(japaneseFont);
-        }
+        countdownText.font = sdfFont != null ? sdfFont : (japaneseFont != null ? TMP_FontAsset.CreateFontAsset(japaneseFont) : null);
         countdownText.fontSize = fontSize;
         var displayColor = textColor;
         displayColor.a = opacity;
