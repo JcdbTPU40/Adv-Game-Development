@@ -39,6 +39,7 @@ namespace Toufuku.GameInput
           FireTriggered / OmamoriSelectTriggered がこの状態機械の結果になる
         ・投げる音: SwingAccepted を受け取ったその場（振りピークを見つけたのと同じフレーム）で鳴らす
         ・キャリブレーション: 正面ボタン1秒長押しで、基準のヨー角を取りなおす。向きは RelativeYaw を読む
+          合わせた正面は ControllerCalibration に書いて、次のシーン（メインメニュー ⇔ プレイ）へ引きつぐ
         ・発射する側より先にこのフレームの入力を決めておきたいので、実行の順番を早くしている
         ・#65: 振りを受け付けるかは、その振りを受け取った時刻で GameSession に聞く（180.000秒未満だけ・時計を止めている間は受け付けない）
           3:00 をまたいだフレームでも、フレームの粗さで結果が変わらないようにするため
@@ -169,7 +170,8 @@ namespace Toufuku.GameInput
             if (_raw == null)
                 Debug.LogWarning("[ThrowInputController] 生入力の供給元がありません（KeyboardMouseRawSource か Esp32RawSource を付けてください）", this);
 
-            _yawOffset = initialYawOffset;
+            // メインメニューや前のプレイで正面を合わせていたら、その正面から始める
+            _yawOffset = ControllerCalibration.YawOffsetOr(initialYawOffset);
             _buttonLink = _raw as IButtonLinkState;
 
             if (aim == null)
@@ -352,6 +354,7 @@ namespace Toufuku.GameInput
         void HandleYawCalibration()
         {
             _yawOffset = _raw != null ? _raw.Yaw : initialYawOffset;
+            ControllerCalibration.SetYawOffset(_yawOffset, Time.realtimeSinceStartupAsDouble);
             Log($"ヨー角キャリブレーション 基準={_yawOffset:0.0}");
             YawCalibrated?.Invoke(_yawOffset);
             onYawCalibrated?.Invoke(_yawOffset);
