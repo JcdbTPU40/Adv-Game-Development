@@ -1910,7 +1910,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
   isDesignation: 1
-  COMNo: 
+  COMNo: COM10
 --- !u!4 &1624669430
 Transform:
   m_ObjectHideFlags: 0
@@ -1965,7 +1965,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f239ccc8faaebb6408fa50b4e11ea7c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameSession
-  secondsPerMonth: 1
+  secondsPerMonth: 60
   totalMonths: 3
   autoStart: 1
   resolveGraceSeconds: 0.5
