@@ -17,8 +17,8 @@ namespace Toufuku.Scenery.EditorTools
           ・服に輪郭の5色（緑・青・紫・ピンク・金）や赤に近い色は使わない。体の色で欲しいお守りを読みちがえないように
           ・原点は前のカプセルと同じ「体の中心」。足もとが y=-1、頭のてっぺんが y=+0.77。前は +Z。右手は +X 側
           ・すそと肩の直径は約 0.75m。カプセル（直径 1m）より細すぎると輪郭の見える面積が減るので、こけしとしては太めにしてある
-          ・アニメーションは Generic のクリップをコードで作る。パラメータは CustomerAnimatorBridge のコメントを参照
-            デザイン班のモデルに差しかえるときは、同じパラメータ名の Animator Controller を作れば CustomerAnimatorBridge はそのまま使える
+          ・アニメーションの動きはデザイン班のモデル（CustomerMobBuilder）と共通の CustomerMotions を、このリグに合わせて書く
+            パラメータは CustomerAnimatorBridge のコメントを参照
     */
     public static class CustomerPlaceholderBuilder
     {
@@ -46,11 +46,7 @@ namespace Toufuku.Scenery.EditorTools
             EnsureFolder(AnimDir);
 
             Material material = BuildMaterial();
-            BuildController();
-            AssetDatabase.SaveAssets();
-            // 作り直した直後のオブジェクトではなく、保存したアセットを参照させる（でないとプレハブ側の参照が空になる）
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
-            GameObject model = BuildModelPrefab(material, controller);
+            GameObject model = BuildModelPrefab(material);
             UpdateVariant(model);
 
             AssetDatabase.SaveAssets();
@@ -346,7 +342,7 @@ namespace Toufuku.Scenery.EditorTools
             mesh.RecalculateTangents();
         }
 
-        static GameObject BuildModelPrefab(Material material, AnimatorController controller)
+        static GameObject BuildModelPrefab(Material material)
         {
             var root = new GameObject("Customer_KokeshiModel");
             var bones = new Transform[(int)B.Count];
@@ -376,6 +372,11 @@ namespace Toufuku.Scenery.EditorTools
             smr.quality = SkinQuality.Bone2;
             smr.updateWhenOffscreen = false;
             smr.localBounds = new Bounds(new Vector3(0f, 0.05f, 0.05f), new Vector3(1.4f, 2.0f, 1.2f));
+
+            // 骨組みができてから、その姿勢を基準にクリップとコントローラーを作る
+            BuildController(root.transform);
+            // 作り直した直後のオブジェクトではなく、保存したアセットを参照させる（でないとプレハブ側の参照が空になる）
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
 
             var animator = root.AddComponent<Animator>();
             animator.runtimeAnimatorController = controller;
@@ -462,218 +463,35 @@ namespace Toufuku.Scenery.EditorTools
 
         // ---- アニメーション ----
 
-        static AnimationClip NewClip(string name, bool loop)
+        // こけしのボーンを、動きの部位に対応させる
+        static Dictionary<CustomerBone, string> RigPaths() => new Dictionary<CustomerBone, string>
         {
-            string path = $"{AnimDir}/{name}.anim";
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
-            if (clip == null)
-            {
-                clip = new AnimationClip { name = name };
-                AssetDatabase.CreateAsset(clip, path);
-            }
-            clip.ClearCurves();
-            var settings = AnimationUtility.GetAnimationClipSettings(clip);
-            settings.loopTime = loop;
-            AnimationUtility.SetAnimationClipSettings(clip, settings);
-            return clip;
-        }
+            { CustomerBone.Hips, BonePath(B.Hips) },
+            { CustomerBone.Spine, BonePath(B.Spine) },
+            { CustomerBone.Chest, BonePath(B.Chest) },
+            { CustomerBone.Neck, BonePath(B.Neck) },
+            { CustomerBone.Head, BonePath(B.Head) },
+            { CustomerBone.UpperArmR, BonePath(B.UpperArmR) },
+            { CustomerBone.LowerArmR, BonePath(B.LowerArmR) },
+            { CustomerBone.UpperArmL, BonePath(B.UpperArmL) },
+            { CustomerBone.LowerArmL, BonePath(B.LowerArmL) },
+            { CustomerBone.LegR, BonePath(B.LegR) },
+            { CustomerBone.LegL, BonePath(B.LegL) },
+        };
 
-        static AnimationCurve Curve(float[] times, float[] values, bool loop)
+        // 動きは CustomerMotions（デザイン班のモデルと共通）。こけしは全部のボーンの基準の回転が 0
+        static void BuildController(Transform modelRoot)
         {
-            var keys = new Keyframe[times.Length];
-            for (int i = 0; i < times.Length; i++) keys[i] = new Keyframe(times[i], values[i]);
-            var curve = new AnimationCurve(keys);
-            for (int i = 0; i < keys.Length; i++) AnimationUtility.SetKeyLeftTangentMode(curve, i, AnimationUtility.TangentMode.ClampedAuto);
-            for (int i = 0; i < keys.Length; i++) AnimationUtility.SetKeyRightTangentMode(curve, i, AnimationUtility.TangentMode.ClampedAuto);
-            if (loop) { curve.preWrapMode = WrapMode.Loop; curve.postWrapMode = WrapMode.Loop; }
-            return curve;
-        }
-
-        static float[] Const(int n, float v)
-        {
-            var a = new float[n];
-            for (int i = 0; i < n; i++) a[i] = v;
-            return a;
-        }
-
-        // 回転（度）。x/y/z のどれかを null にすると 0 のまま
-        static void Rot(AnimationClip clip, B bone, float[] t, float[] x = null, float[] y = null, float[] z = null)
-        {
-            bool loop = AnimationUtility.GetAnimationClipSettings(clip).loopTime;
-            string path = BonePath(bone);
-            clip.SetCurve(path, typeof(Transform), "localEulerAnglesRaw.x", Curve(t, x ?? Const(t.Length, 0f), loop));
-            clip.SetCurve(path, typeof(Transform), "localEulerAnglesRaw.y", Curve(t, y ?? Const(t.Length, 0f), loop));
-            clip.SetCurve(path, typeof(Transform), "localEulerAnglesRaw.z", Curve(t, z ?? Const(t.Length, 0f), loop));
-        }
-
-        // 腰の上下（y は休みの位置からのずれ）
-        static void HipsBob(AnimationClip clip, float[] t, float[] dy)
-        {
-            bool loop = AnimationUtility.GetAnimationClipSettings(clip).loopTime;
-            string path = BonePath(B.Hips);
-            var y = new float[dy.Length];
-            for (int i = 0; i < dy.Length; i++) y[i] = HipsY + dy[i];
-            clip.SetCurve(path, typeof(Transform), "m_LocalPosition.x", Curve(t, Const(t.Length, 0f), loop));
-            clip.SetCurve(path, typeof(Transform), "m_LocalPosition.y", Curve(t, y, loop));
-            clip.SetCurve(path, typeof(Transform), "m_LocalPosition.z", Curve(t, Const(t.Length, 0f), loop));
-        }
-
-        /*
-            クリップの向き: 脚・腕は x がマイナスで前へ、プラスで後ろへ。頭・背骨は x がプラスで前へかがむ
-            右腕は z がプラスで外へ上がる（左腕はマイナス）
-        */
-        static AnimatorController BuildController()
-        {
-            // 待機: 呼吸のようなゆれ
-            var idle = NewClip("Customer_Idle", true);
-            float[] ti = { 0f, 1.2f, 2.4f };
-            Rot(idle, B.Chest, ti, x: new[] { 0f, 2f, 0f });
-            Rot(idle, B.Head, ti, x: new[] { 0f, -1.5f, 0f });
-            Rot(idle, B.UpperArmR, ti, z: new[] { 3f, 4.5f, 3f });
-            Rot(idle, B.UpperArmL, ti, z: new[] { -3f, -4.5f, -3f });
-            HipsBob(idle, ti, new[] { 0f, -0.006f, 0f });
-
-            // 焦り: 足ぶみ・まわりを見回す（危険度 0.5→1 で待機から切りかわる）
-            var fidget = NewClip("Customer_Fidget", true);
-            float[] tf = { 0f, 0.175f, 0.35f, 0.525f, 0.7f };
-            Rot(fidget, B.Hips, tf, z: new[] { 0f, 3f, 0f, -3f, 0f });
-            Rot(fidget, B.LegR, tf, x: new[] { 0f, -16f, 0f, 0f, 0f });
-            Rot(fidget, B.LegL, tf, x: new[] { 0f, 0f, 0f, -16f, 0f });
-            Rot(fidget, B.Chest, tf, x: Const(5, 5f), y: new[] { -6f, 0f, 6f, 0f, -6f });
-            Rot(fidget, B.Head, tf, y: new[] { -14f, 0f, 14f, 0f, -14f });
-            Rot(fidget, B.UpperArmR, tf, z: new[] { 4f, 8f, 4f, 8f, 4f });
-            Rot(fidget, B.UpperArmL, tf, z: new[] { -4f, -8f, -4f, -8f, -4f });
-            HipsBob(fidget, tf, new[] { 0f, 0.012f, 0f, 0.012f, 0f });
-
-            // 歩き
-            var walk = NewClip("Customer_Walk", true);
-            float[] tw = { 0f, 0.2f, 0.4f, 0.6f, 0.8f };
-            Rot(walk, B.LegR, tw, x: new[] { -22f, 0f, 22f, 0f, -22f });
-            Rot(walk, B.LegL, tw, x: new[] { 22f, 0f, -22f, 0f, 22f });
-            Rot(walk, B.UpperArmR, tw, x: new[] { 18f, 0f, -18f, 0f, 18f }, z: Const(5, 4f));
-            Rot(walk, B.UpperArmL, tw, x: new[] { -18f, 0f, 18f, 0f, -18f }, z: Const(5, -4f));
-            Rot(walk, B.Chest, tw, y: new[] { 5f, 0f, -5f, 0f, 5f });
-            Rot(walk, B.Hips, tw, y: new[] { -5f, 0f, 5f, 0f, -5f });
-            HipsBob(walk, tw, new[] { 0f, -0.03f, 0f, -0.03f, 0f });
-
-            // 救済: とび上がって喜び、おじぎしてから帰る
-            var rescued = NewClip("Customer_Rescued", false);
-            float[] tr = { 0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.85f, 1.15f, 1.45f, 1.8f };
-            HipsBob(rescued, tr, new[] { 0f, 0.09f, 0f, 0.06f, 0f, 0f, 0f, 0f, 0f });
-            Rot(rescued, B.UpperArmR, tr, z: new[] { 3f, 70f, 70f, 70f, 70f, 3f, 3f, 3f, 3f });
-            Rot(rescued, B.UpperArmL, tr, z: new[] { -3f, -70f, -70f, -70f, -70f, -3f, -3f, -3f, -3f });
-            Rot(rescued, B.Spine, tr, x: new[] { 0f, 0f, 0f, 0f, 0f, 0f, 35f, 35f, 0f });
-            Rot(rescued, B.Chest, tr, x: new[] { 0f, 0f, 0f, 0f, 0f, 0f, 10f, 10f, 0f });
-            Rot(rescued, B.Head, tr, x: new[] { 0f, -12f, -12f, -6f, 0f, 0f, 10f, 10f, 0f });
-
-            // 黒客: 肩を落として、ときどき足を踏みならす
-            var black = NewClip("Customer_Black", true);
-            float[] tb = { 0f, 0.25f, 0.4f, 0.55f, 1.25f, 1.4f, 1.55f, 2f };
-            Rot(black, B.Spine, tb, x: Const(8, 6f));
-            Rot(black, B.Chest, tb, x: Const(8, 14f), z: new[] { 0f, 0f, 3f, 0f, 0f, -3f, 0f, 0f });
-            Rot(black, B.Head, tb, x: Const(8, 18f));
-            Rot(black, B.UpperArmR, tb, x: Const(8, 6f), z: Const(8, 1f));
-            Rot(black, B.UpperArmL, tb, x: Const(8, 6f), z: Const(8, -1f));
-            Rot(black, B.LegR, tb, x: new[] { 0f, -18f, 0f, 0f, 0f, 0f, 0f, 0f });
-            Rot(black, B.LegL, tb, x: new[] { 0f, 0f, 0f, 0f, -18f, 0f, 0f, 0f });
-            HipsBob(black, tb, Const(8, -0.03f));
-
-            // うなずき・首ふり（加算の層で重ねる。最初と最後は休みの姿勢）
-            var nod = NewClip("Customer_Nod", false);
-            float[] tn = { 0f, 0.15f, 0.45f };
-            Rot(nod, B.Head, tn, x: new[] { 0f, 20f, 0f });
-            Rot(nod, B.Chest, tn, x: new[] { 0f, 6f, 0f });
-
-            var shake = NewClip("Customer_Shake", false);
-            float[] ts = { 0f, 0.12f, 0.27f, 0.42f, 0.6f };
-            Rot(shake, B.Head, ts, y: new[] { 0f, 22f, -22f, 14f, 0f });
-
-            foreach (var c in new[] { idle, fidget, walk, rescued, black, nod, shake }) EditorUtility.SetDirty(c);
-
-            // ---- Animator Controller ----
-            if (AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath) != null) AssetDatabase.DeleteAsset(ControllerPath);
-            var controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
-            controller.AddParameter("IsWalking", AnimatorControllerParameterType.Bool);
-            controller.AddParameter("Danger", AnimatorControllerParameterType.Float);
-            controller.AddParameter("Black", AnimatorControllerParameterType.Bool);
-            controller.AddParameter("Rescued", AnimatorControllerParameterType.Trigger);
-            controller.AddParameter("Correct", AnimatorControllerParameterType.Trigger);
-            controller.AddParameter("Wrong", AnimatorControllerParameterType.Trigger);
-
-            AnimatorStateMachine sm = controller.layers[0].stateMachine;
-            AnimatorState stand = controller.CreateBlendTreeInController("Stand", out BlendTree tree, 0);
-            tree.blendParameter = "Danger";
-            tree.useAutomaticThresholds = false;
-            tree.AddChild(idle, 0f);
-            tree.AddChild(idle, 0.5f);   // D<50 は落ちついている
-            tree.AddChild(fidget, 1f);
-            AnimatorState walkState = sm.AddState("Walk");
-            walkState.motion = walk;
-            AnimatorState rescuedState = sm.AddState("Rescued");
-            rescuedState.motion = rescued;
-            AnimatorState blackState = sm.AddState("Black");
-            blackState.motion = black;
-            sm.defaultState = stand;
-
-            var toWalk = stand.AddTransition(walkState);
-            toWalk.AddCondition(AnimatorConditionMode.If, 0f, "IsWalking");
-            toWalk.hasExitTime = false;
-            toWalk.duration = 0.15f;
-            var toStand = walkState.AddTransition(stand);
-            toStand.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsWalking");
-            toStand.hasExitTime = false;
-            toStand.duration = 0.2f;
-
-            var anyRescued = sm.AddAnyStateTransition(rescuedState);
-            anyRescued.AddCondition(AnimatorConditionMode.If, 0f, "Rescued");
-            anyRescued.canTransitionToSelf = false;
-            anyRescued.hasExitTime = false;
-            anyRescued.duration = 0.1f;
-            var rescuedToWalk = rescuedState.AddTransition(walkState);
-            rescuedToWalk.AddCondition(AnimatorConditionMode.If, 0f, "IsWalking");
-            rescuedToWalk.hasExitTime = true;
-            rescuedToWalk.exitTime = 1f;
-            rescuedToWalk.duration = 0.2f;
-            var rescuedToStand = rescuedState.AddTransition(stand);
-            rescuedToStand.hasExitTime = true;
-            rescuedToStand.exitTime = 1f;
-            rescuedToStand.duration = 0.2f;
-
-            var anyBlack = sm.AddAnyStateTransition(blackState);
-            anyBlack.AddCondition(AnimatorConditionMode.If, 0f, "Black");
-            anyBlack.canTransitionToSelf = false;
-            anyBlack.hasExitTime = false;
-            anyBlack.duration = 0.3f;
-
-            // 反応の層（加算）。ふだんは何も足さない
-            controller.AddLayer("Reaction");
-            AnimatorControllerLayer[] layers = controller.layers;
-            layers[1].blendingMode = AnimatorLayerBlendingMode.Additive;
-            layers[1].defaultWeight = 1f;
-            controller.layers = layers;
-            AnimatorStateMachine rsm = controller.layers[1].stateMachine;
-            AnimatorState none = rsm.AddState("None");
-            AnimatorState nodState = rsm.AddState("Nod");
-            nodState.motion = nod;
-            AnimatorState shakeState = rsm.AddState("Shake");
-            shakeState.motion = shake;
-            // 加算の層で既定値を書くと休みの姿勢が2重に足されるので、書かない
-            foreach (var s in new[] { none, nodState, shakeState }) s.writeDefaultValues = false;
-            rsm.defaultState = none;
-            foreach (var (state, trigger) in new[] { (nodState, "Correct"), (shakeState, "Wrong") })
-            {
-                var any = rsm.AddAnyStateTransition(state);
-                any.AddCondition(AnimatorConditionMode.If, 0f, trigger);
-                any.hasExitTime = false;
-                any.duration = 0.05f;
-                var back = state.AddTransition(none);
-                back.hasExitTime = true;
-                back.exitTime = 1f;
-                back.duration = 0.05f;
-            }
-
-            EditorUtility.SetDirty(controller);
-            return controller;
+            CustomerRig rig = CustomerRig.FromCurrentPose(modelRoot, modelRoot.Find(BoneNames[(int)B.Hips]), RigPaths());
+            string P(string name) => $"{AnimDir}/Customer_{name}.anim";
+            CustomerAnimationKit.BuildController(ControllerPath,
+                CustomerAnimationKit.WriteClip(CustomerMotions.Idle(), rig, P("Idle")),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Fidget(), rig, P("Fidget")),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Walk(), rig, P("Walk")),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Rescued(), rig, P("Rescued")),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Black(), rig, P("Black")),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Nod(), rig, P("Nod"), additive: true),
+                CustomerAnimationKit.WriteClip(CustomerMotions.Shake(), rig, P("Shake"), additive: true));
         }
 
         // ---- 模様 ----
