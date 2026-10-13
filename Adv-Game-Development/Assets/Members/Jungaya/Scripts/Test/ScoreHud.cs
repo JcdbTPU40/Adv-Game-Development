@@ -152,6 +152,10 @@ public class ScoreHud : MonoBehaviour
             GUI.Label(new Rect(x, y + h * 5, 400, h), $"★ご加護タイム！ 残り {gokago.Remaining:0.0}s", style);
             style.normal.textColor = prev;
         }
+        else if (gokago != null)
+        {
+            GUI.Label(new Rect(x, y + h * 5, 400, h), $"ご加護 G : {gokago.Progress}/{gokago.ProgressThreshold}", style);
+        }
 
         // ボタン: テストの操作
         if (GUI.Button(new Rect(x, y + h * 6 + 6, 110, 34), "Reset"))
