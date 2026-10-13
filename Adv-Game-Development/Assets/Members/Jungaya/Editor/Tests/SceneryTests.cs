@@ -65,5 +65,15 @@ namespace Toufuku.Scenery.Tests
         {
             Assert.AreEqual(expected, BonfireProgress.LitCountFor(started, month, 3));
         }
+
+        [TestCase(0.15f, 0.1f)]   // 昼
+        [TestCase(0.3f, 0.1f)]    // 朝
+        [TestCase(0.95f, 0.55f)]  // 夕と夜のあいだ
+        [TestCase(1.6f, 1f)]      // 夜
+        [TestCase(3f, 1f)]
+        public void 狐火は_夕方から灯り_夜にいちばん明るい(float practicalScale, float expected)
+        {
+            Assert.AreEqual(expected, KitsunebiWisps.VisibilityFor(practicalScale, 0.3f, 1.6f, 0.1f), Eps);
+        }
     }
 }
