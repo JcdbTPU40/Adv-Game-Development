@@ -97,7 +97,7 @@ namespace Toufuku.Rescue.Mock
         [SerializeField] private Renderer bodyRenderer;
 
         [Tooltip("輪郭用の複製レンダラ。未設定なら実行時に子として自動生成する。")]
-        [SerializeField] private MeshRenderer outlineRenderer;
+        [SerializeField] private Renderer outlineRenderer;
 
         // 色のプロパティ名。Built-in（_Color）と URP（_BaseColor）の両方に書いて、どっちのパイプラインでも動くようにする
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
@@ -121,6 +121,7 @@ namespace Toufuku.Rescue.Mock
         private void Awake()
         {
             if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<MeshRenderer>();
+            if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
             _outlineMpb = new MaterialPropertyBlock();
             _bodyMpb = new MaterialPropertyBlock();
         }
@@ -185,19 +186,36 @@ namespace Toufuku.Rescue.Mock
         {
             if (outlineRenderer != null) return;
 
-            MeshFilter bodyFilter = GetComponentInChildren<MeshFilter>();
-            if (bodyFilter == null || bodyFilter.sharedMesh == null)
+            // 手足が動く客（SkinnedMeshRenderer）は、同じボーンで動く複製を輪郭にする。そうしないと輪郭だけ動かない
+            if (bodyRenderer is SkinnedMeshRenderer skinned)
             {
-                Debug.LogWarning("[MockOutline] 本体の MeshFilter が見つからないため輪郭を生成できません。", this);
-                return;
+                if (skinned.sharedMesh == null) return;
+                var skinnedHull = new GameObject("OutlineHull");
+                skinnedHull.transform.SetParent(skinned.transform, false);
+                var hullSkin = skinnedHull.AddComponent<SkinnedMeshRenderer>();
+                hullSkin.sharedMesh = skinned.sharedMesh;
+                hullSkin.bones = skinned.bones;
+                hullSkin.rootBone = skinned.rootBone;
+                hullSkin.localBounds = skinned.localBounds;
+                hullSkin.quality = skinned.quality;
+                outlineRenderer = hullSkin;
+            }
+            else
+            {
+                MeshFilter bodyFilter = bodyRenderer != null ? bodyRenderer.GetComponent<MeshFilter>() : null;
+                if (bodyFilter == null) bodyFilter = GetComponentInChildren<MeshFilter>();
+                if (bodyFilter == null || bodyFilter.sharedMesh == null)
+                {
+                    Debug.LogWarning("[MockOutline] 本体の MeshFilter が見つからないため輪郭を生成できません。", this);
+                    return;
+                }
+
+                var hull = new GameObject("OutlineHull");
+                hull.transform.SetParent(bodyFilter.transform, false);
+                hull.AddComponent<MeshFilter>().sharedMesh = bodyFilter.sharedMesh;
+                outlineRenderer = hull.AddComponent<MeshRenderer>();
             }
 
-            var hull = new GameObject("OutlineHull");
-            hull.transform.SetParent(bodyFilter.transform, false);
-
-            hull.AddComponent<MeshFilter>().sharedMesh = bodyFilter.sharedMesh;
-
-            outlineRenderer = hull.AddComponent<MeshRenderer>();
             outlineRenderer.sharedMaterial = outlineMaterial;
             // 輪郭は影を落とさないし受けない（本体の影と2重にならないように）
             outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
