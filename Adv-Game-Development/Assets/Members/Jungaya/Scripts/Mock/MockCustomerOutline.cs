@@ -97,7 +97,25 @@ namespace Toufuku.Rescue.Mock
         [SerializeField] private Renderer bodyRenderer;
 
         [Tooltip("輪郭用の複製レンダラ。未設定なら実行時に子として自動生成する。")]
-        [SerializeField] private MeshRenderer outlineRenderer;
+        [SerializeField] private Renderer outlineRenderer;
+
+        /*
+            パーツが分かれているモデル（デザイン班の客など）用
+              extraBodyRenderers: 輪郭も付けるパーツ（体・頭・服など、シルエットになるもの）
+              tintOnlyRenderers : 体の色だけぬるパーツ（目・まつげ・口など。輪郭を付けると顔の中に線が出る）
+            どちらも空なら今までどおり bodyRenderer 1つだけ
+        */
+        [Tooltip("輪郭も付ける追加のパーツ（シルエットになる体・頭・服など）。")]
+        [SerializeField] private Renderer[] extraBodyRenderers = new Renderer[0];
+        [Tooltip("体の色だけぬる追加のパーツ（目・口など）。輪郭は付けない。")]
+        [SerializeField] private Renderer[] tintOnlyRenderers = new Renderer[0];
+
+        [Tooltip("輪郭を視線の向きに奥へずらす量（m）。パーツが重なったモデルで、輪郭が体の内側にはみ出すのを防ぐ。0 なら今までどおり。")]
+        [SerializeField, Min(0f)] private float hullDepthPush = 0f;
+
+        private static readonly int DepthPushId = Shader.PropertyToID("_DepthPush");
+
+        private readonly System.Collections.Generic.List<Renderer> _extraHulls = new System.Collections.Generic.List<Renderer>();
 
         // 色のプロパティ名。Built-in（_Color）と URP（_BaseColor）の両方に書いて、どっちのパイプラインでも動くようにする
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
@@ -121,6 +139,7 @@ namespace Toufuku.Rescue.Mock
         private void Awake()
         {
             if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<MeshRenderer>();
+            if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
             _outlineMpb = new MaterialPropertyBlock();
             _bodyMpb = new MaterialPropertyBlock();
         }
@@ -183,27 +202,91 @@ namespace Toufuku.Rescue.Mock
         */
         private void EnsureHull()
         {
-            if (outlineRenderer != null) return;
-
-            MeshFilter bodyFilter = GetComponentInChildren<MeshFilter>();
-            if (bodyFilter == null || bodyFilter.sharedMesh == null)
+            if (outlineRenderer == null)
             {
-                Debug.LogWarning("[MockOutline] 本体の MeshFilter が見つからないため輪郭を生成できません。", this);
-                return;
+                if (bodyRenderer is SkinnedMeshRenderer || (bodyRenderer != null && bodyRenderer.GetComponent<MeshFilter>() != null))
+                {
+                    outlineRenderer = CreateHull(bodyRenderer);
+                }
+                else
+                {
+                    // 前からの動き: 本体が見つからないときは子の最初のメッシュを使う
+                    MeshFilter bodyFilter = GetComponentInChildren<MeshFilter>();
+                    if (bodyFilter == null || bodyFilter.sharedMesh == null)
+                    {
+                        Debug.LogWarning("[MockOutline] 本体の MeshFilter が見つからないため輪郭を生成できません。", this);
+                        return;
+                    }
+                    outlineRenderer = CreateHull(bodyFilter.GetComponent<Renderer>());
+                }
             }
 
-            var hull = new GameObject("OutlineHull");
-            hull.transform.SetParent(bodyFilter.transform, false);
+            if (_extraHulls.Count == 0 && extraBodyRenderers != null)
+            {
+                foreach (Renderer r in extraBodyRenderers)
+                {
+                    Renderer hull = r != null ? CreateHull(r) : null;
+                    if (hull != null) _extraHulls.Add(hull);
+                }
+            }
+        }
 
-            hull.AddComponent<MeshFilter>().sharedMesh = bodyFilter.sharedMesh;
+        /*
+            1つのパーツの輪郭（インバートハル）を作る
+            手足が動くパーツ（SkinnedMeshRenderer）は、同じボーンで動く複製にする。そうしないと輪郭だけ動かない
+        */
+        private Renderer CreateHull(Renderer source)
+        {
+            Renderer hull;
+            if (source is SkinnedMeshRenderer skinned)
+            {
+                if (skinned.sharedMesh == null) return null;
+                var go = new GameObject("OutlineHull");
+                go.transform.SetParent(skinned.transform, false);
+                var hullSkin = go.AddComponent<SkinnedMeshRenderer>();
+                hullSkin.sharedMesh = skinned.sharedMesh;
+                hullSkin.bones = skinned.bones;
+                hullSkin.rootBone = skinned.rootBone;
+                hullSkin.localBounds = skinned.localBounds;
+                hullSkin.quality = skinned.quality;
+                hull = hullSkin;
+            }
+            else
+            {
+                MeshFilter filter = source != null ? source.GetComponent<MeshFilter>() : null;
+                if (filter == null || filter.sharedMesh == null) return null;
+                var go = new GameObject("OutlineHull");
+                go.transform.SetParent(filter.transform, false);
+                go.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                hull = go.AddComponent<MeshRenderer>();
+            }
 
-            outlineRenderer = hull.AddComponent<MeshRenderer>();
-            outlineRenderer.sharedMaterial = outlineMaterial;
+            // サブメッシュの数だけマテリアルを並べる（服などで2つ以上あるパーツの、全部の面に輪郭を付ける）
+            int subMeshes = Mathf.Max(1, source != null ? source.sharedMaterials.Length : 1);
+            var materials = new Material[subMeshes];
+            for (int i = 0; i < subMeshes; i++) materials[i] = outlineMaterial;
+            hull.sharedMaterials = materials;
             // 輪郭は影を落とさないし受けない（本体の影と2重にならないように）
-            outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            outlineRenderer.receiveShadows = false;
-            outlineRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-            outlineRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            hull.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            hull.receiveShadows = false;
+            hull.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            hull.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            return hull;
+        }
+
+        // 輪郭（本体のハルと追加パーツのハル）を順に
+        private System.Collections.Generic.IEnumerable<Renderer> Hulls()
+        {
+            if (outlineRenderer != null) yield return outlineRenderer;
+            foreach (Renderer h in _extraHulls) if (h != null) yield return h;
+        }
+
+        // 体の色をぬるパーツ（本体・輪郭つきの追加パーツ・色だけのパーツ）を順に
+        private System.Collections.Generic.IEnumerable<Renderer> BodyParts()
+        {
+            if (bodyRenderer != null) yield return bodyRenderer;
+            if (extraBodyRenderers != null) foreach (Renderer r in extraBodyRenderers) if (r != null) yield return r;
+            if (tintOnlyRenderers != null) foreach (Renderer r in tintOnlyRenderers) if (r != null) yield return r;
         }
 
         // 今のモードに合わせて、ハルと Emission のオンオフを切りかえる
@@ -211,8 +294,8 @@ namespace Toufuku.Rescue.Mock
         {
             bool useHull = mode == OutlineMode.InvertedHull;
 
-            if (outlineRenderer != null)
-                outlineRenderer.enabled = useHull;
+            foreach (Renderer hull in Hulls())
+                hull.enabled = useHull;
 
             if (useHull)
             {
@@ -246,33 +329,41 @@ namespace Toufuku.Rescue.Mock
 
             width = Mathf.Clamp(width, widthClamp.x, widthClamp.y);
 
-            outlineRenderer.GetPropertyBlock(_outlineMpb);
-            _outlineMpb.SetColor(OutlineColorId, _outlineColor);
-            _outlineMpb.SetFloat(OutlineWidthId, width);
-            outlineRenderer.SetPropertyBlock(_outlineMpb);
+            foreach (Renderer hull in Hulls())
+            {
+                hull.GetPropertyBlock(_outlineMpb);
+                _outlineMpb.SetColor(OutlineColorId, _outlineColor);
+                _outlineMpb.SetFloat(OutlineWidthId, width);
+                _outlineMpb.SetFloat(DepthPushId, hullDepthPush);
+                hull.SetPropertyBlock(_outlineMpb);
+            }
         }
 
         // 本体の Emission（案B）を MPB で書きこむ
         private void ApplyEmission(Color emission)
         {
-            if (bodyRenderer == null) return;
             if (_bodyMpb == null) _bodyMpb = new MaterialPropertyBlock();
 
-            bodyRenderer.GetPropertyBlock(_bodyMpb);
-            _bodyMpb.SetColor(EmissionColorId, emission);
-            bodyRenderer.SetPropertyBlock(_bodyMpb);
+            foreach (Renderer part in BodyParts())
+            {
+                part.GetPropertyBlock(_bodyMpb);
+                _bodyMpb.SetColor(EmissionColorId, emission);
+                part.SetPropertyBlock(_bodyMpb);
+            }
         }
 
         // 本体のもとの色（グレー）を MPB で書きこむ
         private void ApplyBodyColor()
         {
-            if (bodyRenderer == null) return;
             if (_bodyMpb == null) _bodyMpb = new MaterialPropertyBlock();
 
-            bodyRenderer.GetPropertyBlock(_bodyMpb);
-            _bodyMpb.SetColor(ColorId, _bodyColor);
-            _bodyMpb.SetColor(BaseColorId, _bodyColor);
-            bodyRenderer.SetPropertyBlock(_bodyMpb);
+            foreach (Renderer part in BodyParts())
+            {
+                part.GetPropertyBlock(_bodyMpb);
+                _bodyMpb.SetColor(ColorId, _bodyColor);
+                _bodyMpb.SetColor(BaseColorId, _bodyColor);
+                part.SetPropertyBlock(_bodyMpb);
+            }
         }
     }
 }

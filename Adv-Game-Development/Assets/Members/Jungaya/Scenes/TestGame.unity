@@ -939,7 +939,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3c85e2996d7cff48a4c69bd51802ce3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Mock.MockCrowdDirector
-  customerPrefab: {fileID: 8217573515020497840, guid: f0aa4a01810ce754aaeb8b07936f465f, type: 3}
+  customerPrefab: {fileID: 6915484827812566075, guid: 899e9be45c0380c41b0c861dc9a19fc4, type: 3}
   customerParent: {fileID: 759437407}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}

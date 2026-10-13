@@ -21,6 +21,9 @@ Shader "Toufuku/Mock/OutlineHull"
     {
         [HDR] _OutlineColor ("Outline Color", Color) = (1, 1, 1, 1)
         _OutlineWidth ("Outline Width (World)", Float) = 0.035
+        // 視線の向きに奥へずらす量（ワールド）。画面での位置は変わらず、深度だけ奥になる。
+        // パーツが重なったモデル（服を着た客など）で、輪郭が体の内側に はみ出して見えるのを防ぐ。0 なら今までどおり
+        _DepthPush ("Depth Push (World)", Float) = 0
     }
 
     SubShader
@@ -50,6 +53,7 @@ Shader "Toufuku/Mock/OutlineHull"
             CBUFFER_START(UnityPerMaterial)
                 float4 _OutlineColor;
                 float  _OutlineWidth;
+                float  _DepthPush;
             CBUFFER_END
 
             struct Attributes
@@ -69,7 +73,10 @@ Shader "Toufuku/Mock/OutlineHull"
 
                 // 法線方向へ押し出す。カプセルは法線が素直なので破綻しない。
                 float3 inflated = IN.positionOS.xyz + normalize(IN.normalOS) * _OutlineWidth;
-                OUT.positionCS = TransformObjectToHClip(inflated);
+                float3 positionWS = TransformObjectToWorld(inflated);
+                // カメラから見た線の上で奥へずらす（画面での位置は同じ。本体のパーツが手前にあるところでは隠れる）
+                positionWS += normalize(positionWS - _WorldSpaceCameraPos) * _DepthPush;
+                OUT.positionCS = TransformWorldToHClip(positionWS);
                 return OUT;
             }
 
