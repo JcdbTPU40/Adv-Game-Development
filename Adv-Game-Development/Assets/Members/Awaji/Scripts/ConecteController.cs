@@ -283,9 +283,9 @@ public class ConecteController : MonoBehaviour
                 if (!ControllerSample.TryParse(line, Time.realtimeSinceStartupAsDouble, out ControllerSample sample))
                     continue;
 
-                yaw = sample.Yaw;
+                yaw = -sample.Yaw;
                 pitch = sample.Pitch;
-                roll = sample.Roll;
+                roll = -sample.Roll;
                 buttons = sample.Buttons;
                 hasButtons = sample.HasButtons;
 
