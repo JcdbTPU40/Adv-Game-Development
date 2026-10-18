@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
@@ -49,6 +50,9 @@ public class ConecteController : MonoBehaviour
     volatile SerialPort _scanResult;
     volatile bool _scanCancel;
     string _lastPortName;
+
+    float yawOffset = 0;
+    float rollOffset = 0;
 
     void Start()
     {
@@ -283,9 +287,15 @@ public class ConecteController : MonoBehaviour
                 if (!ControllerSample.TryParse(line, Time.realtimeSinceStartupAsDouble, out ControllerSample sample))
                     continue;
 
-                yaw = -sample.Yaw;
-                pitch = sample.Pitch;
-                roll = -sample.Roll;
+                if(sample.Pitch >= 45)
+                {
+                    yawOffset = sample.Yaw;
+                    rollOffset = sample.Roll;
+                }
+
+                yaw = -sample.Yaw + yawOffset;
+                pitch = -sample.Pitch;
+                roll = -sample.Roll + rollOffset;
                 buttons = sample.Buttons;
                 hasButtons = sample.HasButtons;
 

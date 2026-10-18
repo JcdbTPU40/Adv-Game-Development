@@ -94,8 +94,8 @@ namespace Toufuku.Aim
         public float Distance { get; private set; }
         // 正面からの左右の角度（度、押しもどしたあとの値）
         public float RelativeYaw { get; private set; }
-        // このフレームの照準がヨーとピッチから出したものかどうか（false ならマウス）
-        public bool UsingYawPitch { get; private set; }
+        // このフレームの照準がヨーとロールから出したものかどうか（false ならマウス）
+        public bool UsingYawRoll { get; private set; }
         // このフレームの照準が画面の内側に押しもどされたかどうか
         public bool PushedBack { get; private set; }
         // このフレームの照準が、マウスで指した客の足元に移されたかどうか
@@ -164,12 +164,12 @@ namespace Toufuku.Aim
 
         void Recompute()
         {
-            UsingYawPitch = ShouldUseYawPitch();
+            UsingYawRoll = ShouldUseYawPitch();
             _pickedCustomer = false;
 
             float relativeYaw;
             float distance;
-            if (UsingYawPitch)
+            if (UsingYawRoll)
             {
                 relativeYaw = input.RelativeYaw * (invertYaw ? -1f : 1f);
                 distance = AimSolver.PitchToDistance(input.RawSource.Roll, pitchAtNear, pitchAtFar, nearDistance, farDistance);
