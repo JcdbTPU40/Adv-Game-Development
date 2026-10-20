@@ -2485,8 +2485,53 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4f7ec21b1c34f6ca9f7e417b5ab2731, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
-  displayImage: {fileID: 0}
-  timeUpSprite: {fileID: 21300000, guid: 3b5629b42dccfa04d89c0b4b2abf10df, type: 3}
+  leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  slideDuration: 0.65
+  slideCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4410064
+      value: 0.7261044
+      inSlope: -5.4757566
+      outSlope: -5.4757566
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.055546645
+      outWeight: 0.17476757
+    - serializedVersion: 3
+      time: 0.8598776
+      value: 0.9521393
+      inSlope: -2.2186184
+      outSlope: -2.2186184
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.11488592
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  referenceResolution: {x: 1920, y: 1080}
+  sortingOrder: 55
 --- !u!114 &777600100112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2528,6 +2573,19 @@ MonoBehaviour:
   anchoredPosition: {x: 0, y: 0}
   textAreaSize: {x: 700, y: 400}
   sortingOrder: 70
+--- !u!114 &777600100114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1072269762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 005fe15be19145a3ae3d5d071451cdcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineTitleSdfFont
+  titleFont: {fileID: 11400000, guid: 40f29083ad456a2449f82dab1a20399d, type: 2}
 --- !u!1 &81142330108340025
 GameObject:
   m_ObjectHideFlags: 0
@@ -4620,9 +4678,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af37d8231b4e2464ca188e2a51a4afab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GokagoTime
-  comboThreshold: 10
-  duration: 10
-  scoreMultiplier: 2
+  progressThreshold: 10
+  durationSeconds: 12
+  blessingMultiplier: 1.25
   onGokagoStart:
     m_PersistentCalls:
       m_Calls: []
@@ -4766,17 +4824,3 @@ SceneRoots:
   - {fileID: 261272472}
   - {fileID: 756149435}
   - {fileID: 1275962935}
-
---- !u!114 &777600100114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072269762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 005fe15be19145a3ae3d5d071451cdcc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShrineTitleSdfFont
-  titleFont: {fileID: 11400000, guid: 40f29083ad456a2449f82dab1a20399d, type: 2}
