@@ -12,7 +12,9 @@ namespace Toufuku.Scenery
           Rescued（trigger）: 救済された（喜んでおじぎしてから帰る）
           Correct（trigger）: 正しい色が当たった（うなずく）
           Wrong（trigger）  : ちがう色が当たった（首を横にふる）
-        向き: 歩いているあいだは進む方向、立っているあいだはカメラの方を向く。回すのは見た目（Animator の付いた子）だけで、
+        向き: 歩いているあいだは進む方向、立っているあいだはカメラの方を向く。
+              集団客（#93）は立っているあいだ、カメラと仲間のあいだを向いて、ときどき仲間の方に向きなおる（話しているように見せる）
+              悩みが消えて仲間を待っているあいだは、ほとんど仲間の方を向く。回すのは見た目（Animator の付いた子）だけで、
               当たり判定や輪郭の帯の計算に使う本体の向きは変えない
     */
     [DisallowMultipleComponent]
@@ -33,9 +35,17 @@ namespace Toufuku.Scenery
         [SerializeField, Min(0f)] float minFacingSpeed = 0.3f;
         [Tooltip("客ごとの動きの速さのばらつき（±割合）。全員がそろって動かないように。")]
         [SerializeField, Range(0f, 0.3f)] float speedJitter = 0.1f;
+        [Tooltip("集団客（#93）が立っているときに仲間の方を向く割合のはば（0 ならカメラ、1 なら仲間）。時間でこの中をゆっくり行き来する。")]
+        [SerializeField] Vector2 groupFacingRange = new Vector2(0.2f, 0.7f);
+        [Tooltip("集団客が悩みが消えて仲間を待っているあいだに、仲間の方を向く割合。")]
+        [SerializeField, Range(0f, 1f)] float groupWaitingFacing = 0.85f;
+        [Tooltip("集団客が向きを変える速さ（大きいほどひんぱんに向きなおる）。")]
+        [SerializeField, Min(0f)] float groupFacingTempo = 0.25f;
 
         CustomerState _state;
         MockCustomerWalker _walker;
+        CustomerGroupMember _groupMember;
+        float _facingSeed;
         Transform _model;
         Transform _camera;
         Vector3 _lastPosition;
@@ -46,6 +56,7 @@ namespace Toufuku.Scenery
             if (animator == null) animator = GetComponentInChildren<Animator>();
             _state = GetComponent<CustomerState>();
             _walker = GetComponent<MockCustomerWalker>();
+            _facingSeed = Random.Range(0f, 100f);
             _model = animator != null ? animator.transform : null;
             _lastPosition = transform.position;
         }
@@ -75,6 +86,8 @@ namespace Toufuku.Scenery
             var info = animator.GetCurrentAnimatorStateInfo(0);
             animator.Play(info.fullPathHash, 0, Random.value);
             if (Camera.main != null) _camera = Camera.main.transform;
+            // 集団客（#93）は出す側が作った直後に CustomerGroupMember を付けるので、Start の時点ではもう付いている
+            _groupMember = GetComponent<CustomerGroupMember>();
         }
 
         void Update()
@@ -112,6 +125,7 @@ namespace Toufuku.Scenery
             {
                 forward = _camera.position - position;
                 forward.y = 0f;
+                forward = BlendTowardGroup(forward, position);
             }
             else
             {
@@ -121,6 +135,22 @@ namespace Toufuku.Scenery
 
             Quaternion target = Quaternion.LookRotation(forward.normalized, Vector3.up);
             _model.rotation = Quaternion.RotateTowards(_model.rotation, target, turnSpeed * dt);
+        }
+
+        // 集団客（#93）なら、カメラの方向 toCamera を仲間の真ん中の方へ寄せる。一人客ならそのまま
+        Vector3 BlendTowardGroup(Vector3 toCamera, Vector3 position)
+        {
+            CustomerGroup group = _groupMember != null ? _groupMember.Group : null;
+            if (group == null || toCamera.sqrMagnitude < 1e-6f) return toCamera;
+
+            Vector3 toMates = group.Centroid(position) - position;
+            toMates.y = 0f;
+            if (toMates.sqrMagnitude < 0.01f) return toCamera;
+
+            float weight = _state != null && _state.IsExitPending
+                ? groupWaitingFacing
+                : Mathf.Lerp(groupFacingRange.x, groupFacingRange.y, Mathf.PerlinNoise(_facingSeed, Time.time * groupFacingTempo));
+            return Vector3.Slerp(toCamera.normalized, toMates.normalized, Mathf.Clamp01(weight));
         }
 
         void OnCorrect()

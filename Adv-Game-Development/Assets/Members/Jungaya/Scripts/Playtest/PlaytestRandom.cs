@@ -21,6 +21,8 @@ namespace Toufuku.Playtest
         public const int Kind = 7;
         // 移動客が往復するときに歩き出す向き（#62）
         public const int Motion = 8;
+        // 集団客にするかどうかと、その種類・人数（#93）
+        public const int Group = 9;
     }
 
     /*

@@ -77,6 +77,22 @@ namespace Toufuku.Rescue
         }
 
         /*
+            hitType のお守りがこの客の悩みに合うかだけを調べる。D も R も動かさない
+            集団客（#93）で、グループのだれに当てるかを決めるのに使う
+        */
+        public Affinity Evaluate(OmamoriType hitType)
+        {
+            /*
+                相性の表（#12）があれば客のタイプで判定する。なければ前と同じで正解と同じかで判定する
+                ※ 表を入れているときは correctOmamori は判定に使われない。customerType の設定をわすれる
+                  （correctOmamori だけ上書きした、など）と全員 Kenkou あつかいになるので注意
+            */
+            return affinityTable != null
+                ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
+                : AffinityResolver.Resolve(correctOmamori, hitType);
+        }
+
+        /*
             お守りが当たったときに OmamoriHitResolver から呼ぶ
             相性の判定の結果を返すので、呼ぶ側でコンボやスコアの処理に使える
             hitType: 当たったお守りの種類
@@ -84,14 +100,7 @@ namespace Toufuku.Rescue
         */
         public Affinity ApplyHit(OmamoriType hitType)
         {
-            /*
-                相性の表（#12）があれば客のタイプで判定する。なければ前と同じで正解と同じかで判定する
-                ※ 表を入れているときは correctOmamori は判定に使われない。customerType の設定をわすれる
-                  （correctOmamori だけ上書きした、など）と全員 Kenkou あつかいになるので注意
-            */
-            Affinity affinity = affinityTable != null
-                ? AffinityResolver.Resolve(affinityTable, customerType, hitType)
-                : AffinityResolver.Resolve(correctOmamori, hitType);
+            Affinity affinity = Evaluate(hitType);
 
             // 終わりの状態（救えた / 黒客）では D も R も動かさない（2回判定しないように）
             if (_state == null || !_state.IsActive) return affinity;

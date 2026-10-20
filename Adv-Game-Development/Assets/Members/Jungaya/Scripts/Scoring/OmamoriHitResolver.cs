@@ -93,6 +93,18 @@ public static class OmamoriHitResolver
             return HitZone.Miss;
         }
 
+        /*
+            集団客（#93）: グループのだれに当たっても、グループに当たったあつかいにする
+            合う悩みの人がいれば危険度 D がいちばん高い人に、いなければ誤投擲として当たった本人（か残っている人）に当てる
+            ここから下の救済・得点・音は、振り分けたあとの相手で処理する（黒客のメンバーに当たったときは上のペナルティのまま）
+        */
+        CustomerGroup group = CustomerGroupMember.GroupOf(customer);
+        if (group != null)
+        {
+            customer = group.ResolveHitTarget(customer, type);
+            state = customer != null ? customer.GetComponent<CustomerState>() : null;
+        }
+
         // 救済の判定（#13）: お守りの種類を客に渡して、相性◯/✗と D・R の更新をやってもらう
         CustomerRescue rescue = customer != null ? customer.GetComponent<CustomerRescue>() : null;
         if (rescue != null)

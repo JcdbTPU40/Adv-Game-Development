@@ -111,6 +111,13 @@ namespace Toufuku.Rescue.Mock
 
             // #58: 段階学習の同期パルスで今輪郭を明るくしている量（0〜1）
             public float LearningPulse;
+
+            // #93: 集団客なら入っているグループ（一人客は null）。定位置を持つのはグループの1人目だけ（ほかは SlotIndex = -1）
+            public CustomerGroup Group;
+            // #93: 並ぶ前のグループの定位置（1人目の定位置）。メンバーはここからのずれで並ぶ
+            public Vector3 Anchor;
+            // #93: 定位置を持っている人のグループの横はば（m、はしからはし）。一人客は 0。定位置の重なりの判定に使う
+            public float Span;
         }
 
         private class Slot
@@ -298,6 +305,19 @@ namespace Toufuku.Rescue.Mock
                  "手前の客の間を通り抜けるのですれ違う人数が増える（企画書 v8 6章・7章 遠方客）。")]
         [SerializeField] private Vector3[] exitPoints = { new Vector3(-9f, 1f, 37f), new Vector3(9f, 1f, 37f) };
 
+        // ---- 集団客（#93） ----
+        [Header("集団客（#93）")]
+        [Tooltip("補充1回ごとに集団客（家族・カップル・友達）にする確率（0〜1）。0 なら全員一人客（前と同じ）。" +
+                 "グループは定位置を1つ使って、そのまわりに並ぶ。目標人数の空きが2人未満のときは一人客になる。")]
+        [Range(0f, 1f)]
+        [SerializeField] private float groupChance = 0f;
+
+        [Tooltip("集団客のとなりの人との間（m）。4人で横に (4-1)×この値 の幅になるので、minSlotDistance より十分小さくすること。")]
+        [Min(0.3f)]
+        [SerializeField] private float groupSpacing = 0.65f;
+
+        private int _nextGroupId;
+
         // ---- 客ごとのばらつき ----
         [Header("客ごとのばらつき")]
         [Tooltip("初期の危険度Dの範囲（0〜1の正規化）。残量差が視認できるようにばらけさせる。")]
@@ -377,7 +397,7 @@ namespace Toufuku.Rescue.Mock
                 for (int i = 0; i < _members.Count; i++)
                 {
                     Member m = _members[i];
-                    if (m != null && m.Go != null && !IsFinished(m)) n++;
+                    if (m != null && m.Go != null && !IsGone(m)) n++;
                 }
                 return n;
             }
@@ -581,9 +601,10 @@ namespace Toufuku.Rescue.Mock
 
             if (prefillInstant)
             {
+                // #93: 集団客は1回で何人も出るので、人数で数える
                 int want = TargetCount;
-                for (int i = 0; i < want; i++)
-                    SpawnOne(instant: true);
+                for (int guard = 0; LiveCount < want && guard < want; guard++)
+                    SpawnNext(instant: true);
             }
         }
 
@@ -592,6 +613,7 @@ namespace Toufuku.Rescue.Mock
             if (useTimetable) ResetIfClockRewound();
 
             SweepDeparted();
+            ReleaseGroupsIfSessionEnded();
 
             // #57: 3:00 でプレイが終わったら新しい客は出さない（企画書 v8 8章「3:00.000 で新規スポーン停止」）。いる客はそのまま
             // #58: 段階学習の間（AutoSpawnSuspended）も補充しない。客は StagedLearningDirector が置く
@@ -725,6 +747,20 @@ namespace Toufuku.Rescue.Mock
             }
         }
 
+        /*
+            #93: 3:00 でゲームが終わってリザルトになったら、仲間を待っている集団客を帰らせる
+            D が進まなくなるので、まだ悩みが残っている人は終わらないまま。待たせると救えた人がずっと残ってしまう
+        */
+        private void ReleaseGroupsIfSessionEnded()
+        {
+            if (GameSession.Instance == null || !GameSession.Instance.IsFinished) return;
+            for (int i = 0; i < _members.Count; i++)
+            {
+                CustomerGroup group = _members[i] != null ? _members[i].Group : null;
+                if (group != null && !group.IsReleased) group.ReleaseWaiting();
+            }
+        }
+
         // ---- 補充のくり返し ----
 
         /*
@@ -740,11 +776,11 @@ namespace Toufuku.Rescue.Mock
                 Member m = _members[i];
                 if (m != null && m.Go != null)
                 {
-                    if (IsFinished(m)) FreeSlot(m);
+                    if (IsGone(m)) ReleaseSlot(m);
                     continue;
                 }
 
-                FreeSlot(m);
+                ReleaseSlot(m);
                 _members.RemoveAt(i);
             }
         }
@@ -801,7 +837,7 @@ namespace Toufuku.Rescue.Mock
 
             _tickets.RemoveAt(ready);
 
-            if (SpawnOne(instant: false) != null)
+            if (SpawnNext(instant: false) != null)
                 _lastSpawnTime = Time.time;
             else
                 _tickets.Add(0f);   // 作るのに失敗した（空いている場所がないなど）ので、次のフレームでもう一回ためす
@@ -809,8 +845,48 @@ namespace Toufuku.Rescue.Mock
 
         // ---- 作る・帰らせる ----
 
-        // forcedColor / forcedBand: #58 段階学習で色と帯を決めて置くとき（-1 ならふつうの補充と同じにくじと順番で決める）
-        private Member SpawnOne(bool instant, int forcedColor = -1, int forcedBand = -1)
+        /*
+            補充1回ぶん。groupChance の確率で集団客をまとめて出す（#93）。作れた1人目を返す（作れなかったら null）
+            グループの人数は目標人数までの空きにおさえる。補充待ちのチケットはまとめて積まれるので、空きから引かない
+            （引くと発動するときの空きがいつも1人になって、補充で集団客が出なくなる）。グループで多く出たぶんの
+            チケットは、次のフレームの BalanceToTarget が取り消す
+        */
+        private Member SpawnNext(bool instant)
+        {
+            int room = TargetCount - LiveCount;
+            if (groupChance > 0f && room >= 2)
+            {
+                // #63: 計測プレイ中は1人目の客IDのシードで引く（同じシードなら同じグループになる）
+                DeterministicRandom rng = PlaytestRandom.TryFor(PlaytestStreams.Group, CustomerSpawnId.NextId);
+                if (CustomerGroup.TryPlan(groupChance, room,
+                        PlaytestRandom.Value(rng), PlaytestRandom.Value(rng), PlaytestRandom.Value(rng),
+                        out CustomerGroupKind kind, out int size))
+                {
+                    Member leader = SpawnGroup(instant, kind, size);
+                    if (leader != null) return leader;
+                }
+            }
+            return SpawnOne(instant);
+        }
+
+        // 集団客を size 人まとめて作る。1人目が定位置を取って、のこりはそのまわりに並ぶ（#93）
+        private Member SpawnGroup(bool instant, CustomerGroupKind kind, int size)
+        {
+            var group = new CustomerGroup(++_nextGroupId, kind);
+            Member leader = SpawnOne(instant, group: group, groupIndex: 0, groupSize: size);
+            if (leader == null) return null;
+
+            for (int i = 1; i < size; i++)
+                SpawnOne(instant, group: group, groupIndex: i, groupSize: size, companionOf: leader);
+            return leader;
+        }
+
+        /*
+            forcedColor / forcedBand: #58 段階学習で色と帯を決めて置くとき（-1 ならふつうの補充と同じにくじと順番で決める）
+            group / groupIndex / groupSize: #93 集団客の何人目か。companionOf: 2人目からは1人目の定位置のまわりに並ぶ（定位置は取らない）
+        */
+        private Member SpawnOne(bool instant, int forcedColor = -1, int forcedBand = -1,
+            CustomerGroup group = null, int groupIndex = 0, int groupSize = 1, Member companionOf = null)
         {
             if (customerPrefab == null)
             {
@@ -832,30 +908,50 @@ namespace Toufuku.Rescue.Mock
             // #62: 黒客かどうかと客の種類は、定位置より先に決める（遠方客は置ける帯が決まっているから。企画書 v8 8章）
             // #58: 学習の客は黒客にしないで、通常客にする（18章「この30秒は黒客化しない」、8章「通常客（段階学習では1色ずつ）」）
             bool learning = forcedColor >= 0;
-            bool black = !learning && DecideBlack(PlaytestRandom.TryFor(PlaytestStreams.Identity, id));
+            // #93: 集団客は最初から黒客にはしない（黒客になるのはメンバーごとの D が 100 になったとき）
+            bool black = !learning && group == null && DecideBlack(PlaytestRandom.TryFor(PlaytestStreams.Identity, id));
             CustomerKind kind = assignKinds && !black && !learning
                 ? PickKind(PlaytestRandom.TryFor(PlaytestStreams.Kind, id))
                 : CustomerKind.Normal;
 
-            int slotIndex = forcedBand >= 0 ? FindLearningSlot(forcedBand) : FindSlotFor(kind, placement);
-            if (slotIndex < 0) return null;
+            // #93: 集団客はまとまって動くので、往復する移動客・遠い帯にしばられる遠方客・ボス客にはしない（欲張り客はそのまま）
+            if (group != null && kind != CustomerKind.Greedy) kind = CustomerKind.Normal;
 
-            Slot slot = _slots[slotIndex];
+            int slotIndex = -1;
+            Slot slot = null;
+            Vector3 anchor;
+            if (companionOf != null)
+            {
+                anchor = companionOf.Anchor;
+            }
+            else
+            {
+                // #93: 集団客は横はばぶん、ほかの客と重ならない定位置を選ぶ
+                float span = group != null ? CustomerGroup.Span(groupSize, groupSpacing) : 0f;
+                slotIndex = forcedBand >= 0 ? FindLearningSlot(forcedBand) : FindSlotFor(kind, placement, span);
+                if (slotIndex < 0) return null;
 
-            // 毎回くじを引きなおすモードでは、ここで空いている場所を引きなおす
-            if (slotPolicy == SlotPolicy.RandomEachTime)
-                slot.Position = RandomPointInBand(slot.BandIndex, onlyOccupied: true, placement);
+                slot = _slots[slotIndex];
 
-            // 移動客は往復する道が帯の左右の範囲に入るように、真ん中に寄せる（奥行きは変えない。企画書 v8 10章）
-            Vector3 destination = kind == CustomerKind.Moving ? LaneCenterFor(slot) : slot.Position;
-            Vector3 origin = ToriiPosition;
+                // 毎回くじを引きなおすモードでは、ここで空いている場所を引きなおす
+                if (slotPolicy == SlotPolicy.RandomEachTime)
+                    slot.Position = RandomPointInBand(slot.BandIndex, onlyOccupied: true, placement, span);
+
+                // 移動客は往復する道が帯の左右の範囲に入るように、真ん中に寄せる（奥行きは変えない。企画書 v8 10章）
+                anchor = kind == CustomerKind.Moving ? LaneCenterFor(slot) : slot.Position;
+            }
+
+            // #93: 集団客は定位置のまわりに並んで、鳥居からも同じ並びのまま歩いてくる
+            Vector3 formation = group != null ? CustomerGroup.FormationOffset(groupIndex, groupSize, groupSpacing) : Vector3.zero;
+            Vector3 destination = anchor + formation;
+            Vector3 origin = ToriiPosition + formation;
 
             GameObject go = Instantiate(
                 customerPrefab,
                 instant ? destination : origin,
                 Quaternion.identity,
                 customerParent);
-            go.name = $"MockCustomer_{id:00}";
+            go.name = group != null ? $"MockCustomer_{id:00}_G{group.Id}" : $"MockCustomer_{id:00}";
             CustomerSpawnId spawnId = CustomerSpawnId.Assign(go);
 
             var member = new Member
@@ -867,11 +963,22 @@ namespace Toufuku.Rescue.Mock
                 Outline = go.GetComponent<MockCustomerOutline>(),
                 Walker = go.GetComponent<MockCustomerWalker>(),
                 SlotIndex = slotIndex,
-                BandIndex = slot.BandIndex,
+                BandIndex = slot != null ? slot.BandIndex : companionOf.BandIndex,
                 Kind = kind,
+                Group = group,
+                Anchor = anchor,
+                Span = slot != null && group != null ? CustomerGroup.Span(groupSize, groupSpacing) : 0f,
             };
 
-            slot.Occupant = member;
+            if (slot != null) slot.Occupant = member;
+
+            // #93: グループに入れる。入った人は、グループ全員が終わるまで帰らない
+            if (group != null)
+            {
+                CustomerGroupMember groupMember = go.GetComponent<CustomerGroupMember>();
+                if (groupMember == null) groupMember = go.AddComponent<CustomerGroupMember>();
+                groupMember.Join(group);
+            }
 
             AssignIdentity(member, black, forcedColor);
             if (assignKinds && member.State != null)
@@ -1047,6 +1154,9 @@ namespace Toufuku.Rescue.Mock
 
         private static bool IsFinished(Member m) => m.State != null && m.State.IsFinished;
 
+        // 帰りはじめた。集団客で仲間が終わるのを待っている人は、まだ場所を使っているのでいるあつかい（#93）
+        private static bool IsGone(Member m) => IsFinished(m) && !m.State.IsExitPending;
+
         private static bool IsBlackTag(Member m) => m.Tag != null && m.Tag.IsBlack;
 
         private int CountLiveKind(CustomerKind kind)
@@ -1149,9 +1259,10 @@ namespace Toufuku.Rescue.Mock
 
             if (prefillInstant)
             {
+                // #93: 集団客は1回で何人も出るので、人数で数える
                 int want = TargetCount;
-                for (int i = 0; i < want; i++)
-                    SpawnOne(instant: true);
+                for (int guard = 0; LiveCount < want && guard < want; guard++)
+                    SpawnNext(instant: true);
             }
         }
 
@@ -1163,12 +1274,20 @@ namespace Toufuku.Rescue.Mock
               3) 選んだ帯に重ならない候補がなければ、重ならない候補がある帯の中でいちばん足りない帯から選ぶ（遠方客は遠い帯から動かさない）
                  それもなければ、選んだ帯でいちばん余裕がある候補にする
         */
-        private int FindSlotFor(CustomerKind kind, DeterministicRandom rng)
+        // span: #93 集団客の横はば（m）。一人客は 0。0 より大きければ、そのはばでほかの客と重ならない定位置を選ぶ
+        private int FindSlotFor(CustomerKind kind, DeterministicRandom rng, float span = 0f)
         {
             int band = ChooseBandFor(kind);
 
             if (!assignKinds)
             {
+                // 集団客なら、まず重ならない空きから選ぶ。なければ前と同じで空きならどこでも
+                if (span > 0f)
+                {
+                    CollectClearSlots(kind, band, span);
+                    if (_candidates.Count > 0) return _candidates[PlaytestRandom.Range(rng, 0, _candidates.Count)];
+                }
+
                 _candidates.Clear();
                 for (int i = 0; i < _slots.Count; i++)
                 {
@@ -1178,7 +1297,7 @@ namespace Toufuku.Rescue.Mock
                 return _candidates.Count == 0 ? -1 : _candidates[PlaytestRandom.Range(rng, 0, _candidates.Count)];
             }
 
-            int fallback = CollectClearSlots(kind, band);
+            int fallback = CollectClearSlots(kind, band, span);
             if (_candidates.Count > 0) return _candidates[PlaytestRandom.Range(rng, 0, _candidates.Count)];
 
             // 選んだ帯だと重なる。遠方客じゃなければ、重ならない候補がある帯の中でいちばん足りない帯に回す
@@ -1190,7 +1309,7 @@ namespace Toufuku.Rescue.Mock
                 for (int b = 0; b < bands.Length; b++)
                 {
                     if (b == band || !_bandHasFree[b]) continue;
-                    CollectClearSlots(kind, b);
+                    CollectClearSlots(kind, b, span);
                     if (_candidates.Count == 0) continue;
 
                     double rate = PlacementBands.DeficitRate(quotas[b], _bandOccupied[b]);
@@ -1215,9 +1334,10 @@ namespace Toufuku.Rescue.Mock
             band 番の帯（-1 ならぜんぶの帯）の空いている定位置のうち、ほかの客と重ならないものを _candidates に集める
             返す値: 重ならない候補がないときに使う、いちばん余裕がある空きの定位置。空きがなければ -1
         */
-        private int CollectClearSlots(CustomerKind kind, int band)
+        private int CollectClearSlots(CustomerKind kind, int band, float span = 0f)
         {
-            float width = kind == CustomerKind.Moving ? movingPatrolWidth : 0f;
+            // 移動客は往復の道のはば、集団客（#93）は並んだはばで重なりを測る
+            float width = kind == CustomerKind.Moving ? movingPatrolWidth : Mathf.Max(0f, span);
 
             _candidates.Clear();
             int fallback = -1;
@@ -1229,7 +1349,7 @@ namespace Toufuku.Rescue.Mock
                 if (band >= 0 && s.BandIndex != band) continue;
 
                 Vector3 center = kind == CustomerKind.Moving ? LaneCenterFor(s) : s.Position;
-                float margin = LaneMargin(center, width);
+                float margin = LaneMargin(center, width, kind == CustomerKind.Moving);
                 if (margin >= 0f)
                 {
                     _candidates.Add(i);
@@ -1338,7 +1458,8 @@ namespace Toufuku.Rescue.Mock
             レーン（はばが0なら点）を置いたときに、定位置にいる・向かっている全員とどれくらい間があいているか（m）。0 以上なら重ならない
             どっちかが移動客なら往復の道全体で測って movingLaneClearance、どっちも立っている客なら minSlotDistance を必要な間かくにする
         */
-        private float LaneMargin(Vector3 center, float width)
+        // selfMoving: 置こうとしているのが移動客か。集団客（#93）は width が横はばでも立っている客としてあつかう
+        private float LaneMargin(Vector3 center, float width, bool selfMoving)
         {
             float margin = float.PositiveInfinity;
             for (int i = 0; i < _slots.Count; i++)
@@ -1348,9 +1469,10 @@ namespace Toufuku.Rescue.Mock
 
                 bool otherMoving = o.Motion != null && o.Motion.HasPatrol;
                 Vector3 c = otherMoving ? o.Motion.PatrolCenter : _slots[i].Position;
-                float w = otherMoving ? o.Motion.PatrolWidth : 0f;
+                // #93: 集団客は横に並んだはば（o.Span）の線として測る
+                float w = otherMoving ? o.Motion.PatrolWidth : o.Span;
 
-                float required = otherMoving || width > 0f ? movingLaneClearance : minSlotDistance;
+                float required = otherMoving || selfMoving ? movingLaneClearance : minSlotDistance;
                 float m = PatrolPath.LaneToLane(center, width, c, w) - required;
                 if (m < margin) margin = m;
             }
@@ -1373,7 +1495,7 @@ namespace Toufuku.Rescue.Mock
                 if (s.Occupant != null || s.BandIndex != band) continue;
 
                 float score = Mathf.Abs(s.Position.x - centerX);
-                if (LaneMargin(s.Position, 0f) >= 0f)
+                if (LaneMargin(s.Position, 0f, false) >= 0f)
                 {
                     if (score < bestScore) { bestScore = score; best = i; }
                 }
@@ -1389,6 +1511,31 @@ namespace Toufuku.Rescue.Mock
             return best;
         }
 
+        /*
+            定位置を空ける。集団客（#93）で、定位置を持っている人（1人目）が先に帰る（黒客になった）ときは、
+            まだ残っている仲間に定位置を引きつぐ（空けると、仲間が立っている場所に次の客が来てしまう）
+        */
+        private void ReleaseSlot(Member m)
+        {
+            if (m == null) return;
+            if (m.Group != null && !m.Group.IsReleased && m.SlotIndex >= 0 && m.SlotIndex < _slots.Count
+                && _slots[m.SlotIndex].Occupant == m)
+            {
+                for (int i = 0; i < _members.Count; i++)
+                {
+                    Member mate = _members[i];
+                    if (mate == null || mate == m || mate.Group != m.Group || mate.Go == null || IsGone(mate)) continue;
+
+                    _slots[m.SlotIndex].Occupant = mate;
+                    mate.SlotIndex = m.SlotIndex;
+                    mate.Span = m.Span;
+                    m.SlotIndex = -1;
+                    return;
+                }
+            }
+            FreeSlot(m);
+        }
+
         private void FreeSlot(Member m)
         {
             if (m == null) return;
@@ -1401,7 +1548,8 @@ namespace Toufuku.Rescue.Mock
             帯の中のランダムな1点を取る。ほかの定位置と minSlotDistance 以上はなれるまで
             slotPlacementAttempts 回ためして、だめならいちばんマシな候補を返す
         */
-        private Vector3 RandomPointInBand(int bandIndex, bool onlyOccupied, DeterministicRandom rng)
+        // span: #93 集団客の横はば（m）。ほかの客との間はそのはばの半分だけ多く空ける
+        private Vector3 RandomPointInBand(int bandIndex, bool onlyOccupied, DeterministicRandom rng, float span = 0f)
         {
             if (bands == null || bandIndex < 0 || bandIndex >= bands.Length)
                 return new Vector3(0f, customerY, 0f);
@@ -1420,7 +1568,7 @@ namespace Toufuku.Rescue.Mock
                         customerY,
                         PlaytestRandom.Range(rng, Mathf.Min(b.zRange.x, b.zRange.y), Mathf.Max(b.zRange.x, b.zRange.y)));
 
-                float nearest = NearestSlotDistance(candidate, onlyOccupied);
+                float nearest = NearestSlotDistance(candidate, onlyOccupied) - Mathf.Max(0f, span) * 0.5f;
                 if (nearest >= minSlotDistance) return candidate;
 
                 if (nearest > bestDistance)
@@ -1462,8 +1610,10 @@ namespace Toufuku.Rescue.Mock
             float min = float.MaxValue;
             for (int i = 0; i < _slots.Count; i++)
             {
-                if (onlyOccupied && _slots[i].Occupant == null) continue;
-                float d = Vector3.Distance(point, _slots[i].Position);
+                Member o = _slots[i].Occupant;
+                if (onlyOccupied && o == null) continue;
+                // #93: 集団客がいる定位置は、並んだはばの半分だけ近いものとして測る
+                float d = Vector3.Distance(point, _slots[i].Position) - (o != null ? o.Span * 0.5f : 0f);
                 if (d < min) min = d;
             }
             return min;

@@ -99,6 +99,24 @@ namespace Toufuku.Rescue
         // どの客でも終わり（救えた / 黒客になった）が決まったら呼ばれる（#64 の失敗の音や #63 の計測ログなど、客ごとにつながない受け取り手用）
         public static event System.Action<CustomerState, CustomerPhase> AnyFinished;
 
+        /*
+            どの客でも帰りはじめたら呼ばれる（#62 の帰り道の歩き用）。ふつうは AnyFinished のすぐあと
+            集団客（#93）は、グループ全員が終わるまで待ってから呼ばれる
+        */
+        public static event System.Action<CustomerState, CustomerPhase> AnyExitStarted;
+
+        /*
+            ON の間は、救えても帰らないでその場に残る（集団客 #93。CustomerGroup が全員終わったら ReleaseExit で外す）
+            当たり判定はふつうどおり救えた瞬間に消す。黒客になったときは待たずに帰る（v8 6章「黒客化した瞬間に上限から外れる」）
+        */
+        public bool HoldExit { get; set; }
+
+        // 終わったけど、HoldExit で帰るのを待っている
+        public bool IsExitPending => _exitPending;
+
+        bool _exitPending;
+        CustomerPhase _finishedPhase;
+
         CustomerStateMachine _machine;
         CustomerKindEntry _entry;
 
@@ -290,6 +308,10 @@ namespace Toufuku.Rescue
 
         void Finish(CustomerPhase result)
         {
+            // イベントの中でグループが ReleaseExit を呼ぶこともあるので、先に「帰るのを待っている」にしておく
+            _finishedPhase = result;
+            _exitPending = true;
+
             if (result == CustomerPhase.Rescued)
             {
                 Debug.Log($"[State] 救済完了！ ({name})", this);
@@ -312,7 +334,25 @@ namespace Toufuku.Rescue
 
             AnyFinished?.Invoke(this, result);
 
-            StartCoroutine(ExitThenDespawn(result == CustomerPhase.Rescued ? rescuedExitSeconds : blackExitSeconds));
+            // 集団客（#93）で仲間を待つのは救えたときだけ。黒客は待たないで帰る
+            if (!HoldExit || result == CustomerPhase.Black) BeginExit();
+        }
+
+        // 集団客（#93）: グループ全員が終わったので、待っていた帰りを始める
+        public void ReleaseExit()
+        {
+            HoldExit = false;
+            BeginExit();
+        }
+
+        void BeginExit()
+        {
+            if (!_exitPending) return;
+            _exitPending = false;
+
+            AnyExitStarted?.Invoke(this, _finishedPhase);
+
+            StartCoroutine(ExitThenDespawn(ExitSecondsFor(_finishedPhase)));
         }
 
         // 救えたときに当たり判定をオフにする。Destroy じゃなくて enabled=false にする（帰る演出の間も見た目は残す）

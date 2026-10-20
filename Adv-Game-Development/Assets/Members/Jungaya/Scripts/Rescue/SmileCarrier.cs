@@ -70,6 +70,7 @@ namespace Toufuku.Rescue
         static readonly List<HitZoneTarget> s_buffer = new List<HitZoneTarget>();
 
         SmilePropagation _rules;
+        CustomerState _state;
 
         // この救済客の伝播の状態（人数・縁の合計・保存した倍率）
         public SmilePropagation Rules => _rules;
@@ -119,6 +120,10 @@ namespace Toufuku.Rescue
 
         void Update()
         {
+            // 集団客（#93）で仲間を待っている間は配らない（笑顔は帰り道ですれちがった人に伝わる。v8 6章）
+            if (_state == null) _state = GetComponent<CustomerState>();
+            if (_state != null && _state.IsExitPending) return;
+
             if (_rules == null || _rules.IsFull)
             {
                 // 上限まで伝えたら、もうだれにも伝えない。これ以上の距離の計算をやめる
@@ -171,6 +176,10 @@ namespace Toufuku.Rescue
 
         void TryPropagateTo(GameObject target, double contactSeconds)
         {
+            // 集団客（#93）: 同じグループの仲間には伝えない（となりにいるだけで毎回伝わってしまうので）
+            CustomerGroup group = CustomerGroupMember.GroupOf(gameObject);
+            if (group != null && CustomerGroupMember.GroupOf(target) == group) return;
+
             CustomerState state = target.GetComponent<CustomerState>();
 
             // 相手の条件（active・未救済・非黒客・R>0）は CustomerState が持っている。黒客はここで必ず落ちる
