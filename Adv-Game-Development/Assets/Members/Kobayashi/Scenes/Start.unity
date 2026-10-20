@@ -708,6 +708,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1348011344}
   - component: {fileID: 1348011343}
+  - component: {fileID: 777600100201}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -728,6 +729,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StartScript
   sceneName: GameScene1
+  fusumaTransition: {fileID: 777600100201}
 --- !u!4 &1348011344
 Transform:
   m_ObjectHideFlags: 0
@@ -831,3 +833,64 @@ SceneRoots:
   - {fileID: 964437632}
   - {fileID: 1555275542}
   - {fileID: 1348011344}
+
+--- !u!114 &777600100201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1348011342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f7ec21b1c34f6ca9f7e417b5ab2731, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
+  openOnSceneStart: 0
+  leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  slideDuration: 0.65
+  slideCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4410064
+      value: 0.7261044
+      inSlope: -5.4757566
+      outSlope: -5.4757566
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.055546645
+      outWeight: 0.17476757
+    - serializedVersion: 3
+      time: 0.8598776
+      value: 0.9521393
+      inSlope: -2.2186184
+      outSlope: -2.2186184
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.11488592
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  referenceResolution: {x: 1920, y: 1080}
+  sortingOrder: 55

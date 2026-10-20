@@ -1,10 +1,12 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
 /// セッション終了時に、左右のふすま画像を画面中央へスライド表示します。
 /// </summary>
+[DefaultExecutionOrder(-200)]
 public class TimeUpImageDisplay : MonoBehaviour
 {
     [Header("左右の画像")]
@@ -17,11 +19,35 @@ public class TimeUpImageDisplay : MonoBehaviour
     [SerializeField] private Vector2 referenceResolution = new Vector2(1920f, 1080f);
     [SerializeField] private int sortingOrder = 55;
 
+    [Header("シーン開始時の襖演出")]
+    [SerializeField] private bool openOnSceneStart;
+    [SerializeField, Min(0f)] private float closedHoldDuration = 0.5f;
+
     private GameSession subscribedSession;
     private Canvas overlayCanvas;
     private Image leftPanelImage;
     private Image rightPanelImage;
     private Coroutine slideRoutine;
+    private bool allowSessionStartToHidePanels;
+
+    private void Start()
+    {
+        // シーン側のInspector設定に加え、現在のメインゲームシーン名でも開始を判定します。
+        // シーンのシリアライズ値が更新されていない場合もGameScene1では必ず開きます。
+        bool shouldOpenOnSceneStart = openOnSceneStart
+            || SceneManager.GetActiveScene().name == "GameScene1";
+
+        if (shouldOpenOnSceneStart)
+        {
+            Debug.Log("[TimeUpImageDisplay] GameScene1の襖を開く演出を開始します。", this);
+            StartCoroutine(OpenFusumaThenStartSession());
+        }
+        else
+        {
+            // GameScene1をエディターから直接再生した場合も、セッションを開始します。
+            StartCoroutine(StartSessionWhenReady());
+        }
+    }
 
     private void OnEnable()
     {
@@ -52,7 +78,7 @@ public class TimeUpImageDisplay : MonoBehaviour
 
         subscribedSession = GameSession.Instance;
         subscribedSession.onSessionEnd.AddListener(ShowTimeUpPanels);
-        subscribedSession.onSessionStart.AddListener(HideTimeUpPanels);
+        subscribedSession.onSessionStart.AddListener(HidePanelsOnSessionStart);
     }
 
     private void Unsubscribe()
@@ -63,16 +89,83 @@ public class TimeUpImageDisplay : MonoBehaviour
         }
 
         subscribedSession.onSessionEnd.RemoveListener(ShowTimeUpPanels);
-        subscribedSession.onSessionStart.RemoveListener(HideTimeUpPanels);
+        subscribedSession.onSessionStart.RemoveListener(HidePanelsOnSessionStart);
         subscribedSession = null;
     }
 
     private void ShowTimeUpPanels()
     {
+        if (!PrepareTimeUpPanels())
+        {
+            return;
+        }
+
+        StopSlide();
+        slideRoutine = StartCoroutine(SlidePanelsIntoPlace());
+    }
+
+    /// <summary>
+    /// Start画面からゲーム画面へ移るときも、同じ襖演出を再生します。
+    /// </summary>
+    public IEnumerator PlayFusumaTransition()
+    {
+        if (!PrepareTimeUpPanels())
+        {
+            yield break;
+        }
+
+        StopSlide();
+        yield return SlidePanelsIntoPlace();
+    }
+
+    private IEnumerator OpenFusumaThenStartSession()
+    {
+        allowSessionStartToHidePanels = false;
+        if (PrepareTimeUpPanels())
+        {
+            StopSlide();
+            // UIやセッションの初期化が終わるまで、閉じた状態でフレーム描画を待ちます。
+            SetPanelPositions(-PanelCenterX, PanelCenterX);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            if (closedHoldDuration > 0f)
+            {
+                yield return new WaitForSecondsRealtime(closedHoldDuration);
+            }
+
+            yield return SlidePanelsOutward();
+            HideTimeUpPanels();
+        }
+
+        yield return StartSessionWhenReady();
+    }
+
+    private IEnumerator StartSessionWhenReady()
+    {
+        // GameSession.Start() が完了した後に開始して、autoStartとの二重開始を防ぎます。
+        yield return null;
+        allowSessionStartToHidePanels = true;
+        if (GameSession.Instance != null && !GameSession.Instance.IsPlaying)
+        {
+            GameSession.Instance.StartSession();
+        }
+    }
+
+    private void HidePanelsOnSessionStart()
+    {
+        // 初期化順の違いで開始イベントが襖の開き切る前に来ても、演出を消しません。
+        if (allowSessionStartToHidePanels)
+        {
+            HideTimeUpPanels();
+        }
+    }
+
+    private bool PrepareTimeUpPanels()
+    {
         if (leftPanelSprite == null || rightPanelSprite == null)
         {
             Debug.LogWarning("左右のふすま画像をInspectorで設定してください。", this);
-            return;
+            return false;
         }
 
         EnsurePanels();
@@ -87,10 +180,8 @@ public class TimeUpImageDisplay : MonoBehaviour
         leftPanelImage.gameObject.SetActive(true);
         rightPanelImage.gameObject.SetActive(true);
         SetPanelPositions(-OffscreenX, OffscreenX);
-        StopSlide();
-        slideRoutine = StartCoroutine(SlidePanelsIntoPlace());
+        return true;
     }
-
     private void EnsurePanels()
     {
         if (overlayCanvas != null)
@@ -170,6 +261,31 @@ public class TimeUpImageDisplay : MonoBehaviour
 
         SetPanelPositions(-PanelCenterX, PanelCenterX);
         slideRoutine = null;
+    }
+
+    private IEnumerator SlidePanelsOutward()
+    {
+        float duration = Mathf.Max(0f, slideDuration);
+        if (duration <= 0f)
+        {
+            SetPanelPositions(-OffscreenX, OffscreenX);
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float normalizedTime = Mathf.Clamp01(elapsed / duration);
+            // 開く演出だけは単調な補間にし、襖が行き過ぎて戻るバウンドを防ぎます。
+            float easedTime = Mathf.SmoothStep(0f, 1f, normalizedTime);
+            SetPanelPositions(
+                Mathf.Lerp(-PanelCenterX, -OffscreenX, easedTime),
+                Mathf.Lerp(PanelCenterX, OffscreenX, easedTime));
+            yield return null;
+        }
+
+        SetPanelPositions(-OffscreenX, OffscreenX);
     }
 
     private void HideTimeUpPanels()

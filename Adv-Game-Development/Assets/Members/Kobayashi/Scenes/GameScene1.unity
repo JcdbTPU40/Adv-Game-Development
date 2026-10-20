@@ -2014,7 +2014,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameSession
   secondsPerMonth: 2
   totalMonths: 3
-  autoStart: 1
+  autoStart: 0
   resolveGraceSeconds: 0.5
   learningSeconds: 30
   maxClockStepSeconds: 0.5
@@ -2485,6 +2485,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4f7ec21b1c34f6ca9f7e417b5ab2731, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
+  openOnSceneStart: 1
+  closedHoldDuration: 0.5
   leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   slideDuration: 0.65

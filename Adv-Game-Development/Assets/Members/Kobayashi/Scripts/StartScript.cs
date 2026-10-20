@@ -1,21 +1,38 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class StartScript : MonoBehaviour
 {
-    [SerializeField] string sceneName;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private string sceneName = "GameScene1";
+    [SerializeField] private TimeUpImageDisplay fusumaTransition;
+
+    private bool isTransitioning;
+
+    private void Update()
     {
-        
+        if (!isTransitioning && Input.anyKeyDown)
+        {
+            isTransitioning = true;
+            StartCoroutine(LoadGameAfterFusumaCloses());
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private IEnumerator LoadGameAfterFusumaCloses()
     {
-        if (Input.anyKeyDown)
+        if (fusumaTransition != null)
+        {
+            yield return StartCoroutine(fusumaTransition.PlayFusumaTransition());
+        }
+
+        if (!string.IsNullOrEmpty(sceneName))
         {
             SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+        }
+        else
+        {
+            Debug.LogWarning("遷移先のシーン名がInspectorで設定されていません。", this);
+            isTransitioning = false;
         }
     }
 }
