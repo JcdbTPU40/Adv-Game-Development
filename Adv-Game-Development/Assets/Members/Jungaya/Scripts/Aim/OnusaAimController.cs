@@ -69,6 +69,21 @@ namespace Toufuku.Aim
                  "実機で振りの途中にピッチが動いて狙いがずれる場合に T0 で調整する")]
         [SerializeField, Range(0f, 0.3f)] float lockLookbackSeconds = 0f;
 
+        [Header("距離に応じたソフト照準アシスト")]
+        [SerializeField] private bool softAimAssistEnabled = true;
+
+        // 着弾予定地点から客までの補正範囲（メートル）
+        [SerializeField, Min(0.1f)]
+        private float assistDistance = 3f;
+
+        // 最大補正率。0.35 = 最大でも差分の35%だけ補正
+        [SerializeField, Range(0f, 0.5f)]
+        private float assistStrength = 0.35f;
+
+        // 着弾予定地点と客の足元が、この距離以内ならロック
+        [SerializeField, Min(0.1f)]
+        private float customerLockDistance = 1.5f;
+
         const int HistoryCapacity = 64;
         const int CustomerRayCapacity = 16;
         const float SnapKeepToleranceSqr = 0.05f * 0.05f;
@@ -183,7 +198,17 @@ namespace Toufuku.Aim
             distance = Mathf.Clamp(distance, Mathf.Min(nearDistance, farDistance), Mathf.Max(nearDistance, farDistance));
 
             Vector3 point = AimSolver.GroundPoint(Origin, _referenceYaw + relativeYaw, distance, groundY);
-            point = PushInsideScreen(point, out bool pushed);
+
+            bool pushed = false;
+
+            // ESP32照準のときだけソフトアシストを適用
+            if (UsingYawRoll)
+            {
+                point = ApplyDistanceAimAssist(point);
+            }
+
+            // 補正後に画面内への押し戻しを行う
+            point = PushInsideScreen(point, out pushed);
 
             AimSolver.ToPolar(Origin, point, out float worldYaw, out float finalDistance);
             TargetPoint = point;
@@ -363,5 +388,68 @@ namespace Toufuku.Aim
                 prev = next;
             }
         }
+
+        private Vector3 ApplyDistanceAimAssist(Vector3 point)
+        {
+            if (!softAimAssistEnabled ||
+                assistDistance <= 0f ||
+                assistStrength <= 0f)
+            {
+                return point;
+            }
+
+            // 着弾地点を地面の高さに合わせる
+            Vector3 landingPoint = point;
+            landingPoint.y = groundY;
+
+            AimAssistTarget bestTarget = null;
+            Vector3 bestTargetPoint = default;
+            float nearestDistance = assistDistance;
+
+            // 有効な客の中から、着弾地点に最も近い客を探す
+            var targets = AimAssistTarget.ActiveTargets;
+
+            for (int i = 0; i < targets.Count; i++)
+            {
+                AimAssistTarget target = targets[i];
+
+                if (target == null || !target.isActiveAndEnabled)
+                    continue;
+
+                Vector3 customerPoint = target.AimPosition;
+                customerPoint.y = groundY;
+
+                // 水平方向の距離を計算する
+                float distance = Vector3.Distance(
+                    landingPoint,
+                    customerPoint
+                );
+
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    bestTarget = target;
+                    bestTargetPoint = customerPoint;
+                }
+            }
+
+            // 補正範囲内に客がいなければ元の着弾地点を維持
+            if (bestTarget == null)
+                return point;
+
+            // 最大補正率を適用
+            float weight = assistStrength;
+
+            // 客の位置へ完全固定せず、少しだけ近づける
+            Vector3 result = Vector3.Lerp(
+                landingPoint,
+                bestTargetPoint,
+                weight
+            );
+
+            result.y = groundY;
+            return result;
+        }
+
     }
 }
