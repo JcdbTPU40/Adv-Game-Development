@@ -14,6 +14,18 @@ public class PlayerDirect : MonoBehaviour
 
         yawOffset = con != null ? con.yaw : 0f;
         rollOffset = con != null ? con.roll : 0f;
+
+        yawOffset = con.yaw;
+        rollOffset = con.roll;
+
+        float relativeYaw = con.yaw - yawOffset;
+        float relativeRoll = con.roll - rollOffset;
+
+        transform.rotation = Quaternion.Euler(
+            relativeRoll,
+            relativeYaw,
+            0f
+        );
     }
 
     void Update()
@@ -32,7 +44,7 @@ public class PlayerDirect : MonoBehaviour
         float relativeRoll = con.roll - rollOffset;
 
         transform.rotation = Quaternion.Euler(
-            -relativeRoll,
+            relativeRoll,
             relativeYaw,
             0f
         );
