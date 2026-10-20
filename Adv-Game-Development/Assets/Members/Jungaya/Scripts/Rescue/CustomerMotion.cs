@@ -75,12 +75,12 @@ namespace Toufuku.Rescue
 
         private void OnEnable()
         {
-            CustomerState.AnyFinished += HandleFinished;
+            CustomerState.AnyExitStarted += HandleExitStarted;
         }
 
         private void OnDisable()
         {
-            CustomerState.AnyFinished -= HandleFinished;
+            CustomerState.AnyExitStarted -= HandleExitStarted;
         }
 
         /*
@@ -116,7 +116,8 @@ namespace Toufuku.Rescue
             _travelled = 0f;
         }
 
-        void HandleFinished(CustomerState state, CustomerPhase phase)
+        // 帰りはじめた（ふつうは終わった直後。集団客はグループ全員が終わったとき #93）
+        void HandleExitStarted(CustomerState state, CustomerPhase phase)
         {
             if (state == null || state != _state) return;
             BeginExit(state.ExitSecondsFor(phase));

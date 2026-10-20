@@ -1077,6 +1077,8 @@ MonoBehaviour:
   exitPoints:
   - {x: -9, y: 1, z: 37}
   - {x: 9, y: 1, z: 37}
+  groupChance: 0.4
+  groupSpacing: 0.65
   startDangerRange: {x: 0, y: 0}
   blackCustomerCount: 0
   freezeDanger: 0
@@ -2404,6 +2406,11 @@ MonoBehaviour:
   customerRayDistance: 100
   viewportMargin: 0.06
   lockLookbackSeconds: 0
+  softAimAssistEnabled: 1
+  assistDistance: 3
+  assistStrength: 0.35
+  customerLockDistance: 1.5
+  targetReleaseDistance: 6
 --- !u!4 &2098549821
 Transform:
   m_ObjectHideFlags: 0
