@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 8862998633252620380}
   - component: {fileID: 302478334841279399}
   - component: {fileID: 7142111661815696864}
+  - component: {fileID: 377934793004058050}
   m_Layer: 0
   m_Name: MockCustomer
   m_TagString: Untagged
@@ -34,7 +35,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8728416051153613576}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &5434037354786789436
@@ -108,9 +110,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.CustomerState
   customerKind: 0
   kindTable: {fileID: 0}
+  dangerFullSecondsOverride: 66.7
   fallbackInitialRemaining: 1
   fallbackDangerFullSeconds: 20
-  dangerFullSecondsOverride: 66.7
   fallbackRescueBaseScore: 100
   startActive: 1
   rescuedExitSeconds: 0.4
@@ -188,3 +190,50 @@ MonoBehaviour:
   emissionIntensity: 3
   bodyRenderer: {fileID: 2644706420262660319}
   outlineRenderer: {fileID: 0}
+  extraBodyRenderers: []
+  tintOnlyRenderers: []
+  hullDepthPush: 0
+--- !u!114 &377934793004058050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3874485989399354985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89aae1a77156efa40b88e1c9ff96025f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AimAssistTarget
+  aimPoint: {fileID: 8728416051153613576}
+--- !u!1 &6025066967672048346
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8728416051153613576}
+  m_Layer: 0
+  m_Name: TargetPos
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8728416051153613576
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6025066967672048346}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4733884144507746387}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
