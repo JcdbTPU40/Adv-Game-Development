@@ -1,5 +1,6 @@
 using UnityEngine;
 using Toufuku.GameInput;
+using Toufuku.Rescue;
 
 namespace Toufuku.Aim
 {
@@ -77,12 +78,19 @@ namespace Toufuku.Aim
         private float assistDistance = 3f;
 
         // 最大補正率。0.35 = 最大でも差分の35%だけ補正
-        [SerializeField, Range(0f, 0.5f)]
+        [SerializeField, Range(0f, 1f)]
         private float assistStrength = 0.35f;
+
 
         // 着弾予定地点と客の足元が、この距離以内ならロック
         [SerializeField, Min(0.1f)]
         private float customerLockDistance = 1.5f;
+
+        [Header("照準アシスト対象の維持")]
+        [SerializeField] private float targetReleaseDistance = 6f;
+
+        // 現在アシストしている客
+        private AimAssistTarget _currentAssistTarget;
 
         const int HistoryCapacity = 64;
         const int CustomerRayCapacity = 16;
@@ -398,49 +406,101 @@ namespace Toufuku.Aim
                 return point;
             }
 
-            // 着弾地点を地面の高さに合わせる
             Vector3 landingPoint = point;
             landingPoint.y = groundY;
 
             AimAssistTarget bestTarget = null;
             Vector3 bestTargetPoint = default;
-            float nearestDistance = assistDistance;
+            float nearestDistance = float.MaxValue;
 
-            // 有効な客の中から、着弾地点に最も近い客を探す
-            var targets = AimAssistTarget.ActiveTargets;
-
-            for (int i = 0; i < targets.Count; i++)
+            // 1. 現在の対象を維持できるか確認する
+            if (_currentAssistTarget != null &&
+    _currentAssistTarget.isActiveAndEnabled)
             {
-                AimAssistTarget target = targets[i];
+                CustomerState customer =
+                    _currentAssistTarget.GetComponentInParent<CustomerState>();
 
-                if (target == null || !target.isActiveAndEnabled)
-                    continue;
+                bool canAssist =
+                    customer == null ||
+                    (customer.IsRescueTarget &&
+                     !customer.IsRescued &&
+                     !customer.IsBlack);
 
-                Vector3 customerPoint = target.AimPosition;
-                customerPoint.y = groundY;
-
-                // 水平方向の距離を計算する
-                float distance = Vector3.Distance(
-                    landingPoint,
-                    customerPoint
-                );
-
-                if (distance < nearestDistance)
+                if (canAssist)
                 {
-                    nearestDistance = distance;
-                    bestTarget = target;
-                    bestTargetPoint = customerPoint;
+                    Vector3 currentPoint = _currentAssistTarget.AimPosition;
+                    currentPoint.y = groundY;
+
+                    float currentDistance =
+                        Vector3.Distance(landingPoint, currentPoint);
+
+                    if (currentDistance <= targetReleaseDistance)
+                    {
+                        bestTarget = _currentAssistTarget;
+                        bestTargetPoint = currentPoint;
+                        nearestDistance = currentDistance;
+                    }
                 }
             }
 
-            // 補正範囲内に客がいなければ元の着弾地点を維持
+            // 2. 維持できる対象がいなければ、新しい対象を探す
+            if (bestTarget == null)
+            {
+                _currentAssistTarget = null;
+
+                var targets = AimAssistTarget.ActiveTargets;
+
+                nearestDistance = assistDistance;
+
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    AimAssistTarget target = targets[i];
+
+                    if (target == null || !target.isActiveAndEnabled)
+                        continue;
+
+                    // CustomerState を取得
+                    CustomerState customer = target.GetComponentInParent<CustomerState>();
+
+                    // 救済済み、黒客、または救済対象外なら照準を合わせない
+                    if (customer != null &&
+                        (!customer.IsRescueTarget ||
+                         customer.IsRescued ||
+                         customer.IsBlack))
+                    {
+                        continue;
+                    }
+
+                    Vector3 customerPoint = target.AimPosition;
+                    customerPoint.y = groundY;
+
+                    float distance = Vector3.Distance(
+                        landingPoint,
+                        customerPoint
+                    );
+
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        bestTarget = target;
+                        bestTargetPoint = customerPoint;
+                    }
+                }
+
+                // 選択した対象を記憶する
+                _currentAssistTarget = bestTarget;
+            }
+
+            // 3. 対象がいなければ補正しない
             if (bestTarget == null)
                 return point;
 
-            // 最大補正率を適用
+            // 4. 客との距離に応じて補正する
+            float proximity = 1f -
+                Mathf.Clamp01(nearestDistance / assistDistance);
+
             float weight = assistStrength;
 
-            // 客の位置へ完全固定せず、少しだけ近づける
             Vector3 result = Vector3.Lerp(
                 landingPoint,
                 bestTargetPoint,
@@ -448,6 +508,7 @@ namespace Toufuku.Aim
             );
 
             result.y = groundY;
+
             return result;
         }
 
