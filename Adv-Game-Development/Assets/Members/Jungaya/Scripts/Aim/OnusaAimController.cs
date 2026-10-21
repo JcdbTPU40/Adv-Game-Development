@@ -233,7 +233,7 @@ namespace Toufuku.Aim
             HasAim = true;
 
             Record(Time.realtimeSinceStartupAsDouble, point);
-            Debug.Log($"Yaw={input.RawSource.Yaw}, RelativeYaw={relativeYaw}");
+            //Debug.Log($"Yaw={input.RawSource.Yaw}, RelativeYaw={relativeYaw}");
         }
 
         bool ShouldUseYawPitch()
@@ -339,18 +339,26 @@ namespace Toufuku.Aim
                 ? AimSolver.ClampToViewport(new Vector2(vp.x, vp.y), viewportMargin)
                 : AimSolver.ClampToViewport(new Vector2(1f - vp.x, 0f), viewportMargin);
 
-            var ground = new Plane(Vector3.up, new Vector3(0f, groundY, 0f));
+            // 地面ではなく、元の照準点と同じ高さの平面を使う
+            var aimPlane = new Plane(
+                Vector3.up,
+                new Vector3(0f, point.y, 0f)
+            );
+
             for (int i = 0; i <= PushBackMaxSteps; i++)
             {
-                Ray ray = cam.ViewportPointToRay(new Vector3(clamped.x, clamped.y, 0f));
-                if (ground.Raycast(ray, out float enter))
+                Ray ray = cam.ViewportPointToRay(
+                    new Vector3(clamped.x, clamped.y, 0f)
+                );
+
+                if (aimPlane.Raycast(ray, out float enter))
                 {
                     pushed = true;
                     Vector3 p = ray.GetPoint(enter);
-                    p.y = groundY;
+                    p.y = point.y;
                     return p;
                 }
-                // 押しもどした先が地平線より上だったら、地面に届くまで少しずつ下げる
+
                 clamped.y -= PushBackStep;
             }
             return point;
@@ -407,7 +415,6 @@ namespace Toufuku.Aim
             }
 
             Vector3 landingPoint = point;
-            landingPoint.y = groundY;
 
             AimAssistTarget bestTarget = null;
             Vector3 bestTargetPoint = default;
@@ -429,7 +436,6 @@ namespace Toufuku.Aim
                 if (canAssist)
                 {
                     Vector3 currentPoint = _currentAssistTarget.AimPosition;
-                    currentPoint.y = groundY;
 
                     float currentDistance =
                         Vector3.Distance(landingPoint, currentPoint);
@@ -472,7 +478,6 @@ namespace Toufuku.Aim
                     }
 
                     Vector3 customerPoint = target.AimPosition;
-                    customerPoint.y = groundY;
 
                     float distance = Vector3.Distance(
                         landingPoint,
@@ -496,18 +501,14 @@ namespace Toufuku.Aim
                 return point;
 
             // 4. 客との距離に応じて補正する
-            float proximity = 1f -
-                Mathf.Clamp01(nearestDistance / assistDistance);
-
+            float proximity = 1f - Mathf.Clamp01(nearestDistance / assistDistance);
             float weight = assistStrength;
 
-            Vector3 result = Vector3.Lerp(
-                landingPoint,
-                bestTargetPoint,
-                weight
-            );
+            // 水平方向はソフトに補正する
+            Vector3 result = Vector3.Lerp(landingPoint, bestTargetPoint, weight);
 
-            result.y = groundY;
+            // 高さはお客さんの胸の位置に合わせる
+            result.y = bestTargetPoint.y;
 
             return result;
         }

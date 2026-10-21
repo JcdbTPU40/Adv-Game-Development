@@ -64,6 +64,9 @@ namespace Toufuku.Aim
         // 最後に発射した弾（落ちたあとは消えるので null になる）
         public OmamoriProjectile LastProjectile { get; private set; }
 
+        [Header("お守りの見た目Prefab")]
+        [SerializeField] private GameObject[] omamoriPrefabs = new GameObject[5];
+
         // #49: 次に発射する弾が見え始めるまでの秒数
         public float VisualDelaySeconds
         {
@@ -151,7 +154,19 @@ namespace Toufuku.Aim
             AttachTrail(go, width);
 
             var projectile = go.AddComponent<OmamoriProjectile>();
-            projectile.Launch(start, target, seconds, arc, type, trailSeconds, visualDelaySeconds, priorityTargetId);
+
+            projectile.SetOmamoriPrefabs(omamoriPrefabs);
+
+            projectile.Launch(
+                start,
+                target,
+                seconds,
+                arc,
+                type,
+                trailSeconds,
+                visualDelaySeconds,
+                priorityTargetId
+            );
 
             ThrowCount++;
             LastProjectile = projectile;

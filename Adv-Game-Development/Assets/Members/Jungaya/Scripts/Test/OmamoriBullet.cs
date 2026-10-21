@@ -7,16 +7,59 @@ public class OmamoriBullet : MonoBehaviour
         このお守りのタイプ。選ぶボタン（#9）で弾を作るときに SetType で入れるつもり
         インスペクターからもテスト用に設定できるように SerializeField にしておく
     */
+    [Header("お守りの種類")]
     [SerializeField] private OmamoriType type = OmamoriType.Kenkou;
-    [SerializeField] Shoot shoot;
-    // 弾を作るときにお守りのタイプを入れる用（#9 の発射する側から呼ぶ）
+
+    [SerializeField] private Shoot shoot;
+
+    [Header("お守りPrefab（OmamoriTypeの順番）")]
+    [SerializeField] private GameObject[] omamoriPrefab = new GameObject[5];
+
+    [Header("子オブジェクトのTransform")]
+    [SerializeField] private Vector3 localPosition = Vector3.zero;
+    [SerializeField] private Vector3 localRotation = Vector3.zero;
+    [SerializeField] private Vector3 localScale = Vector3.one;
+
+    private GameObject currentOmamori;
+    private bool typeAssigned;
+
     public void SetType(OmamoriType t)
     {
         type = t;
+        typeAssigned = true;
 
+        CreateOmamoriModel();
     }
 
-    private void OnTriggerCollision(Collision collision)
+    private void CreateOmamoriModel()
+    {
+        int index = (int)type;
+
+        if (omamoriPrefab == null ||
+            index < 0 ||
+            index >= omamoriPrefab.Length ||
+            omamoriPrefab[index] == null)
+        {
+            Debug.LogWarning(
+                $"お守りPrefabが設定されていません。Type: {type}",
+                this
+            );
+            return;
+        }
+
+        currentOmamori = Instantiate(
+            omamoriPrefab[index],
+            transform
+        );
+
+        currentOmamori.transform.localPosition = localPosition;
+        currentOmamori.transform.localRotation =
+            Quaternion.Euler(localRotation);
+        currentOmamori.transform.localScale = localScale;
+    }
+
+
+    private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Customer"))
         {

@@ -26,6 +26,7 @@ namespace Toufuku.Aim
         // スコアに入れたかどうか（ゲームの時間外に落ちた弾は入れない）
         public readonly bool Scored;
 
+
         public LandingResult(Vector3 targetPoint, Vector3 landedPoint, HitZoneTarget hit, float normalizedDistance,
             HitZone zone, OmamoriType type, float plannedSeconds, float elapsedSeconds, bool scored)
         {
@@ -117,6 +118,15 @@ namespace Toufuku.Aim
             visualDelaySeconds: #49 T0-A/B 用。見た目（弾と軌跡）が出るまでの秒数。0 なら発射と同時
             priorityTargetId: #55 用。この瞬間の優先対象（二重円の客）の生成ID。0 なら優先救済のボーナスはなし
         */
+
+        [Header("お守りの見た目")]
+        [SerializeField] private GameObject[] omamoriPrefabs = new GameObject[5];
+        [SerializeField] private Vector3 omamoriLocalPosition = Vector3.zero;
+        [SerializeField] private Vector3 omamoriLocalRotation = Vector3.zero;
+        [SerializeField] private Vector3 omamoriLocalScale = Vector3.one;
+
+        private GameObject _omamoriModel;
+
         public void Launch(Vector3 start, Vector3 target, float flightSeconds, float arcHeight, OmamoriType type,
             float lingerSeconds = 0.2f, float visualDelaySeconds = 0f, int priorityTargetId = PriorityRescue.NoTarget)
         {
@@ -134,6 +144,10 @@ namespace Toufuku.Aim
             // #61: 3:00 より前に受理した弾だけ、3:00 のあとも着弾をスコアに入れる。落ちるまで GameSession に待ってもらう
             GameSession session = GameSession.Instance;
             _launchedWhilePlaying = session == null || session.IsPlaying;
+
+            // 発射時に、選択された種類のお守りモデルを生成
+            CreateOmamoriModel();
+
             if (session != null && session.IsPlaying && !_pendingForSession)
             {
                 _pendingForSession = true;
@@ -265,6 +279,38 @@ namespace Toufuku.Aim
 
             int best = LandingJudge.FindBest(s_candidates, point, out normalizedDistance);
             return best >= 0 ? s_targets[best] : null;
+        }
+        void CreateOmamoriModel()
+        {
+            int index = (int)_type;
+
+            if (omamoriPrefabs == null ||
+                index < 0 ||
+                index >= omamoriPrefabs.Length ||
+                omamoriPrefabs[index] == null)
+            {
+                Debug.LogWarning(
+                    $"お守りPrefabが設定されていません。Type: {_type}, Index: {index}",
+                    this
+                );
+                return;
+            }
+
+            if (_omamoriModel != null)
+                Destroy(_omamoriModel);
+
+            _omamoriModel = Instantiate(omamoriPrefabs[index], transform);
+
+            _omamoriModel.transform.localPosition = omamoriLocalPosition;
+            _omamoriModel.transform.localRotation =
+                Quaternion.Euler(omamoriLocalRotation);
+            _omamoriModel.transform.localScale = omamoriLocalScale;
+
+            Debug.Log($"お守りモデルを生成しました: {_type}", _omamoriModel);
+        }
+        public void SetOmamoriPrefabs(GameObject[] prefabs)
+        {
+            omamoriPrefabs = prefabs;
         }
     }
 }

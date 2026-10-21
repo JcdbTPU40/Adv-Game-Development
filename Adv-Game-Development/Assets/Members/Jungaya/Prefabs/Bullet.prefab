@@ -31,8 +31,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -51,7 +51,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4368980920736088987}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -128,6 +128,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OmamoriBullet
   type: 0
   shoot: {fileID: 0}
+  omamoriPrefab:
+  - {fileID: 5485489936252292883, guid: 0e66e37832216e241a7146665d514b0c, type: 3}
+  - {fileID: 6682175194531888675, guid: 425e9f06081fa1e4385defc0922a01ed, type: 3}
+  - {fileID: 482422476918317858, guid: 516d7d7b7cbab0941878d07eb1b63dd4, type: 3}
+  - {fileID: 3842921463690149050, guid: 3a17e8ad0c4aa324492164f1ffef8c03, type: 3}
+  - {fileID: 6107079314012077475, guid: e1796f476bc4ff04688669a7f26ad8d2, type: 3}
+  localPosition: {x: 0, y: 0, z: 0}
+  localRotation: {x: 0, y: 0, z: 0}
+  localScale: {x: 1, y: 1, z: 1}
 --- !u!54 &-7576237040572358360
 Rigidbody:
   m_ObjectHideFlags: 0

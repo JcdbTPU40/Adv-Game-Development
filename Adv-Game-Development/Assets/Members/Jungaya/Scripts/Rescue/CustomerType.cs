@@ -10,10 +10,10 @@ namespace Toufuku.Rescue
     */
     public enum CustomerType
     {
-        Kenkou,   // 健康を願う客 → 正解のお守り: OmamoriType.Kenkou
-        Gakugyou, // 学業成就を願う客 → 正解のお守り: OmamoriType.Gakugyou
+        Enmusubi,   // 健康を願う客 → 正解のお守り: OmamoriType.Kenkou
+        Kinun, // 学業成就を願う客 → 正解のお守り: OmamoriType.Gakugyou
         Yakuyoke, // 厄除け安全を願う客 → 正解のお守り: OmamoriType.Yakuyoke
-        Enmusubi, // 縁結びを願う客 → 正解のお守り: OmamoriType.Enmusubi
-        Kinun     // 金運を願う客 → 正解のお守り: OmamoriType.Kinun
+        Kenkou, // 縁結びを願う客 → 正解のお守り: OmamoriType.Enmusubi
+        Gakugyou   // 金運を願う客 → 正解のお守り: OmamoriType.Kinun
     }
 }
