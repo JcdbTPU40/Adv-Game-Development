@@ -148,11 +148,11 @@ namespace Toufuku.Rescue.Mock
         [SerializeField]
         private Color[] omamoriColors =
         {
-            new Color(0.20f, 1.00f, 0.45f),  // 健康: 緑
-            new Color(0.30f, 0.65f, 1.00f),  // 学業成就: 青
-            new Color(0.75f, 0.35f, 1.00f),  // 厄除け安全: 紫
-            new Color(1.00f, 0.40f, 0.70f),  // 縁結び: ピンク
-            new Color(1.00f, 0.85f, 0.15f),  // 金運: 金
+            new Color(1.00f, 0.40f, 0.70f),  // 健康: 緑
+            new Color(1.00f, 0.85f, 0.15f),  // 学業成就: 青
+            new Color(1.00f, 1.00f, 1.00f),  // 厄除け安全: 紫
+            new Color(0.20f, 1.00f, 0.45f),  // 縁結び: ピンク
+            new Color(0.30f, 0.65f, 1.00f),  // 金運: 金
         };
 
         [Tooltip("黒客の輪郭色のフォールバック。正は OmamoriPalette.BlackCustomerColor。他5色と識別できるかが #44 の検証ポイント。")]

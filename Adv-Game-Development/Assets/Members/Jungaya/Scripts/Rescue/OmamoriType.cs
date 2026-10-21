@@ -12,11 +12,11 @@ namespace Toufuku.Rescue
     */
     public enum OmamoriType
     {
-        Kenkou,   // 健康
-        Gakugyou, // 学業成就
+        Enmusubi,   // 縁結び
+        Kinun, // 金運
         Yakuyoke, // 厄除け安全
-        Enmusubi, // 縁結び
-        Kinun     // 金運
+        Kenkou, // 健康
+        Gakugyou    // 学業成就 
     }
 
     // 相性の判定の結果。救済の判定（#13）はこの2つだけを受け取って動く

@@ -56,11 +56,11 @@ public class OmamoriSelector : MonoBehaviour
         }
 
         // 予備: 数字キーで切りかえる（プロバイダーが入っていないとき）。企画書 v3 §3 の enum の順番
-        if (Input.GetKeyDown(KeyCode.Alpha1)) Select(OmamoriType.Kenkou);
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) Select(OmamoriType.Gakugyou);
+        if (Input.GetKeyDown(KeyCode.Alpha1)) Select(OmamoriType.Enmusubi);
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) Select(OmamoriType.Kinun);
         else if (Input.GetKeyDown(KeyCode.Alpha3)) Select(OmamoriType.Yakuyoke);
-        else if (Input.GetKeyDown(KeyCode.Alpha4)) Select(OmamoriType.Enmusubi);
-        else if (Input.GetKeyDown(KeyCode.Alpha5)) Select(OmamoriType.Kinun);
+        else if (Input.GetKeyDown(KeyCode.Alpha4)) Select(OmamoriType.Kenkou);
+        else if (Input.GetKeyDown(KeyCode.Alpha5)) Select(OmamoriType.Gakugyou);
     }
 
     private void OnGUI()

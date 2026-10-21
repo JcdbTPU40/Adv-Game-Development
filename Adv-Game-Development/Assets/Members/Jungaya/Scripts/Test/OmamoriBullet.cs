@@ -16,7 +16,7 @@ public class OmamoriBullet : MonoBehaviour
 
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerCollision(Collision collision)
     {
         if (collision.gameObject.CompareTag("Customer"))
         {

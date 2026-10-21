@@ -31,11 +31,12 @@ namespace Toufuku.Rescue
         [SerializeField]
         private Color[] colors =
         {
-            new Color(63 / 255f, 191 / 255f, 95 / 255f),  // 健康: #3FBF5F
-            new Color(47 / 255f, 127 / 255f, 216 / 255f), // 学業成就: #2F7FD8
-            new Color(139 / 255f, 95 / 255f, 208 / 255f), // 厄除け安全: #8B5FD0
-            new Color(232 / 255f, 95 / 255f, 143 / 255f), // 縁結び: #E85F8F
+            
+            new Color(232 / 255f, 95 / 255f, 143 / 255f),  // 縁結び: #E85F8F
             new Color(232 / 255f, 185 / 255f, 63 / 255f), // 金運: #E8B93F
+            new Color(255 / 255f, 255 / 255f, 255 / 255f), // 厄除け安全: #8B5FD0
+            new Color(63 / 255f, 191 / 255f, 95 / 255f), // 健康: #3FBF5F
+            new Color(47 / 255f, 127 / 255f, 216 / 255f), // 学業成就: #2F7FD8
         };
 
         [Tooltip("黒客（救済失敗客）の輪郭色。5色すべてと識別できることが要件（v3 §6）。")]
