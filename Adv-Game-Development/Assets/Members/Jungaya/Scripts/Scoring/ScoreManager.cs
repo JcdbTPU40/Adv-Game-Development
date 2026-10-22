@@ -293,7 +293,6 @@ public class ScoreManager : MonoBehaviour
 
         int gained = EnFormula.PropagationScore(snapshot.ChainMultiplier, snapshot.BlessingMultiplier, PropagationPoints);
         En += gained;
-        Debug.Log($"現在の内部スコア: {En}");
         LastGain = gained;
         LastBonus = 0;
         LastPriorityBonus = 0;

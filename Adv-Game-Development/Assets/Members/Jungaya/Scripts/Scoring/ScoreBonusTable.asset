@@ -12,8 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1878d4e381dad7f408d4b2cbc3b906c6, type: 3}
   m_Name: ScoreBonusTable
   m_EditorClassIdentifier: Assembly-CSharp::ScoreBonusTable
-  accuracyCenterBonus: 50
-  accuracyInnerBonus: 20
+  accuracyCenterBonus: 1450
+  accuracyInnerBonus: 380
   accuracyOuterBonus: 0
-  priorityRescueBonus: 50
-  propagationMaxTargets: 4
+  priorityRescueBonus: 950
+  chainStep1Count: 3
+  chainStep1Multiplier: 1.1
+  chainStep2Count: 6
+  chainStep2Multiplier: 1.2
+  chainStep3Count: 10
+  chainStep3Multiplier: 1.3
+  chainTimeoutSeconds: 5
+  propagationPoints: 380
+  propagationMaxTargets: 76

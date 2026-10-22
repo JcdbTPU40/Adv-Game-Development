@@ -1577,8 +1577,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.Esp32RawSource
   con: {fileID: 1624669429}
-  triggerVelocity: 180
-  releaseVelocity: 60
+  triggerVelocity: 450
+  releaseVelocity: 100
   swingIsPitchDecrease: 1
   maxSampleGap: 0.1
   nominalSampleInterval: 0.02
@@ -1619,7 +1619,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f770b0ea09e3dcb4389ae04632defd8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.SideSwingDetector
-  triggerVelocity: 700
+  triggerVelocity: 900
   releaseVelocity: 100
   maxPitchVelocity: 250
   maxYawVelocity: 300
@@ -4227,12 +4227,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e4c3a33f83f0874bbdc7aed11ea9bbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
-  hitScore: 100
+  hitScore: 1900
   bonusTable: {fileID: 11400000, guid: 67fa3dc8cb50059489c6ac28ec007fde, type: 2}
-  centerBonus: 50
-  innerBonus: 20
+  centerBonus: 950
+  innerBonus: 380
   outerBonus: 0
-  priorityRescueBonus: 50
+  priorityRescueBonus: 950
 --- !u!4 &4748935194137684862
 Transform:
   m_ObjectHideFlags: 0
