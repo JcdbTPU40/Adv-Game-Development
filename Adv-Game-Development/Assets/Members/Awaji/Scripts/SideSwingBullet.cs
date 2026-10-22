@@ -1,4 +1,3 @@
-
 using Toufuku.Rescue;
 using UnityEngine;
 
@@ -16,6 +15,46 @@ namespace Toufuku.GameInput
         [Header("â°êUÇËíeÇÃã~çœîªíË")]
         [SerializeField]
         private OmamoriType rescueType = OmamoriType.Enmusubi;
+
+        [Header("íeÇÃêFÅiÇ®éÁÇË5éÌÅj")]
+        [SerializeField] private ParticleSystem particle;
+
+        [SerializeField] private Color enmusubiColor = Color.red;       // âèåãÇ—ÅFê‘
+        [SerializeField] private Color kinunColor = Color.yellow;       // ã‡â^ÅFâ©
+        [SerializeField] private Color yakuyokeColor = Color.white;     // ñÔèúÇØÅFîí
+        [SerializeField] private Color kenkouColor = Color.green;       // åíçNÅFóŒ
+        [SerializeField] private Color gakugyouColor = Color.blue;      // äwã∆ÅFê¬
+
+        private Color GetColor(OmamoriType type)
+        {
+            switch (type)
+            {
+                case OmamoriType.Enmusubi:
+                    return enmusubiColor;
+
+                case OmamoriType.Kinun:
+                    return kinunColor;
+
+                case OmamoriType.Yakuyoke:
+                    return yakuyokeColor;
+
+                case OmamoriType.Kenkou:
+                    return kenkouColor;
+
+                case OmamoriType.Gakugyou:
+                    return gakugyouColor;
+
+                default:
+                    return Color.white;
+            }
+        }
+
+        public void SetRescueType(OmamoriType type)
+        {
+            rescueType = type;
+            ApplyColor();
+        }
+
         public void Launch(Vector3 forward)
         {
             direction = forward.normalized;
@@ -29,6 +68,8 @@ namespace Toufuku.GameInput
             transform.rotation = Quaternion.LookRotation(direction);
             launched = true;
 
+            ApplyColor();
+
             Destroy(gameObject, lifeTime);
         }
 
@@ -40,33 +81,60 @@ namespace Toufuku.GameInput
             transform.position += direction * speed * Time.deltaTime;
         }
 
-        public void SetRescueType(OmamoriType type)
+        private void ApplyColor()
         {
-            rescueType = type;
+            if (particle == null)
+                return;
+
+            Color color = GetColor(rescueType);
+
+            ParticleSystem.MainModule main = particle.main;
+            main.startColor = color;
+
+            var colorOverLifetime = particle.colorOverLifetime;
+
+            if (colorOverLifetime.enabled)
+            {
+                Gradient gradient = new Gradient();
+
+                gradient.SetKeys(
+                    new GradientColorKey[]
+                    {
+                        new GradientColorKey(color, 0f),
+                        new GradientColorKey(color, 1f)
+                    },
+                    new GradientAlphaKey[]
+                    {
+                        new GradientAlphaKey(1f, 0f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+
+                colorOverLifetime.color = gradient;
+            }
         }
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (collision.gameObject.CompareTag("Customer"))
-            {
-                Vector3 hitPoint = collision.GetContact(0).point;
+            if (!collision.gameObject.CompareTag("Customer"))
+                return;
 
-                HitZoneTarget target =
-                    collision.gameObject.GetComponent<HitZoneTarget>();
+            Vector3 hitPoint = collision.GetContact(0).point;
 
-                HitZone zone = target != null
-                    ? target.EvaluateZone(hitPoint)
-                    : HitZone.Inner;
+            HitZoneTarget target =
+                collision.gameObject.GetComponent<HitZoneTarget>();
 
-                // í èÌíeÇ∆ìØÇ∂ã~çœîªíË
-                OmamoriHitResolver.ApplyHit(
-                    collision.gameObject,
-                    rescueType,
-                    zone
-                );
+            HitZone zone = target != null
+                ? target.EvaluateZone(hitPoint)
+                : HitZone.Inner;
 
-                // ãqÇ…ìñÇΩÇ¡ÇƒÇ‡è¡Ç≥Ç»Ç¢Åiä—í Åj
-            }
+            OmamoriHitResolver.ApplyHit(
+                collision.gameObject,
+                rescueType,
+                zone
+            );
+
+            // ãqÇ…ìñÇΩÇ¡ÇƒÇ‡è¡Ç≥Ç»Ç¢Åiä—í Åj
         }
     }
 }
