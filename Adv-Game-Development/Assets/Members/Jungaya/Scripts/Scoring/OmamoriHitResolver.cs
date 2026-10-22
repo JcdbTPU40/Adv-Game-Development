@@ -69,7 +69,7 @@ public static class OmamoriHitResolver
         返す値: スコアに渡したゾーン。相性✗なら Miss。もう結果が決まっている客なら何も入れないで Miss
     */
     public static HitZone ApplyHit(GameObject customer, OmamoriType type, HitZone zone, double? impactTime = null,
-        int priorityTargetId = PriorityRescue.NoTarget, float? blessingMultiplier = null)
+        int priorityTargetId = PriorityRescue.NoTarget, float? blessingMultiplier = null,bool ignoreWrongAmuletMiss = false)
     {
         double impact = impactTime ?? Time.realtimeSinceStartupAsDouble;
         bool rescued = false;
@@ -127,8 +127,10 @@ public static class OmamoriHitResolver
                 まちがった色（相性✗）は Miss にして、福の連なり C とご加護の進み G を切る（v8 の変更点2）
                 D も R も変わらないので、まちがった色を連打しても黒客になるのを1秒も遅らせられない
             */
-            if (affinity == Affinity.Bad)
+            if (affinity == Affinity.Bad && !ignoreWrongAmuletMiss)
+            {
                 zone = HitZone.Miss;
+            }
 
             // さっきまで active だったので、ここで救われていたら「この当たりで R が 0 になった」ということ
             rescued = state != null && state.IsRescued;

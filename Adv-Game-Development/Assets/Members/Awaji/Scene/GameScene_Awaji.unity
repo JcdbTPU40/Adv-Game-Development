@@ -1619,7 +1619,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f770b0ea09e3dcb4389ae04632defd8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.SideSwingDetector
-  triggerVelocity: 500
+  triggerVelocity: 700
   releaseVelocity: 100
   maxPitchVelocity: 250
   maxYawVelocity: 300
@@ -1937,7 +1937,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccc893437e92de84f94f16fd92313881, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResultSceneTransition
-  resultSceneName: ResultScene
+  resultSceneName: ResultScene_Awaji
   delaySeconds: 1.5
 --- !u!4 &1275962935
 Transform:
@@ -2862,9 +2862,9 @@ MonoBehaviour:
   viewportMargin: 0.101
   lockLookbackSeconds: 0.1
   softAimAssistEnabled: 1
-  assistDistance: 10
+  assistDistance: 5
   assistStrength: 1
-  customerLockDistance: 5
+  customerLockDistance: 10
   targetReleaseDistance: 6
 --- !u!4 &2098549821
 Transform:

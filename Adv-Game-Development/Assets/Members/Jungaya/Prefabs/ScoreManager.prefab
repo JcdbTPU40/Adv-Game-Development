@@ -46,11 +46,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e4c3a33f83f0874bbdc7aed11ea9bbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
-  outerScore: 100
-  innerScore: 200
-  centerScore: 300
-  comboStep: 0.1
-  maxMultiplier: 3
+  hitScore: 2500
+  bonusTable: {fileID: 0}
+  centerBonus: 1250
+  innerBonus: 400
+  outerBonus: 0
+  priorityRescueBonus: 500
 --- !u!114 &6419933568595494710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65,6 +66,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ScoreHud
   fontSize: 26
   color: {r: 1, g: 1, b: 1, a: 1}
+  topRatio: 0.4
+  gokago: {fileID: 0}
 --- !u!114 &4001012390714530785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -80,6 +83,9 @@ MonoBehaviour:
   worldHeightOffset: 2
   barWidth: 80
   barHeight: 10
+  remainingPipOffset: 14
+  remainingPipWidth: 16
+  remainingColor: {r: 1, g: 1, b: 1, a: 0.9}
   emptyColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   fullColor: {r: 0.95, g: 0.2, b: 0.2, a: 1}
   backColor: {r: 0, g: 0, b: 0, a: 0.6}

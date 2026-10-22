@@ -116,25 +116,30 @@ namespace Toufuku.GameInput
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (!collision.gameObject.CompareTag("Customer"))
+            // 客に当たった場合は救済判定を行う
+            if (collision.gameObject.CompareTag("Customer"))
+            {
+                Vector3 hitPoint = collision.GetContact(0).point;
+
+                HitZoneTarget target =
+                    collision.gameObject.GetComponent<HitZoneTarget>();
+
+                HitZone zone = target != null
+                    ? target.EvaluateZone(hitPoint)
+                    : HitZone.Inner;
+
+                OmamoriHitResolver.ApplyHit(
+    collision.gameObject,
+    rescueType,
+    zone,
+    ignoreWrongAmuletMiss: true
+);
+                // 客に当たっても消さず、貫通する
                 return;
+            }
 
-            Vector3 hitPoint = collision.GetContact(0).point;
-
-            HitZoneTarget target =
-                collision.gameObject.GetComponent<HitZoneTarget>();
-
-            HitZone zone = target != null
-                ? target.EvaluateZone(hitPoint)
-                : HitZone.Inner;
-
-            OmamoriHitResolver.ApplyHit(
-                collision.gameObject,
-                rescueType,
-                zone
-            );
-
-            // 客に当たっても消さない（貫通）
+            // 客以外に当たっても、貫通弾ではミス判定を行わない
+            // ApplyMiss() は呼ばない
         }
     }
 }

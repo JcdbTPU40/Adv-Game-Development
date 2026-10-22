@@ -17,7 +17,7 @@ namespace Toufuku.Hud
         public const float ReferenceHeight = 1080f;
 
         // HUD の縁は5桁（7章）。これより大きい値は 99999 で止めて表示する
-        public const int MaxDisplayedScore = 99999;
+        public const int MaxDisplayedScore = 9999999;
 
         // Noto Sans JP のディセンダー（ベースラインより下）の大きさ ÷ フォントサイズ。大きさのちがう文字の下（ベースライン）をそろえるのに使う
         public const float DescenderRatio = 0.29f;
