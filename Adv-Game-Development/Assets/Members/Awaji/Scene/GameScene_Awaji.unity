@@ -696,6 +696,96 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &607264994
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 607264995}
+  - component: {fileID: 607264997}
+  - component: {fileID: 607264996}
+  m_Layer: 0
+  m_Name: ShootPos (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &607264995
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607264994}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
+  m_LocalPosition: {x: 0, y: 1.5, z: 39}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
+--- !u!23 &607264996
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607264994}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &607264997
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607264994}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &756149432
 GameObject:
   m_ObjectHideFlags: 0
@@ -1329,6 +1419,8 @@ GameObject:
   - component: {fileID: 969830203}
   - component: {fileID: 969830204}
   - component: {fileID: 969830205}
+  - component: {fileID: 969830207}
+  - component: {fileID: 969830208}
   m_Layer: 0
   m_Name: ThrowInput
   m_TagString: Untagged
@@ -1497,6 +1589,9 @@ MonoBehaviour:
   mouseSwingWhenDisconnected: 1
   strongSwingKey: 304
   strongSwingStrength: 720
+  sideSwingTriggerVelocity: 180
+  sideSwingReleaseVelocity: 60
+  sideSwingDetector: {fileID: 969830207}
 --- !u!4 &969830206
 Transform:
   m_ObjectHideFlags: 0
@@ -1512,6 +1607,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &969830207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969830202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f770b0ea09e3dcb4389ae04632defd8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.SideSwingDetector
+  triggerVelocity: 500
+  releaseVelocity: 100
+  maxPitchVelocity: 250
+  maxYawVelocity: 300
+  showDebugLog: 1
+--- !u!114 &969830208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969830202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f301cd91a807794ea01962f2cf4eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.SideSwingProjectileLauncher
+  swingDetector: {fileID: 969830207}
+  omamoriSelector: {fileID: 839193286}
+  sideSwingBulletPrefab: {fileID: -8531969900583564061, guid: 603b21bb731ac7a46b216d0346a620fb, type: 3}
+  spawnPoint: {fileID: 607264995}
 --- !u!1 &992816224
 GameObject:
   m_ObjectHideFlags: 0
@@ -4070,8 +4198,6 @@ GameObject:
   - component: {fileID: 4748935194137684862}
   - component: {fileID: 3637365702715688177}
   - component: {fileID: 3309476629195775835}
-  - component: {fileID: 4748935194137684863}
-  - component: {fileID: 4748935194137684865}
   - component: {fileID: 4748935194137684864}
   - component: {fileID: 4748935194137684866}
   m_Layer: 0
@@ -4123,30 +4249,6 @@ Transform:
   - {fileID: 8491216784668677460}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4748935194137684863
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4543673335870321239}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c7633ad493fc2d46b19b14a7ced7675, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TestShooter
-  bulletPrefab: {fileID: 4368980920736088987, guid: 3d9b114a1842cd54882870dab4cb6dd3, type: 3}
-  spawnPoint: {fileID: 8491216784668677460}
-  flightTime: 1
-  bulletLife: 5
-  groundY: 1
-  maxRayDistance: 500
-  aimMask:
-    serializedVersion: 2
-    m_Bits: 55
-  selector: {fileID: 839193286}
-  fallbackType: 0
-  inputProviderSource: {fileID: 969830203}
 --- !u!114 &4748935194137684864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4160,23 +4262,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDirect
   con: {fileID: 1624669429}
---- !u!114 &4748935194137684865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4543673335870321239}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db0094036a4f5344a96fce4d0100a39b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Shoot2
-  bullet_Sample: {fileID: 4368980920736088987, guid: 3d9b114a1842cd54882870dab4cb6dd3, type: 3}
-  shootPos: {fileID: 975640109603861780}
-  con: {fileID: 1624669429}
-  selector: {fileID: 839193286}
-  fallbackType: 0
 --- !u!114 &4748935194137684866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4962,6 +5047,7 @@ SceneRoots:
   - {fileID: 543450651694047208}
   - {fileID: 1320574904}
   - {fileID: 8734802895695332745}
+  - {fileID: 607264995}
   - {fileID: 4748935194137684862}
   - {fileID: 839193287}
   - {fileID: 28046679}

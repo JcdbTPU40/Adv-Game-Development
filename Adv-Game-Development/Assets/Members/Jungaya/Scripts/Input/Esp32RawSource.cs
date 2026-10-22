@@ -64,6 +64,19 @@ namespace Toufuku.GameInput
         public float Yaw => con != null ? con.yaw : 0f;
         public float Roll => con != null ? con.roll : 0f;
 
+        [Header("横振り検知")]
+        [SerializeField] private float sideSwingTriggerVelocity = 180f;
+        [SerializeField] private float sideSwingReleaseVelocity = 60f;
+
+        private float _previousRoll;
+        private double _previousRollTime;
+        private bool _hasPreviousRoll;
+        private bool _sideSwingActive;
+
+        public event System.Action SideSwingDetected;
+
+        [SerializeField]
+        private SideSwingDetector sideSwingDetector;
         // ファームウェアがボタンの情報を送ってきているかどうか
         public bool HasHardwareButtons => _latest.HasButtons;
 
@@ -94,6 +107,16 @@ namespace Toufuku.GameInput
         void OnSample(ControllerSample sample)
         {
             _latest = sample;
+            if (sideSwingDetector != null)
+            {
+                sideSwingDetector.AddSample(
+                    sample.Yaw,
+                    sample.Pitch,
+                    sample.Roll,
+                    sample.Time
+                );
+            }
+
             if (sample.HasButtons)
             {
                 _buttonWatch.TimeoutSeconds = buttonLinkTimeoutSeconds;
@@ -147,5 +170,6 @@ namespace Toufuku.GameInput
             }
             return false;
         }
+
     }
 }
