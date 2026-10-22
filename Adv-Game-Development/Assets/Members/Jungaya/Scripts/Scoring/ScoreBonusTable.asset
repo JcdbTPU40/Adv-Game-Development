@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ScoreBonusTable
   m_EditorClassIdentifier: Assembly-CSharp::ScoreBonusTable
   accuracyCenterBonus: 1450
-  accuracyInnerBonus: 380
+  accuracyInnerBonus: 2660
   accuracyOuterBonus: 0
   priorityRescueBonus: 950
   chainStep1Count: 3
@@ -23,5 +23,5 @@ MonoBehaviour:
   chainStep3Count: 10
   chainStep3Multiplier: 1.3
   chainTimeoutSeconds: 5
-  propagationPoints: 380
-  propagationMaxTargets: 76
+  propagationPoints: 2660
+  propagationMaxTargets: 532
