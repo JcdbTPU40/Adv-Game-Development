@@ -1242,7 +1242,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3c85e2996d7cff48a4c69bd51802ce3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Mock.MockCrowdDirector
-  customerPrefab: {fileID: 6915484827812566075, guid: 48a83660be6d89b4285ef15e9ed36def, type: 3}
+  customerPrefab: {fileID: 1763309712140054922, guid: 87c7497ff0acaa348b69dc92b2a56a8b, type: 3}
   customerParent: {fileID: 759437407}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
@@ -1578,7 +1578,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.Esp32RawSource
   con: {fileID: 1624669429}
   triggerVelocity: 400
-  releaseVelocity: 100
+  releaseVelocity: 333
   swingIsPitchDecrease: 1
   maxSampleGap: 0.1
   nominalSampleInterval: 0.02
@@ -1614,7 +1614,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969830202}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f770b0ea09e3dcb4389ae04632defd8e, type: 3}
   m_Name: 
@@ -1631,7 +1631,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969830202}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9f301cd91a807794ea01962f2cf4eaa5, type: 3}
   m_Name: 

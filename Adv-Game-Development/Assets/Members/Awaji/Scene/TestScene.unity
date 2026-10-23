@@ -151,7 +151,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b51858795123aea449726da62b4668fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Customer_Spawner
+  spawnInterval: 3
   customer: {fileID: 2674803111216995572, guid: bf1e5c06dbb652c4da03e52e8785bdfd, type: 3}
+  laneHalfWidth: 3.3
 --- !u!65 &14533271
 BoxCollider:
   m_ObjectHideFlags: 0

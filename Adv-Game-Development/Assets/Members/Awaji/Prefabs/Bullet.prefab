@@ -159,10 +159,11 @@ MonoBehaviour:
   lifeTime: 5
   rescueType: 0
   particle: {fileID: 5307927260507475836}
-  defaultColor: {r: 1, g: 1, b: 1, a: 1}
   enmusubiColor: {r: 1, g: 0.35, b: 0.55, a: 1}
-  gakugyoColor: {r: 0.25, g: 0.65, b: 1, a: 1}
-  otherColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  kinunColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  yakuyokeColor: {r: 1, g: 1, b: 1, a: 1}
+  kenkouColor: {r: 0, g: 1, b: 0, a: 1}
+  gakugyouColor: {r: 0, g: 0, b: 1, a: 1}
 --- !u!65 &5709623740605699851
 BoxCollider:
   m_ObjectHideFlags: 0
