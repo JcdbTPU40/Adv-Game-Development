@@ -816,15 +816,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b675f7847dfc954db803c72dfb6efdd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Tutorial.LearningCueView
-  font: {fileID: 12800000, guid: d06905215612c1b4fb21696472763115, type: 3}
+  font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   sortingOrder: 60
-  buttonSize: 72
+  buttonSize: 100
   buttonSpacing: 20
   buttonRowY: 130
   idleButtonAlpha: 0.45
   pulseScale: 1.35
-  selectedScale: 1.15
+  selectedScale: 1.5
   ghostColor: {r: 1, g: 1, b: 1, a: 0.6}
   ghostReticleSize: 120
   ghostSlideSeconds: 0.7

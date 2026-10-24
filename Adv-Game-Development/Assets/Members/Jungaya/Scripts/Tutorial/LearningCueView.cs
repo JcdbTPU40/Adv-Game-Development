@@ -215,8 +215,13 @@ namespace Toufuku.Tutorial
             for (int i = 0; i < ColorCount; i++)
             {
                 float x = -width * 0.5f + buttonSize * 0.5f + i * (buttonSize + buttonSpacing);
+                float y = 0f;
+                if (i % 2 == 0)
+                {
+                    y = 50f;
+                }
                 RectTransform rt = HudUi.CreateRect(_row, "Button" + i, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(x, 0f), new Vector2(buttonSize, buttonSize));
+                    new Vector2(x, y), new Vector2(buttonSize, buttonSize));
                 Image image = rt.gameObject.AddComponent<Image>();
                 image.raycastTarget = false;
                 image.color = ColorOf(i);
