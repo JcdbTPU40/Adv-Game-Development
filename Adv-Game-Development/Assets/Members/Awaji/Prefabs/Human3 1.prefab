@@ -91,7 +91,7 @@ PrefabInstance:
     - target: {fileID: 5866666021909216657, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
       propertyPath: m_Avatar
       value: 
-      objectReference: {fileID: 9000000, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
+      objectReference: {fileID: 9000000, guid: 26a38be5543686c4f9d242882f37aa59, type: 3}
     - target: {fileID: 5866666021909216657, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
       propertyPath: m_Controller
       value: 
@@ -450,7 +450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22de011087cc7814b90a8b0f80ede456, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Scenery.CustomerAnimatorBridge
-  animator: {fileID: 0}
+  animator: {fileID: 7886985792152398478}
   turnSpeed: 540
   minFacingSpeed: 0.3
   speedJitter: 0.1
@@ -475,6 +475,11 @@ SkinnedMeshRenderer:
 --- !u!137 &7729898946122025613 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -2929388970384138862, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
+  m_PrefabInstance: {fileID: 4332082837890750239}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7886985792152398478 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
   m_PrefabInstance: {fileID: 4332082837890750239}
   m_PrefabAsset: {fileID: 0}
 --- !u!137 &8020675396931246008 stripped

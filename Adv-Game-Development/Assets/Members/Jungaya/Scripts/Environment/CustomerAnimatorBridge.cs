@@ -96,6 +96,15 @@ namespace Toufuku.Scenery
 
             bool walking = _walker != null && _walker.IsWalking;
             animator.SetBool(IsWalkingId, walking);
+            if(walking)
+            {
+                animator.SetInteger("Speed", 0);
+            }
+            else if (!walking)
+            {
+                animator.SetInteger("Speed", 4);
+            }
+
             if (_state != null)
             {
                 animator.SetFloat(DangerId, _state.IsActive ? _state.DangerNormalized : 0f);

@@ -1931,8 +1931,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.GameInput.Esp32RawSource
   con: {fileID: 1624669429}
   triggerVelocity: 400
-  releaseVelocity: 333
-  swingIsPitchDecrease: 1
+  releaseVelocity: 100
+  swingIsPitchDecrease: 0
   maxSampleGap: 0.1
   nominalSampleInterval: 0.02
   buttonLinkTimeoutSeconds: 0.1
@@ -3924,8 +3924,8 @@ MonoBehaviour:
   softAimAssistEnabled: 1
   assistDistance: 5
   assistStrength: 1
-  customerLockDistance: 10
-  targetReleaseDistance: 6
+  customerLockDistance: 20
+  targetReleaseDistance: 60
 --- !u!4 &2098549821
 Transform:
   m_ObjectHideFlags: 0
