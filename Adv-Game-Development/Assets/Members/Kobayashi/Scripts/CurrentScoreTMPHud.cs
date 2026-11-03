@@ -19,13 +19,24 @@ public class CurrentScoreTMPHud : MonoBehaviour
     [SerializeField] private Vector2 textAreaSize = new Vector2(600f, 100f);
     [SerializeField] private int sortingOrder = 50;
 
+    [Header("神社の評価ランク")]
+    [SerializeField, Min(1f)] private float rankFontSize = 64f;
+    [SerializeField] private Color rankTextColor = Color.white;
+    [SerializeField] private Vector2 rankTopLeftOffset = new Vector2(36f, -36f);
+    [SerializeField] private Vector2 rankTextAreaSize = new Vector2(700f, 120f);
+
     private TMP_Text scoreText;
+    private TMP_Text rankText;
     private ScoreManager subscribedScoreManager;
+    private ShrineRating subscribedShrineRating;
 
     private void Start()
     {
         CreateScoreText();
+        CreateRankText();
+        HideLegacyRankLabel();
         TrySubscribe();
+        TrySubscribeRating();
     }
 
     private void Update()
@@ -34,11 +45,17 @@ public class CurrentScoreTMPHud : MonoBehaviour
         {
             TrySubscribe();
         }
+
+        if (subscribedShrineRating == null)
+        {
+            TrySubscribeRating();
+        }
     }
 
     private void OnDisable()
     {
         Unsubscribe();
+        UnsubscribeRating();
     }
 
     private void CreateScoreText()
@@ -87,6 +104,18 @@ public class CurrentScoreTMPHud : MonoBehaviour
         OnEnChanged(subscribedScoreManager.En);
     }
 
+    private void TrySubscribeRating()
+    {
+        if (subscribedShrineRating != null || ShrineRating.Instance == null)
+        {
+            return;
+        }
+
+        subscribedShrineRating = ShrineRating.Instance;
+        subscribedShrineRating.onRankChanged.AddListener(OnRankChanged);
+        OnRankChanged(subscribedShrineRating.Rank);
+    }
+
     private void Unsubscribe()
     {
         if (subscribedScoreManager == null)
@@ -97,6 +126,68 @@ public class CurrentScoreTMPHud : MonoBehaviour
         subscribedScoreManager.onEnChanged -= OnEnChanged;
         subscribedScoreManager.onReset -= OnReset;
         subscribedScoreManager = null;
+    }
+
+    private void UnsubscribeRating()
+    {
+        if (subscribedShrineRating == null)
+        {
+            return;
+        }
+
+        subscribedShrineRating.onRankChanged.RemoveListener(OnRankChanged);
+        subscribedShrineRating = null;
+    }
+
+    private void CreateRankText()
+    {
+        var textObject = new GameObject("CurrentShrineRankText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(scoreText.transform.parent, false);
+
+        var rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.sizeDelta = rankTextAreaSize;
+        rect.anchoredPosition = rankTopLeftOffset;
+
+        rankText = textObject.GetComponent<TextMeshProUGUI>();
+        rankText.font = scoreText.font;
+        rankText.fontSize = rankFontSize;
+        rankText.color = rankTextColor;
+        rankText.alignment = TextAlignmentOptions.TopLeft;
+        rankText.textWrappingMode = TextWrappingModes.NoWrap;
+        rankText.raycastTarget = false;
+        rankText.text = "神社の評価 C";
+    }
+
+    private void HideLegacyRankLabel()
+    {
+        // 旧ScoreBoardHudの「神社ランク」だけを消し、既存の評価値表示は残します。
+        GameObject legacyLabelObject = GameObject.Find(
+            "ScoreBoardHud/ScoreBoardHudCanvas/RankBoard/LabelRow/RankLabel");
+        if (legacyLabelObject == null)
+        {
+            return;
+        }
+
+        Text legacyLabel = legacyLabelObject.GetComponentInChildren<Text>(true);
+        if (legacyLabel != null)
+        {
+            legacyLabel.enabled = false;
+        }
+        else
+        {
+            legacyLabelObject.SetActive(false);
+        }
+    }
+
+    private void OnRankChanged(ShrineRank rank)
+    {
+        if (rankText != null)
+        {
+            rankText.text = $"神社の評価 {rank}";
+        }
     }
 
     private void OnEnChanged(int en)

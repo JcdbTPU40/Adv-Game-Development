@@ -80,9 +80,16 @@ public sealed class ShrineTitleSdfFont : MonoBehaviour
 
     private IEnumerator ApplyAfterResultIsBuilt()
     {
-        // ResultScreenが称号と色を設定してから、その表示を引き継ぎます。
+        // ResultScreenがラベルと値を組み立ててから、表示ラベルを更新します。
         yield return null;
         applyRoutine = null;
+
+        Transform titleLabelTransform = transform.Find("ResultScreenCanvas/Panel/TitleLabel/Text");
+        Text titleLabel = titleLabelTransform != null ? titleLabelTransform.GetComponent<Text>() : null;
+        if (titleLabel != null)
+        {
+            titleLabel.text = "神社の評価";
+        }
 
         if (titleFont == null)
         {

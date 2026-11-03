@@ -954,6 +954,8 @@ MonoBehaviour:
   exitPoints:
   - {x: -9, y: 1, z: 37}
   - {x: 9, y: 1, z: 37}
+  groupChance: 0
+  groupSpacing: 0.65
   startDangerRange: {x: 0, y: 0}
   blackCustomerCount: 0
   freezeDanger: 0
@@ -1159,6 +1161,9 @@ MonoBehaviour:
   mouseSwingWhenDisconnected: 1
   strongSwingKey: 304
   strongSwingStrength: 720
+  sideSwingTriggerVelocity: 180
+  sideSwingReleaseVelocity: 60
+  sideSwingDetector: {fileID: 0}
 --- !u!4 &969830206
 Transform:
   m_ObjectHideFlags: 0
@@ -2012,7 +2017,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f239ccc8faaebb6408fa50b4e11ea7c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameSession
-  secondsPerMonth: 2
+  secondsPerMonth: 10
   totalMonths: 3
   autoStart: 0
   resolveGraceSeconds: 0.5
@@ -2403,6 +2408,12 @@ MonoBehaviour:
   arcHeightPerMeter: 0.12
   maxArcHeight: 2
   logThrows: 1
+  omamoriPrefabs:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!114 &2098549819
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2458,6 +2469,11 @@ MonoBehaviour:
   customerRayDistance: 100
   viewportMargin: 0.06
   lockLookbackSeconds: 0
+  softAimAssistEnabled: 1
+  assistDistance: 3
+  assistStrength: 0.35
+  customerLockDistance: 1.5
+  targetReleaseDistance: 6
 --- !u!4 &2098549821
 Transform:
   m_ObjectHideFlags: 0
@@ -2485,8 +2501,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4f7ec21b1c34f6ca9f7e417b5ab2731, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
-  openOnSceneStart: 1
-  closedHoldDuration: 0.5
   leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   slideDuration: 0.65
@@ -2534,6 +2548,8 @@ MonoBehaviour:
     m_RotationOrder: 4
   referenceResolution: {x: 1920, y: 1080}
   sortingOrder: 55
+  openOnSceneStart: 1
+  closedHoldDuration: 0.5
 --- !u!114 &777600100112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2554,6 +2570,10 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  rankFontSize: 64
+  rankTextColor: {r: 1, g: 1, b: 1, a: 1}
+  rankTopLeftOffset: {x: 36, y: -36}
+  rankTextAreaSize: {x: 700, y: 120}
 --- !u!114 &777600100113
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2887,6 +2907,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReturnToStartAfterSession
   returnSceneName: Start
+  resultInputLockDuration: 3
 --- !u!1 &975640109603861780
 GameObject:
   m_ObjectHideFlags: 0

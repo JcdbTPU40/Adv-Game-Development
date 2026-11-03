@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// ゲーム終了後、キーが押されたらInspectorで指定したシーンへ戻ります。
@@ -8,10 +9,14 @@ public class ReturnToStartAfterSession : MonoBehaviour
 {
     [SerializeField, Tooltip("ゲーム終了後に戻るシーン名。Build Settingsに登録してください。")]
     private string returnSceneName = "Start";
+    [SerializeField, Min(0f), Tooltip("リザルト表示後、キーとボタン操作を無効にする秒数。")]
+    private float resultInputLockDuration = 3f;
 
     private GameSession subscribedSession;
+    private Button retryButton;
     private bool sessionEnded;
     private bool sceneChangeStarted;
+    private float resultShownAt;
 
     private void Start()
     {
@@ -23,7 +28,10 @@ public class ReturnToStartAfterSession : MonoBehaviour
         }
 
         subscribedSession.onSessionEnd.AddListener(EnableReturnOnKey);
-        sessionEnded = subscribedSession.IsFinished;
+        if (subscribedSession.IsFinished)
+        {
+            BeginResultInputLock();
+        }
     }
 
     private void OnDisable()
@@ -33,11 +41,29 @@ public class ReturnToStartAfterSession : MonoBehaviour
             subscribedSession.onSessionEnd.RemoveListener(EnableReturnOnKey);
             subscribedSession = null;
         }
+
+        if (retryButton != null)
+        {
+            retryButton.interactable = true;
+            retryButton = null;
+        }
     }
 
     private void Update()
     {
-        if (!sessionEnded || sceneChangeStarted || !Input.anyKeyDown)
+        if (!sessionEnded || sceneChangeStarted)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime - resultShownAt < resultInputLockDuration)
+        {
+            SetRetryButtonInteractable(false);
+            return;
+        }
+
+        SetRetryButtonInteractable(true);
+        if (!Input.anyKeyDown)
         {
             return;
         }
@@ -55,6 +81,33 @@ public class ReturnToStartAfterSession : MonoBehaviour
 
     private void EnableReturnOnKey()
     {
+        BeginResultInputLock();
+    }
+
+    private void BeginResultInputLock()
+    {
         sessionEnded = true;
+        resultShownAt = Time.unscaledTime;
+        SetRetryButtonInteractable(false);
+    }
+
+    private void SetRetryButtonInteractable(bool interactable)
+    {
+        if (retryButton == null)
+        {
+            GameObject resultScreenObject = GameObject.Find("ScoreBoardHud");
+            Transform buttonTransform = resultScreenObject != null
+                ? resultScreenObject.transform.Find("ResultScreenCanvas/Panel/RetryButton")
+                : null;
+            if (buttonTransform != null)
+            {
+                retryButton = buttonTransform.GetComponent<Button>();
+            }
+        }
+
+        if (retryButton != null)
+        {
+            retryButton.interactable = interactable;
+        }
     }
 }
