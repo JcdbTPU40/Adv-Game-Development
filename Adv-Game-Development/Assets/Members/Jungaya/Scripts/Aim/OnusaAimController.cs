@@ -135,12 +135,20 @@ namespace Toufuku.Aim
         Vector3 _pickedGroundPoint;
         Vector3 _pickedBodyPoint;
 
+        [SerializeField] private OmamoriSelector omamoriSelector;
+
+        // 照準マークを固定する客の位置
+        private Vector3 _assistReticleWorldPoint;
+        private bool _isAssistReticleLocked;
+
         public float GroundY => groundY;
         public Vector3 Origin => origin != null ? origin.position : transform.position;
         public Camera ViewCamera => cam;
 
         void Awake()
         {
+            if (omamoriSelector == null)
+                omamoriSelector = FindAnyObjectByType<OmamoriSelector>();
             if (input == null) input = FindAnyObjectByType<ThrowInputController>();
             if (cam == null) cam = Camera.main;
         }
@@ -210,6 +218,8 @@ namespace Toufuku.Aim
             bool pushed = false;
 
             // ESP32照準のときだけソフトアシストを適用
+            _isAssistReticleLocked = false;
+
             if (UsingYawRoll)
             {
                 point = ApplyDistanceAimAssist(point);
@@ -229,7 +239,20 @@ namespace Toufuku.Aim
             Vector3 pickedFlat = _pickedGroundPoint - point;
             pickedFlat.y = 0f;
             SnappedToCustomer = _pickedCustomer && !pushed && pickedFlat.sqrMagnitude < SnapKeepToleranceSqr;
-            ReticleScreenPosition = SnappedToCustomer ? cam.WorldToScreenPoint(_pickedBodyPoint) : ScreenPosition;
+            if (SnappedToCustomer)
+            {
+                ReticleScreenPosition =
+                    cam.WorldToScreenPoint(_pickedBodyPoint);
+            }
+            else if (UsingYawRoll && _isAssistReticleLocked)
+            {
+                ReticleScreenPosition =
+                    cam.WorldToScreenPoint(_assistReticleWorldPoint);
+            }
+            else
+            {
+                ReticleScreenPosition = ScreenPosition;
+            }
             HasAim = true;
 
             Record(Time.realtimeSinceStartupAsDouble, point);
@@ -409,8 +432,10 @@ namespace Toufuku.Aim
         {
             if (!softAimAssistEnabled ||
                 assistDistance <= 0f ||
-                assistStrength <= 0f)
+                assistStrength <= 0f ||
+                omamoriSelector == null)
             {
+                _currentAssistTarget = null;
                 return point;
             }
 
@@ -427,11 +452,19 @@ namespace Toufuku.Aim
                 CustomerState customer =
                     _currentAssistTarget.GetComponentInParent<CustomerState>();
 
+                CustomerRescue rescue =
+    _currentAssistTarget.GetComponentInParent<CustomerRescue>();
+
+                bool isMatching =
+                    rescue != null &&
+                    rescue.Evaluate(omamoriSelector.Current) == Affinity.Good;
+
                 bool canAssist =
-                    customer == null ||
-                    (customer.IsRescueTarget &&
-                     !customer.IsRescued &&
-                     !customer.IsBlack);
+                    isMatching &&
+                    customer != null &&
+                    customer.IsRescueTarget &&
+                    !customer.IsRescued &&
+                    !customer.IsBlack;
 
                 if (canAssist)
                 {
@@ -467,6 +500,17 @@ namespace Toufuku.Aim
 
                     // CustomerState を取得
                     CustomerState customer = target.GetComponentInParent<CustomerState>();
+
+                    CustomerRescue rescue =
+    target.GetComponentInParent<CustomerRescue>();
+
+                    // CustomerRescue がない客は対象外
+                    if (rescue == null)
+                        continue;
+
+                    // 選択中のお守りと一致しない客は対象外
+                    if (rescue.Evaluate(omamoriSelector.Current) != Affinity.Good)
+                        continue;
 
                     // 救済済み、黒客、または救済対象外なら照準を合わせない
                     if (customer != null &&

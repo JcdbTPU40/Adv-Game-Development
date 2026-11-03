@@ -114,6 +114,9 @@ namespace Toufuku.Rescue
         // 終わったけど、HoldExit で帰るのを待っている
         public bool IsExitPending => _exitPending;
 
+        // 終わった（救えた / 黒客）時刻（Time.time）。まだ終わっていなければマイナス（#93 救えた人の表示を消すのに使う）
+        public float FinishedAt { get; private set; } = -1f;
+
         bool _exitPending;
         CustomerPhase _finishedPhase;
 
@@ -311,6 +314,7 @@ namespace Toufuku.Rescue
             // イベントの中でグループが ReleaseExit を呼ぶこともあるので、先に「帰るのを待っている」にしておく
             _finishedPhase = result;
             _exitPending = true;
+            FinishedAt = Time.time;
 
             if (result == CustomerPhase.Rescued)
             {

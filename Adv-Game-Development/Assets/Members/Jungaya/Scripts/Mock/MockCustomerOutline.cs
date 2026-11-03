@@ -129,6 +129,8 @@ namespace Toufuku.Rescue.Mock
         private Color _outlineColor = Color.white;
         private Color _bodyColor = Color.gray;
         private Camera _camera;
+        // #93: SetOutlineVisible(false) で消しているか
+        private bool _hidden;
 
         // 今の表し方
         public OutlineMode Mode => mode;
@@ -189,6 +191,17 @@ namespace Toufuku.Rescue.Mock
         {
             outlineWidth = world;
             ApplyOutline();
+        }
+
+        /*
+            輪郭を出すか消すか（#93: 悩みが消えて仲間を待っている集団客は、輪郭を消して「もうねらわなくていい」と見せる）
+            消している間は表し方（案A/案B）を変えても出さない。出すともとの色と表し方にもどる
+        */
+        public void SetOutlineVisible(bool visible)
+        {
+            if (_hidden == !visible) return;
+            _hidden = !visible;
+            ApplyMode();
         }
 
         // 今の太さの基準の値（ワールド単位）。プレイ中に調整した結果を読むため
@@ -295,9 +308,13 @@ namespace Toufuku.Rescue.Mock
             bool useHull = mode == OutlineMode.InvertedHull;
 
             foreach (Renderer hull in Hulls())
-                hull.enabled = useHull;
+                hull.enabled = useHull && !_hidden;
 
-            if (useHull)
+            if (_hidden)
+            {
+                ApplyEmission(Color.black);
+            }
+            else if (useHull)
             {
                 ApplyOutline();
                 ApplyEmission(Color.black);   // 案Aのときは本体を光らせない

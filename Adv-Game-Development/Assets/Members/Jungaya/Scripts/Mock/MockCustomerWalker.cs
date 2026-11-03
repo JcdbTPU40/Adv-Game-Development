@@ -18,9 +18,17 @@ namespace Toufuku.Rescue.Mock
         private float _elapsed;
         private AnimationCurve _ease;
         private bool _walking;
+        // #93: とちゅうで立ち止まる場所（歩く時間の割合 0〜1）と長さ（秒）。長さが 0 なら止まらない
+        private float _pauseAt;
+        private float _pauseSeconds;
+        private float _pauseElapsed;
 
-        // 歩いている途中かどうか。Director はこれを見て「定位置に着いた人数」を数える
+        // 歩いている途中かどうか（立ち止まっている間もふくむ）。Director はこれを見て「定位置に着いた人数」を数える
         public bool IsWalking => _walking;
+
+        // #93: 参道のとちゅうで立ち止まって見回している間か
+        public bool IsPaused => _walking && _pauseSeconds > 0f && _pauseElapsed < _pauseSeconds
+                                && _duration > 0.0001f && _elapsed >= _duration * _pauseAt;
 
         // この客が最後に着く定位置
         public Vector3 Destination => _to;
@@ -32,7 +40,17 @@ namespace Toufuku.Rescue.Mock
         {
             if (!_walking) return;
 
+            // #93: 立ち止まる場所に着いたら、決めた秒数だけその場で待つ（位置は止まる場所のまま）
+            if (IsPaused)
+            {
+                _pauseElapsed += Time.deltaTime;
+                return;
+            }
+
             _elapsed += Time.deltaTime;
+            // 止まる場所を1フレームでとびこえないように、止まる前はそこまでにおさえる
+            if (_pauseSeconds > 0f && _pauseElapsed < _pauseSeconds)
+                _elapsed = Mathf.Min(_elapsed, _duration * _pauseAt);
             float t = _duration > 0.0001f ? Mathf.Clamp01(_elapsed / _duration) : 1f;
             float eased = _ease != null ? _ease.Evaluate(t) : t;
 
@@ -46,14 +64,21 @@ namespace Toufuku.Rescue.Mock
             }
         }
 
-        // 鳥居の位置から定位置に歩き始める
-        public void Begin(Vector3 from, Vector3 to, float duration, AnimationCurve ease)
+        /*
+            鳥居の位置から定位置に歩き始める
+            pauseAt / pauseSeconds: #93 とちゅうで立ち止まって見回す場所（歩く時間の割合 0〜1）と長さ（秒）。0 秒なら止まらない
+              集団客は同じ値を全員に渡して、そろって止まる
+        */
+        public void Begin(Vector3 from, Vector3 to, float duration, AnimationCurve ease, float pauseAt = 0f, float pauseSeconds = 0f)
         {
             _from = from;
             _to = to;
             _duration = Mathf.Max(0f, duration);
             _ease = ease;
             _elapsed = 0f;
+            _pauseAt = Mathf.Clamp01(pauseAt);
+            _pauseSeconds = Mathf.Max(0f, pauseSeconds);
+            _pauseElapsed = 0f;
             _walking = _duration > 0.0001f;
 
             transform.position = _walking ? from : to;
@@ -66,6 +91,7 @@ namespace Toufuku.Rescue.Mock
             _to = position;
             _elapsed = 0f;
             _duration = 0f;
+            _pauseSeconds = 0f;
             _walking = false;
             transform.position = position;
         }

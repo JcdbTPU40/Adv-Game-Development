@@ -14,8 +14,9 @@ namespace Toufuku.Scenery
           Wrong（trigger）  : ちがう色が当たった（首を横にふる）
         向き: 歩いているあいだは進む方向、立っているあいだはカメラの方を向く。
               集団客（#93）は立っているあいだ、カメラと仲間のあいだを向いて、ときどき仲間の方に向きなおる（話しているように見せる）
-              悩みが消えて仲間を待っているあいだは、ほとんど仲間の方を向く。回すのは見た目（Animator の付いた子）だけで、
-              当たり判定や輪郭の帯の計算に使う本体の向きは変えない
+              悩みが消えて仲間を待っているあいだは、喜ぶリアクションのあいだカメラの方を向いて、そのあとほとんど仲間の方を向く。
+              参道のとちゅうで立ち止まっているあいだ（#93）は、歩いていた向きを中心にゆっくり左右を見回す。
+              回すのは見た目（Animator の付いた子）だけで、当たり判定や輪郭の帯の計算に使う本体の向きは変えない
     */
     [DisallowMultipleComponent]
     public class CustomerAnimatorBridge : MonoBehaviour
@@ -41,6 +42,12 @@ namespace Toufuku.Scenery
         [SerializeField, Range(0f, 1f)] float groupWaitingFacing = 0.85f;
         [Tooltip("集団客が向きを変える速さ（大きいほどひんぱんに向きなおる）。")]
         [SerializeField, Min(0f)] float groupFacingTempo = 0.25f;
+        [Tooltip("集団客が救えてから喜ぶリアクションをする秒数。このあいだはカメラの方を向いて、そのあと仲間の方へ向きなおる。")]
+        [SerializeField, Min(0f)] float rejoiceSeconds = 1.5f;
+        [Tooltip("参道で立ち止まったときに見回す角度（歩いていた向きから左右それぞれ、度）。")]
+        [SerializeField, Range(0f, 90f)] float lookAroundAngle = 50f;
+        [Tooltip("見回す速さ（1秒に左右を何往復するか）。")]
+        [SerializeField, Min(0f)] float lookAroundTempo = 0.6f;
 
         CustomerState _state;
         MockCustomerWalker _walker;
@@ -94,7 +101,9 @@ namespace Toufuku.Scenery
         {
             if (animator == null) return;
 
-            bool walking = _walker != null && _walker.IsWalking;
+            // #93: 参道のとちゅうで立ち止まっている間は、歩きのアニメを止める
+            bool paused = _walker != null && _walker.IsPaused;
+            bool walking = _walker != null && _walker.IsWalking && !paused;
             animator.SetBool(IsWalkingId, walking);
             if(walking)
             {
@@ -111,10 +120,10 @@ namespace Toufuku.Scenery
                 animator.SetBool(BlackId, _state.IsBlack);
             }
 
-            UpdateFacing(walking);
+            UpdateFacing(walking, paused);
         }
 
-        void UpdateFacing(bool walking)
+        void UpdateFacing(bool walking, bool paused)
         {
             if (_model == null) return;
 
@@ -129,6 +138,12 @@ namespace Toufuku.Scenery
             if (walking)
             {
                 forward = _walkDirection;
+            }
+            else if (paused)
+            {
+                // 歩いていた向きを中心に、左右をゆっくり見回す（客ごとに始まりをずらす）
+                float angle = Mathf.Sin((Time.time * lookAroundTempo + _facingSeed) * Mathf.PI * 2f) * lookAroundAngle;
+                forward = Quaternion.AngleAxis(angle, Vector3.up) * _walkDirection;
             }
             else if (_camera != null)
             {
@@ -155,6 +170,9 @@ namespace Toufuku.Scenery
             Vector3 toMates = group.Centroid(position) - position;
             toMates.y = 0f;
             if (toMates.sqrMagnitude < 0.01f) return toCamera;
+
+            // 救えてすぐは喜ぶリアクションのあいだカメラの方を向いたまま。終わったら仲間の方へ向きなおる
+            if (_state != null && _state.IsExitPending && Time.time - _state.FinishedAt < rejoiceSeconds) return toCamera;
 
             float weight = _state != null && _state.IsExitPending
                 ? groupWaitingFacing
