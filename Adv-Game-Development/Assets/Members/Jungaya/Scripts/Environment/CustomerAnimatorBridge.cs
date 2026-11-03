@@ -6,7 +6,7 @@ namespace Toufuku.Scenery
 {
     /*
         客の状態を Animator のパラメータへ渡す（客の仮モデル用。デザイン班のモデルに差しかえても同じパラメータで動く）
-          IsWalking（bool） : 鳥居から定位置まで・退場のあいだ
+          IsWalking（bool） : 鳥居から定位置まで・移動客の往復・鳥居へもどる退場のあいだ
           Danger（float）   : 危険度 D を 0〜1 にしたもの。0.5 から焦りだす（D≥50 で危険円が出るのと同じ）
           Black（bool）     : 黒客になった（終端。もどらない）
           Rescued（trigger）: 救済された（喜んでおじぎしてから帰る）
@@ -52,6 +52,7 @@ namespace Toufuku.Scenery
         CustomerState _state;
         MockCustomerWalker _walker;
         CustomerGroupMember _groupMember;
+        CustomerMotion _motion;
         float _facingSeed;
         Transform _model;
         Transform _camera;
@@ -95,6 +96,8 @@ namespace Toufuku.Scenery
             if (Camera.main != null) _camera = Camera.main.transform;
             // 集団客（#93）は出す側が作った直後に CustomerGroupMember を付けるので、Start の時点ではもう付いている
             _groupMember = GetComponent<CustomerGroupMember>();
+            // CustomerMotion（#62）も出す側が作った直後に付ける
+            _motion = GetComponent<CustomerMotion>();
         }
 
         void Update()
@@ -103,7 +106,9 @@ namespace Toufuku.Scenery
 
             // #93: 参道のとちゅうで立ち止まっている間は、歩きのアニメを止める
             bool paused = _walker != null && _walker.IsPaused;
-            bool walking = _walker != null && _walker.IsWalking && !paused;
+            // 鳥居へもどる帰り道と移動客の往復（CustomerMotion）も歩いている。入れないとカメラを向いたまま後ろへすべる
+            bool walking = (_walker != null && _walker.IsWalking && !paused)
+                           || (_motion != null && (_motion.IsExiting || _motion.IsPatrolling));
             animator.SetBool(IsWalkingId, walking);
             if(walking)
             {

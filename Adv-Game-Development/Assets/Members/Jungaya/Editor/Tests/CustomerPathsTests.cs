@@ -112,5 +112,35 @@ namespace Toufuku.Rescue.Tests
             Assert.Less(near, middle);
             Assert.Less(middle, far);
         }
+
+        // ── 置き物（灯籠など）との距離 ─────────────────────────────
+
+        // 灯籠 (-4.5, 28.8) の 1.2m 四方
+        static readonly Rect Lantern = Rect.MinMaxRect(-5.1f, 28.2f, -3.9f, 29.4f);
+
+        [Test]
+        public void 四角の中の点は距離0で外の点は辺までの距離()
+        {
+            Assert.AreEqual(0f, ObstacleGeometry.PointToRect(new Vector2(-4.5f, 28.8f), Lantern), 0.0001f);
+            Assert.AreEqual(1f, ObstacleGeometry.PointToRect(new Vector2(-2.9f, 28.8f), Lantern), 0.0001f);
+            Assert.AreEqual(Mathf.Sqrt(2f), ObstacleGeometry.PointToRect(new Vector2(-2.9f, 30.4f), Lantern), 0.0001f);
+        }
+
+        [Test]
+        public void 鳥居から灯籠の向こうへの道は灯籠を通るので距離0()
+        {
+            // 鳥居 (0, 0) から左手前の定位置 (-5, 32) へまっすぐ歩くと、灯籠の上を通る
+            Assert.AreEqual(0f, ObstacleGeometry.SegmentToRect(new Vector2(0f, 0f), new Vector2(-5f, 32f), Lantern), 0.0001f);
+        }
+
+        [Test]
+        public void 灯籠の横を通る道は角までの距離()
+        {
+            // まっすぐ奥へ歩く x=-2.9 の道は、灯籠の右の辺から 1m
+            Assert.AreEqual(1f, ObstacleGeometry.SegmentToRect(new Vector2(-2.9f, 0f), new Vector2(-2.9f, 33f), Lantern), 0.0001f);
+            // 灯籠の手前で止まる道は、手前の角までの距離
+            Assert.AreEqual(ObstacleGeometry.PointToRect(new Vector2(-4.5f, 26f), Lantern),
+                ObstacleGeometry.SegmentToRect(new Vector2(-4.5f, 0f), new Vector2(-4.5f, 26f), Lantern), 0.0001f);
+        }
     }
 }
