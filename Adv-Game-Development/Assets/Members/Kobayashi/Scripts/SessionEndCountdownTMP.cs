@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,6 +15,9 @@ public class SessionEndCountdownTMP : MonoBehaviour
     [SerializeField] private Color textColor = Color.white;
     [SerializeField, Range(0f, 1f)] private float opacity = 0.68f;
     [SerializeField, Min(1f)] private float countdownStartSeconds = 3f;
+    [SerializeField, Min(0.1f)] private float startCountdownStepDuration = 1f;
+    [SerializeField, Min(0f)] private float startMessageDuration = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float startOpacity = 1f;
 
     [Header("配置")]
     [SerializeField] private Vector2 anchoredPosition = Vector2.zero;
@@ -23,6 +27,7 @@ public class SessionEndCountdownTMP : MonoBehaviour
     private static readonly string[] Numerals = { "", "壱", "弐", "参" };
     private GameSession session;
     private TMP_Text countdownText;
+    private bool isStartingCountdown;
 
     private void Start()
     {
@@ -36,6 +41,11 @@ public class SessionEndCountdownTMP : MonoBehaviour
         if (session == null)
         {
             TrySubscribe();
+        }
+
+        if (isStartingCountdown)
+        {
+            return;
         }
 
         if (session == null || countdownText == null || !session.IsPlaying)
@@ -58,14 +68,59 @@ public class SessionEndCountdownTMP : MonoBehaviour
 
     private void OnDisable()
     {
-        if (session == null)
+        if (session != null)
         {
-            return;
+            session.onSessionStart.RemoveListener(HideCountdown);
+            session.onSessionEnd.RemoveListener(HideCountdown);
+            session = null;
         }
 
-        session.onSessionStart.RemoveListener(HideCountdown);
-        session.onSessionEnd.RemoveListener(HideCountdown);
-        session = null;
+        isStartingCountdown = false;
+        HideCountdown();
+    }
+
+    /// <summary>
+    /// ゲーム開始直前に、終了前表示と同じTMP・色・サイズで開始カウントダウンを再生します。
+    /// </summary>
+    public IEnumerator PlayStartCountdown()
+    {
+        if (countdownText == null)
+        {
+            CreateCountdownText();
+        }
+
+        isStartingCountdown = true;
+        Color previousColor = countdownText.color;
+        Color startColor = previousColor;
+        startColor.a = startOpacity;
+        countdownText.color = startColor;
+        countdownText.enabled = true;
+
+        string[] sequence = { "参", "弐", "壱" };
+        for (int i = 0; i < sequence.Length; i++)
+        {
+            countdownText.text = sequence[i];
+            yield return new WaitForSecondsRealtime(startCountdownStepDuration);
+        }
+
+        RectTransform textRect = countdownText.rectTransform;
+        Vector2 previousTextAreaSize = textRect.sizeDelta;
+        bool previousWordWrapping = countdownText.enableWordWrapping;
+        countdownText.enableWordWrapping = false;
+        textRect.sizeDelta = new Vector2(
+            Mathf.Max(previousTextAreaSize.x, Mathf.Min(1920f, countdownText.fontSize * 3.2f)),
+            previousTextAreaSize.y);
+        countdownText.text = "始め！";
+        if (startMessageDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(startMessageDuration);
+        }
+
+        textRect.sizeDelta = previousTextAreaSize;
+        countdownText.enableWordWrapping = previousWordWrapping;
+        countdownText.color = previousColor;
+        isStartingCountdown = false;
+        HideCountdown();
     }
 
     private void CreateCountdownText()
@@ -115,6 +170,11 @@ public class SessionEndCountdownTMP : MonoBehaviour
 
     private void HideCountdown()
     {
+        if (isStartingCountdown)
+        {
+            return;
+        }
+
         if (countdownText != null)
         {
             countdownText.enabled = false;

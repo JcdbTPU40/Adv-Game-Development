@@ -137,6 +137,12 @@ public class TimeUpImageDisplay : MonoBehaviour
             HideTimeUpPanels();
         }
 
+        SessionEndCountdownTMP startCountdown = GetComponent<SessionEndCountdownTMP>();
+        if (startCountdown != null)
+        {
+            yield return startCountdown.PlayStartCountdown();
+        }
+
         yield return StartSessionWhenReady();
     }
 

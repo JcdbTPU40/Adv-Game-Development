@@ -2572,6 +2572,9 @@ MonoBehaviour:
   textColor: {r: 0.9811321, g: 0.92043674, b: 0.021597084, a: 0.68}
   opacity: 0.5
   countdownStartSeconds: 3
+  startCountdownStepDuration: 1
+  startMessageDuration: 0.5
+  startOpacity: 1
   anchoredPosition: {x: 0, y: 0}
   textAreaSize: {x: 700, y: 400}
   sortingOrder: 70
