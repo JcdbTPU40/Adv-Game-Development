@@ -88,6 +88,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Human3 1
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
+      propertyPath: m_TagString
+      value: Customer
+      objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}
       propertyPath: m_Avatar
       value: 
