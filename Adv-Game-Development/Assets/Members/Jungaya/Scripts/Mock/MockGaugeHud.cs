@@ -132,6 +132,7 @@ namespace Toufuku.Rescue.Mock
                 MockCrowdDirector.Member m = members[i];
                 if (m == null || m.Go == null || m.State == null) continue;
                 if (m.State.IsBlack) continue;  // 黒客はバーを描かない（頭の上のゲージは消す。v8 6章）
+                if (director.IsRescuedDisplayOver(m)) continue;  // #93: 悩みが消えて仲間を待っている人は、喜んだあとゲージを消す
 
                 Vector3 worldPos = m.Tr.position + Vector3.up * worldHeightOffset;
                 Vector3 sp = cam.WorldToScreenPoint(worldPos);
