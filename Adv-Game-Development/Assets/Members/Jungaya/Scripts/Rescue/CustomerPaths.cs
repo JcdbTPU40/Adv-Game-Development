@@ -97,4 +97,70 @@ namespace Toufuku.Rescue
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
     }
+    /*
+        置き物（灯籠・おみくじ・手水舎・狛犬など）をさけるための、床の上（XZ平面）の距離
+        置き物は見た目の大きさを床に落とした四角（Rect の x が X、y が Z）であつかう
+
+        MonoBehaviour は使っていない。エディタのテストで確かめる（CustomerPathsTests）
+    */
+    public static class ObstacleGeometry
+    {
+        // 点から四角までの距離。中に入っていたら 0
+        public static float PointToRect(Vector2 p, Rect r)
+        {
+            float dx = Mathf.Max(r.xMin - p.x, 0f, p.x - r.xMax);
+            float dy = Mathf.Max(r.yMin - p.y, 0f, p.y - r.yMax);
+            return Mathf.Sqrt(dx * dx + dy * dy);
+        }
+
+        // 線分から四角までの距離。線分が四角を通っていたら 0
+        public static float SegmentToRect(Vector2 a, Vector2 b, Rect r)
+        {
+            if (SegmentCrossesRect(a, b, r)) return 0f;
+
+            float d = Mathf.Min(PointToRect(a, r), PointToRect(b, r));
+            d = Mathf.Min(d, PointToSegment(new Vector2(r.xMin, r.yMin), a, b));
+            d = Mathf.Min(d, PointToSegment(new Vector2(r.xMax, r.yMin), a, b));
+            d = Mathf.Min(d, PointToSegment(new Vector2(r.xMin, r.yMax), a, b));
+            d = Mathf.Min(d, PointToSegment(new Vector2(r.xMax, r.yMax), a, b));
+            return d;
+        }
+
+        // 点から線分までの距離
+        public static float PointToSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float len2 = ab.sqrMagnitude;
+            float t = len2 > 1e-8f ? Mathf.Clamp01(Vector2.Dot(p - a, ab) / len2) : 0f;
+            return Vector2.Distance(p, a + ab * t);
+        }
+
+        // 線分が四角を通るか（Liang-Barsky で四角の中に残る部分があるかを見る）
+        static bool SegmentCrossesRect(Vector2 a, Vector2 b, Rect r)
+        {
+            Vector2 d = b - a;
+            float t0 = 0f, t1 = 1f;
+            return Clip(-d.x, a.x - r.xMin, ref t0, ref t1)
+                   && Clip(d.x, r.xMax - a.x, ref t0, ref t1)
+                   && Clip(-d.y, a.y - r.yMin, ref t0, ref t1)
+                   && Clip(d.y, r.yMax - a.y, ref t0, ref t1);
+        }
+
+        static bool Clip(float p, float q, ref float t0, ref float t1)
+        {
+            if (Mathf.Abs(p) < 1e-8f) return q >= 0f;
+            float t = q / p;
+            if (p < 0f)
+            {
+                if (t > t1) return false;
+                if (t > t0) t0 = t;
+            }
+            else
+            {
+                if (t < t0) return false;
+                if (t < t1) t1 = t;
+            }
+            return true;
+        }
+    }
 }

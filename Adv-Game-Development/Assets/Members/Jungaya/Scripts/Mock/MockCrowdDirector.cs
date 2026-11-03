@@ -37,7 +37,8 @@ namespace Toufuku.Rescue.Mock
             （企画書 v8 8章: 近い 3〜7m、中 7〜12m、遠い 12〜18m）
           ・occupancyShare: 定位置にいる黒客じゃない客の目標のわりあい（付録B PLACEMENT で 40/40/20%）。いちばん足りない帯に補充して、遠方客は必ず遠い帯
           ・移動客: 定位置に着いたら左右3mを movingSpeed（1.0m/秒）で行ったり来たりする（CustomerMotion）。movingSpeed はプレイ中に変えられる
-          ・exitWalk: 救済なら3秒、黒客なら4秒かけて手前の出口まで歩いていなくなる（CustomerMotion）
+          ・exitWalk: 救済なら3秒、黒客なら4秒かけて出口まで歩いていなくなる（CustomerMotion）
+            exitToTorii が ON なら出口は鳥居（来た道をもどって帰る）。OFF なら exitPoints（手前の左右）
           ・救済されたり黒客になったりした客の定位置は、歩いていなくなるのを待たずにその瞬間に空ける（企画書 v8 6章「退場開始と同時に枠を空ける」）
 
         #57 で足したもの（useTimetable。ふつうは OFF）:
@@ -304,7 +305,21 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("ON なら救済・黒客化した客が退場秒数（救済3秒／黒客4秒）かけて出口まで歩く。OFF ならその場で消える（#44 以来の挙動）。")]
         [SerializeField] private bool exitWalk;
 
-        [Tooltip("出口（ワールド座標）。客は左右位置が近い方の出口へまっすぐ歩く。手前に置くと、奥の客ほど帰路が長くなり、" +
+        [Tooltip("ON なら帰るときは鳥居（入ってきた場所）にもどって消える。集団客は来たときと同じ並びのままもどる。" +
+                 "OFF なら下の exitPoints（手前の左右の出口）へ歩く。")]
+        [SerializeField] private bool exitToTorii = true;
+
+        // ---- 置き物（灯籠など） ----
+        [Header("置き物（灯籠・おみくじ・手水舎・狛犬）")]
+        [Tooltip("客が重ならないようにする置き物。見た目（Renderer）の大きさを床に落とした四角で測る。" +
+                 "定位置（移動客は往復の道、集団客は並んだはば）と、鳥居からの行き帰りのまっすぐな道がこれに重ならない定位置を選ぶ。")]
+        [SerializeField] private Transform[] obstacles = new Transform[0];
+
+        [Tooltip("置き物と客の体の中心のあいだに最低限あける間（m）。体の半径（0.65m）＋少しの余裕。")]
+        [Min(0f)]
+        [SerializeField] private float obstacleClearance = 0.8f;
+
+        [Tooltip("出口（ワールド座標）。exitToTorii が OFF のときだけ使う。客は左右位置が近い方の出口へまっすぐ歩く。手前に置くと、奥の客ほど帰路が長くなり、" +
                  "手前の客の間を通り抜けるのですれ違う人数が増える（企画書 v8 6章・7章 遠方客）。")]
         [SerializeField] private Vector3[] exitPoints = { new Vector3(-9f, 1f, 37f), new Vector3(9f, 1f, 37f) };
 
@@ -319,7 +334,7 @@ namespace Toufuku.Rescue.Mock
         [Min(0.3f)]
         [SerializeField] private float groupSpacing = 0.65f;
 
-        [Tooltip("悩みが消えて仲間を待っている人の輪郭と頭上ゲージを、救えてから何秒で消すか。この間に喜ぶリアクションをして、そのあと仲間の方を向いて待つ。")]
+        [Tooltip("悩みが消えて仲間を待っている人の頭上ゲージを、救えてから何秒で消すか（輪郭は救えた瞬間に消える）。この間に喜ぶリアクションをして、そのあと仲間の方を向いて待つ。")]
         [Min(0f)]
         [SerializeField] private float rescuedDisplaySeconds = 1.5f;
 
@@ -373,6 +388,7 @@ namespace Toufuku.Rescue.Mock
         private readonly List<Slot> _slots = new List<Slot>();
         private readonly List<float> _tickets = new List<float>();   // 補充チケットの残りの待ち時間
         private readonly List<int> _candidates = new List<int>();    // 定位置の候補（使いまわす）
+        private List<Rect> _obstacleRects;                              // 置き物の床の上の四角（はじめて使うときに測る）
         private float[] _bandShares;
         private int[] _bandOccupied;
         private bool[] _bandHasFree;
@@ -790,14 +806,17 @@ namespace Toufuku.Rescue.Mock
                    && Time.time - m.State.FinishedAt >= rescuedDisplaySeconds;
         }
 
-        // #93: 仲間を待っている人の輪郭を消す（もうねらわなくていい、と見せる。当たり判定は救えたときに消えている）
+        /*
+            救えた客の輪郭を、救えた瞬間に消す（もうねらわなくていい、と見せる。当たり判定は救えたときに消えている）
+            一人客も集団客も同じ。鳥居へ歩いて帰るあいだも輪郭は出さない。黒客の輪郭（黒）はじゃまものなので残す
+        */
         private void HideRescuedWaitingOutlines()
         {
             for (int i = 0; i < _members.Count; i++)
             {
                 Member m = _members[i];
-                if (m == null || m.Go == null || m.Group == null || m.Outline == null) continue;
-                if (IsRescuedDisplayOver(m)) m.Outline.SetOutlineVisible(false);
+                if (m == null || m.Go == null || m.Outline == null || m.State == null) continue;
+                if (m.State.IsRescued) m.Outline.SetOutlineVisible(false);
             }
         }
 
@@ -992,6 +1011,18 @@ namespace Toufuku.Rescue.Mock
                 Quaternion.identity,
                 customerParent);
             go.name = group != null ? $"MockCustomer_{id:00}_G{group.Id}" : $"MockCustomer_{id:00}";
+
+            /*
+                客はスクリプト（Walker・CustomerMotion）が transform で動かすので、物理では動かさない（kinematic）
+                物理のままだと、となりの客と押し合って集団客の間がくずれたり、壁や弾に当たって体が回ったりする
+                弾は物理で飛ぶので、kinematic の客にもちゃんと当たる
+            */
+            Rigidbody body = go.GetComponent<Rigidbody>();
+            if (body != null)
+            {
+                body.isKinematic = true;
+                body.useGravity = false;
+            }
             CustomerSpawnId spawnId = CustomerSpawnId.Assign(go);
 
             var member = new Member
@@ -1086,7 +1117,7 @@ namespace Toufuku.Rescue.Mock
             CustomerMotion motion = m.Go.GetComponent<CustomerMotion>();
             if (motion == null) motion = m.Go.AddComponent<CustomerMotion>();
 
-            motion.SetExitPoints(exitWalk ? exitPoints : null);
+            motion.SetExitPoints(exitWalk ? ExitPointsFor(m, destination) : null);
             if (patrol)
             {
                 // 歩き出す向きも「客ID × 使いみち」のシードで決める（同じシードなら同じ道になる）
@@ -1094,6 +1125,16 @@ namespace Toufuku.Rescue.Mock
                 motion.ConfigurePatrol(destination, movingPatrolWidth, movingSpeed, startSign);
             }
             return motion;
+        }
+
+        // 帰るときの出口。鳥居にもどるなら、集団客は定位置での並び（destination - Anchor）をそのまま鳥居にずらして重ならないようにする
+        private Vector3[] ExitPointsFor(Member m, Vector3 destination)
+        {
+            if (!exitToTorii) return exitPoints;
+
+            Vector3 formation = destination - m.Anchor;
+            formation.y = 0f;
+            return new[] { ToriiPosition + formation };
         }
 
         // #62: Inspector の movingSpeed を毎フレーム移動客に反映する（T2 で数値を変えるテスト用）
@@ -1532,7 +1573,56 @@ namespace Toufuku.Rescue.Mock
                 float m = PatrolPath.LaneToLane(center, width, c, w) - required;
                 if (m < margin) margin = m;
             }
+            return Mathf.Min(margin, ObstacleMargin(center, width, selfMoving));
+        }
+
+        /*
+            置き物（灯籠など）との間（m）。0 以上なら、立つ場所（はば width の線）も、鳥居からの行き帰りのまっすぐな道も置き物に重ならない
+              集団客は鳥居でも定位置と同じ並びなので、左はし・真ん中・右はしの人の道をそれぞれ測る
+              移動客は往復のどこからでも鳥居へ帰るので、往復の左はし・真ん中・右はしから鳥居への道を測る
+        */
+        private float ObstacleMargin(Vector3 center, float width, bool selfMoving)
+        {
+            List<Rect> rects = ObstacleRects();
+            if (rects.Count == 0) return float.PositiveInfinity;
+
+            float half = Mathf.Max(0f, width) * 0.5f;
+            Vector3 torii = ToriiPosition;
+            float margin = float.PositiveInfinity;
+            for (int r = 0; r < rects.Count; r++)
+            {
+                float d = ObstacleGeometry.SegmentToRect(
+                    new Vector2(center.x - half, center.z), new Vector2(center.x + half, center.z), rects[r]);
+                for (int k = -1; k <= 1; k++)
+                {
+                    float offset = k * half;
+                    float startX = torii.x + (selfMoving ? 0f : offset);
+                    d = Mathf.Min(d, ObstacleGeometry.SegmentToRect(
+                        new Vector2(startX, torii.z), new Vector2(center.x + offset, center.z), rects[r]));
+                }
+                margin = Mathf.Min(margin, d - obstacleClearance);
+            }
             return margin;
+        }
+
+        // 置き物の床の上の四角（Rect の x が X、y が Z）。置き物は動かないので、はじめて使うときに1回だけ測る
+        private List<Rect> ObstacleRects()
+        {
+            if (_obstacleRects != null) return _obstacleRects;
+
+            _obstacleRects = new List<Rect>();
+            if (obstacles == null) return _obstacleRects;
+            foreach (Transform t in obstacles)
+            {
+                if (t == null) continue;
+                Renderer[] renderers = t.GetComponentsInChildren<Renderer>();
+                if (renderers.Length == 0) continue;
+
+                Bounds b = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+                _obstacleRects.Add(Rect.MinMaxRect(b.min.x, b.min.z, b.max.x, b.max.z));
+            }
+            return _obstacleRects;
         }
 
         /*
@@ -1601,7 +1691,7 @@ namespace Toufuku.Rescue.Mock
         }
 
         /*
-            帯の中のランダムな1点を取る。ほかの定位置と minSlotDistance 以上はなれるまで
+            帯の中のランダムな1点を取る。ほかの定位置と minSlotDistance 以上はなれて、置き物（灯籠など）にも重ならないまで
             slotPlacementAttempts 回ためして、だめならいちばんマシな候補を返す
         */
         // span: #93 集団客の横はば（m）。ほかの客との間はそのはばの半分だけ多く空ける
@@ -1612,7 +1702,7 @@ namespace Toufuku.Rescue.Mock
 
             Band b = bands[bandIndex];
             Vector3 best = new Vector3(0f, customerY, 0f);
-            float bestDistance = -1f;
+            float bestScore = float.NegativeInfinity;
 
             int attempts = Mathf.Max(1, slotPlacementAttempts);
             for (int i = 0; i < attempts; i++)
@@ -1625,11 +1715,14 @@ namespace Toufuku.Rescue.Mock
                         PlaytestRandom.Range(rng, Mathf.Min(b.zRange.x, b.zRange.y), Mathf.Max(b.zRange.x, b.zRange.y)));
 
                 float nearest = NearestSlotDistance(candidate, onlyOccupied) - Mathf.Max(0f, span) * 0.5f;
-                if (nearest >= minSlotDistance) return candidate;
+                // 置き物（灯籠など）の上や、鳥居からの道が置き物を通る場所にはしかない
+                float obstacle = ObstacleMargin(candidate, span, false);
+                if (nearest >= minSlotDistance && obstacle >= 0f) return candidate;
 
-                if (nearest > bestDistance)
+                float score = Mathf.Min(nearest - minSlotDistance, obstacle);
+                if (score > bestScore)
                 {
-                    bestDistance = nearest;
+                    bestScore = score;
                     best = candidate;
                 }
             }
@@ -1811,12 +1904,17 @@ namespace Toufuku.Rescue.Mock
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(ToriiPosition, 0.6f);
 
-            if (exitWalk && exitPoints != null)
+            if (exitWalk && !exitToTorii && exitPoints != null)
             {
                 Gizmos.color = Color.magenta;
                 for (int i = 0; i < exitPoints.Length; i++)
                     Gizmos.DrawWireSphere(exitPoints[i], 0.6f);
             }
+
+            // 置き物の四角（客の体の中心はこの外側に obstacleClearance 以上はなれる）
+            Gizmos.color = new Color(1f, 0.5f, 0f, 1f);
+            foreach (Rect r in ObstacleRects())
+                Gizmos.DrawWireCube(new Vector3(r.center.x, customerY, r.center.y), new Vector3(r.width, 0.1f, r.height));
         }
 
         // 距離の帯を、基準点を中心にした2本の弧（内側と外側）で描く
