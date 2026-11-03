@@ -23,6 +23,8 @@ namespace Toufuku.Playtest
         public const int Motion = 8;
         // 集団客にするかどうかと、その種類・人数（#93）
         public const int Group = 9;
+        // 参道のとちゅうで立ち止まって見回すかどうかと、その場所・長さ（#93）
+        public const int WalkPause = 10;
     }
 
     /*

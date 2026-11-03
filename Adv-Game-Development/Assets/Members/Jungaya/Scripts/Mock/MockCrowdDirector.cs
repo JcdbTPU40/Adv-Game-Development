@@ -118,6 +118,9 @@ namespace Toufuku.Rescue.Mock
             public Vector3 Anchor;
             // #93: 定位置を持っている人のグループの横はば（m、はしからはし）。一人客は 0。定位置の重なりの判定に使う
             public float Span;
+            // #93: 鳥居から歩くとちゅうで立ち止まる場所（歩く時間の割合）と長さ（秒）。0 秒なら止まらない。集団客は1人目と同じ値
+            public float PauseAt;
+            public float PauseSeconds;
         }
 
         private class Slot
@@ -315,6 +318,20 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("集団客のとなりの人との間（m）。4人で横に (4-1)×この値 の幅になるので、minSlotDistance より十分小さくすること。")]
         [Min(0.3f)]
         [SerializeField] private float groupSpacing = 0.65f;
+
+        [Tooltip("悩みが消えて仲間を待っている人の輪郭と頭上ゲージを、救えてから何秒で消すか。この間に喜ぶリアクションをして、そのあと仲間の方を向いて待つ。")]
+        [Min(0f)]
+        [SerializeField] private float rescuedDisplaySeconds = 1.5f;
+
+        [Tooltip("鳥居から定位置まで歩くとちゅうで、立ち止まって見回す確率（0〜1）。集団客はグループでそろって止まる。0 なら止まらない（前と同じ）。")]
+        [Range(0f, 1f)]
+        [SerializeField] private float walkPauseChance = 0f;
+
+        [Tooltip("立ち止まる場所（歩く時間の割合）のはば。")]
+        [SerializeField] private Vector2 walkPauseAtRange = new Vector2(0.3f, 0.6f);
+
+        [Tooltip("立ち止まる長さ（秒）のはば。")]
+        [SerializeField] private Vector2 walkPauseSecondsRange = new Vector2(0.8f, 1.6f);
 
         private int _nextGroupId;
 
@@ -614,6 +631,7 @@ namespace Toufuku.Rescue.Mock
 
             SweepDeparted();
             ReleaseGroupsIfSessionEnded();
+            HideRescuedWaitingOutlines();
 
             // #57: 3:00 でプレイが終わったら新しい客は出さない（企画書 v8 8章「3:00.000 で新規スポーン停止」）。いる客はそのまま
             // #58: 段階学習の間（AutoSpawnSuspended）も補充しない。客は StagedLearningDirector が置く
@@ -758,6 +776,28 @@ namespace Toufuku.Rescue.Mock
             {
                 CustomerGroup group = _members[i] != null ? _members[i].Group : null;
                 if (group != null && !group.IsReleased) group.ReleaseWaiting();
+            }
+        }
+
+        /*
+            #93: 悩みが消えて仲間を待っている集団客の表示を消すまでの時間がすぎたか
+            救えてから rescuedDisplaySeconds の間は、ふつうの客と同じに輪郭が残ってゲージが光る（喜ぶリアクションの間）
+            一人客や、帰りはじめた人には使わない（どちらもすぐ消えるので、もとの見え方のまま）
+        */
+        public bool IsRescuedDisplayOver(Member m)
+        {
+            return m != null && m.State != null && m.State.IsRescued && m.State.IsExitPending
+                   && Time.time - m.State.FinishedAt >= rescuedDisplaySeconds;
+        }
+
+        // #93: 仲間を待っている人の輪郭を消す（もうねらわなくていい、と見せる。当たり判定は救えたときに消えている）
+        private void HideRescuedWaitingOutlines()
+        {
+            for (int i = 0; i < _members.Count; i++)
+            {
+                Member m = _members[i];
+                if (m == null || m.Go == null || m.Group == null || m.Outline == null) continue;
+                if (IsRescuedDisplayOver(m)) m.Outline.SetOutlineVisible(false);
             }
         }
 
@@ -970,6 +1010,22 @@ namespace Toufuku.Rescue.Mock
                 Span = slot != null && group != null ? CustomerGroup.Span(groupSize, groupSpacing) : 0f,
             };
 
+            // #93: 立ち止まるかを決める。集団客の2人目からは1人目と同じにして、そろって止まる。学習の客は止めない
+            if (companionOf != null)
+            {
+                member.PauseAt = companionOf.PauseAt;
+                member.PauseSeconds = companionOf.PauseSeconds;
+            }
+            else if (!learning && walkPauseChance > 0f)
+            {
+                DeterministicRandom pauseRng = PlaytestRandom.TryFor(PlaytestStreams.WalkPause, id);
+                if (PlaytestRandom.Value(pauseRng) < walkPauseChance)
+                {
+                    member.PauseAt = Mathf.Lerp(walkPauseAtRange.x, walkPauseAtRange.y, PlaytestRandom.Value(pauseRng));
+                    member.PauseSeconds = Mathf.Lerp(walkPauseSecondsRange.x, walkPauseSecondsRange.y, PlaytestRandom.Value(pauseRng));
+                }
+            }
+
             if (slot != null) slot.Occupant = member;
 
             // #93: グループに入れる。入った人は、グループ全員が終わるまで帰らない
@@ -1007,7 +1063,7 @@ namespace Toufuku.Rescue.Mock
                 else
                 {
                     if (member.Motion != null) member.Walker.Arrived += member.Motion.NotifyArrived;
-                    member.Walker.Begin(origin, destination, walkDuration, walkEase);
+                    member.Walker.Begin(origin, destination, walkDuration, walkEase, member.PauseAt, member.PauseSeconds);
                     if (member.Motion != null && !member.Walker.IsWalking) member.Motion.NotifyArrived();
                 }
             }
