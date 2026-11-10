@@ -150,18 +150,57 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Menu.MainMenu
   rawSourceSource: {fileID: 1266318092}
   controller: {fileID: 1266318091}
-  gameSceneName: GameScene
+  stages:
+  - id: 1-1
+    label: 1-1
+    title: "\u671D\u306E\u53C2\u9053"
+    description: "\u306F\u3058\u3081\u3066\u306E\u304A\u53C2\u308A\u3002\u5927\u5E63\u306E\u632F\u308A\u65B9\u3068\u3001\u304A\u5B88\u308A\u306E\u6295\u3052\u65B9\u3092\u899A\u3048\u3088\u3046\u3002"
+    sceneName: GameScene
+    mapPosition: {x: 230, y: 150}
+  - id: 1-2
+    label: 1-2
+    title: "\u663C\u306E\u5883\u5185"
+    description: "\u53C2\u62DD\u5BA2\u304C\u3075\u3048\u3066\u304F\u308B\u3002\u9858\u3044\u306E\u8272\u3092\u898B\u5206\u3051\u3066\u3001\u3059\u3070\u3084\u304F\u5C4A\u3051\u3088\u3046\u3002"
+    sceneName: GameScene
+    mapPosition: {x: 760, y: 370}
+  - id: 1-3
+    label: 1-3
+    title: "\u5915\u66AE\u308C\u306E\u7E01\u65E5"
+    description: "\u9060\u304F\u306E\u5BA2\u3084\u6B69\u304F\u5BA2\u3082\u3084\u3063\u3066\u304F\u308B\u3002\u7167\u6E96\u3092\u3057\u3063\u304B\u308A\u5408\u308F\u305B\u3088\u3046\u3002"
+    sceneName: GameScene
+    mapPosition: {x: 1210, y: 590}
+  - id: 1-honden
+    label: "\u672C\u6BBF"
+    title: "\u672C\u6BBF\u306E\u5927\u796D"
+    description: "\u4E00\u306E\u9CE5\u5C45\u306E\u3057\u3081\u304F\u304F\u308A\u3002\u5883\u5185\u3044\u3063\u3071\u3044\u306E\u9858\u3044\u3092\u304B\u306A\u3048\u3088\u3046\u3002"
+    sceneName: GameScene
+    mapPosition: {x: 1560, y: 830}
+  mapTitle: "\u4E00\u306E\u9CE5\u5C45"
+  mapSubtitle: "\u53C2\u9053\u30DE\u30C3\u30D7\u3000\u7B2C\u4E00\u7AE0"
+  introSeconds: 4.5
+  omamoriSeconds: 1.9
+  replayIntroEveryTime: 0
+  introClip: {fileID: 0}
+  menuBgm: {fileID: 0}
+  omamoriClip: {fileID: 0}
+  decideClip: {fileID: 0}
   tiltStepDegrees: 20
   invertTilt: 0
   ignoreSwingOnMouseClick: 1
   frontHoldSeconds: 1
   stillDegreesPerSecond: 30
   stillSeconds: 0.5
+  logoSprite: {fileID: 21300000, guid: 6532aeeb3dc0a5643b8316101a86afba, type: 3}
+  crestSprite: {fileID: 21300000, guid: 6cc22248251a02c4cbb738e4e2d82eb9, type: 3}
+  omamoriSprites:
+  - {fileID: 21300000, guid: a4e52b3b9635bab41aab695cac7165aa, type: 3}
+  - {fileID: 21300000, guid: 631d85ee879f5754f983a06b7e8c3ae8, type: 3}
+  - {fileID: 21300000, guid: e7e70131bcbc66044986c3fa48aaf0bd, type: 3}
+  - {fileID: 21300000, guid: 4f07349c954e02e46a48e90ec1ca4906, type: 3}
+  - {fileID: 21300000, guid: 471ce80321cc3014895c22f16ec36275, type: 3}
   font: {fileID: 12800000, guid: d06905215612c1b4fb21696472763115, type: 3}
+  titleFont: {fileID: 0}
   sortingOrder: 50
-  backgroundColor: {r: 0.07, g: 0.05, b: 0.1, a: 1}
-  itemColor: {r: 0.22, g: 0.16, b: 0.26, a: 1}
-  selectedColor: {r: 0.85, g: 0.2, b: 0.25, a: 1}
   logEvents: 1
 --- !u!4 &773949074
 Transform:
@@ -236,6 +275,9 @@ MonoBehaviour:
   mouseSwingWhenDisconnected: 1
   strongSwingKey: 304
   strongSwingStrength: 720
+  sideSwingTriggerVelocity: 180
+  sideSwingReleaseVelocity: 60
+  sideSwingDetector: {fileID: 0}
 --- !u!4 &1266318093
 Transform:
   m_ObjectHideFlags: 0
