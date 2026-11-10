@@ -184,6 +184,7 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  showRankLetter: 1
   rankFontSize: 64
   rankTextColor: {r: 1, g: 1, b: 1, a: 1}
   rankTopLeftOffset: {x: 36, y: -36}
@@ -317,6 +318,7 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  showRankLetter: 1
   rankFontSize: 64
   rankTextColor: {r: 1, g: 1, b: 1, a: 1}
   rankTopLeftOffset: {x: 36, y: -36}
@@ -2367,7 +2369,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3c85e2996d7cff48a4c69bd51802ce3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Mock.MockCrowdDirector
-  customerPrefab: {fileID: 3521761798749841998, guid: 77d7704915dc3004293370e8a8d607e1, type: 3}
+  customerPrefab: {fileID: 2761562772266223857, guid: 7990cf26d5949614e961f40e1e6c2ec8, type: 3}
   customerParent: {fileID: 759437407}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
