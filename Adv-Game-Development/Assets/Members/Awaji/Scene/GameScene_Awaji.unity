@@ -184,6 +184,10 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  rankFontSize: 64
+  rankTextColor: {r: 1, g: 1, b: 1, a: 1}
+  rankTopLeftOffset: {x: 36, y: -36}
+  rankTextAreaSize: {x: 700, y: 120}
 --- !u!114 &4232934
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -313,6 +317,10 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  rankFontSize: 64
+  rankTextColor: {r: 1, g: 1, b: 1, a: 1}
+  rankTopLeftOffset: {x: 36, y: -36}
+  rankTextAreaSize: {x: 700, y: 120}
 --- !u!1 &9665414
 GameObject:
   m_ObjectHideFlags: 0
@@ -1759,6 +1767,10 @@ MonoBehaviour:
   - {x: 9, y: 1, z: 37}
   groupChance: 0
   groupSpacing: 0.65
+  rescuedDisplaySeconds: 1.5
+  walkPauseChance: 0
+  walkPauseAtRange: {x: 0.3, y: 0.6}
+  walkPauseSecondsRange: {x: 0.8, y: 1.6}
   startDangerRange: {x: 0, y: 0}
   blackCustomerCount: 0
   freezeDanger: 0
@@ -1991,7 +2003,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969830202}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f770b0ea09e3dcb4389ae04632defd8e, type: 3}
   m_Name: 
@@ -2008,7 +2020,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969830202}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9f301cd91a807794ea01962f2cf4eaa5, type: 3}
   m_Name: 
