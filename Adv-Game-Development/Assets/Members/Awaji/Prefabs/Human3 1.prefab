@@ -461,6 +461,9 @@ MonoBehaviour:
   groupFacingRange: {x: 0.2, y: 0.7}
   groupWaitingFacing: 0.85
   groupFacingTempo: 0.25
+  rejoiceSeconds: 1.5
+  lookAroundAngle: 50
+  lookAroundTempo: 0.6
 --- !u!137 &4090932405964501915 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: 349960509726827652, guid: 8ee4d0d85faaae6429f9d5c9a76f090a, type: 3}

@@ -251,8 +251,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConecteController
   deviceID: OONUSA_READY
-  isDesignation: 0
-  COMNo: 
+  isDesignation: 1
+  COMNo: COM21
 --- !u!114 &1266318092
 MonoBehaviour:
   m_ObjectHideFlags: 0

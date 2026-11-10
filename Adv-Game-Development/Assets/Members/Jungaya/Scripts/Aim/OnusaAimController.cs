@@ -432,8 +432,7 @@ namespace Toufuku.Aim
         {
             if (!softAimAssistEnabled ||
                 assistDistance <= 0f ||
-                assistStrength <= 0f ||
-                omamoriSelector == null)
+                assistStrength <= 0f)
             {
                 _currentAssistTarget = null;
                 return point;
@@ -552,7 +551,7 @@ namespace Toufuku.Aim
             Vector3 result = Vector3.Lerp(landingPoint, bestTargetPoint, weight);
 
             // 高さはお客さんの胸の位置に合わせる
-            result.y = bestTargetPoint.y;
+            result.y = bestTargetPoint.y + 1;
 
             return result;
         }
