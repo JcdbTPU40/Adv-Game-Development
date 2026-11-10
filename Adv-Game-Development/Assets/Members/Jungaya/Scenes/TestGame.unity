@@ -131,7 +131,6 @@ GameObject:
   - component: {fileID: 4232936}
   - component: {fileID: 4232934}
   - component: {fileID: 4232933}
-  - component: {fileID: 4232932}
   - component: {fileID: 4232938}
   m_Layer: 0
   m_Name: CountDownManager
@@ -140,30 +139,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &4232932
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4232931}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 365203e84ee643f7a2ae7c6339ae7b15, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SessionEndCountdownTMP
-  japaneseFont: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
-  sdfFont: {fileID: 11400000, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
-  fontSize: 600
-  textColor: {r: 0.9811321, g: 0.92043674, b: 0.021597084, a: 0.68}
-  opacity: 0.5
-  countdownStartSeconds: 3
-  startCountdownStepDuration: 1
-  startMessageDuration: 0.5
-  startOpacity: 1
-  anchoredPosition: {x: 0, y: 0}
-  textAreaSize: {x: 700, y: 400}
-  sortingOrder: 70
 --- !u!114 &4232933
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -171,7 +146,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4232931}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9174e9f6e5a64c698fc11d929ddc081a, type: 3}
   m_Name: 
@@ -304,7 +279,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4232931}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9174e9f6e5a64c698fc11d929ddc081a, type: 3}
   m_Name: 
@@ -605,6 +580,80 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &160273775
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 160273777}
+  - component: {fileID: 160273776}
+  m_Layer: 0
+  m_Name: MikoGuide
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &160273776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 160273775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 523972c8c969fa347ba29a3ee3025269, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Tutorial.MikoGuideView
+  director: {fileID: 756149434}
+  startCountdown: {fileID: 570471674}
+  mikoSprite: {fileID: 21300000, guid: 5c15136faabea0545a2b3560300c2504, type: 3}
+  font: {fileID: 12800000, guid: e01f40ba2c40bd04ab215e3dc021e184, type: 3}
+  sortingOrder: 65
+  mikoHeight: 560
+  mikoOffset: {x: 20, y: -40}
+  fontSize: 40
+  bubbleColor: {r: 1, g: 1, b: 1, a: 0.95}
+  bubbleBorderColor: {r: 0.64, g: 0.18, b: 0.18, a: 1}
+  textColor: {r: 0.17, g: 0.17, b: 0.16, a: 1}
+  slideSeconds: 0.4
+  greetingSeconds: 2.2
+  praiseSeconds: 1.4
+  hintSeconds: 2.2
+  exitDelaySeconds: 1.2
+  countdownLeadSeconds: 3
+  greetingLine: "\u3088\u3046\u3053\u305D\u3001\u6295\u798F\u795E\u793E\u3078\uFF01\n\u53C2\u62DD\u306E\u307F\u306A\u3055\u3093\u306B\u798F\u3092\u5C4A\u3051\u307E\u3057\u3087\u3046"
+  deliverLine: "\u5149\u3063\u3066\u3044\u308B\u4EBA\u306B\u7167\u6E96\u3092\u5408\u308F\u305B\u3066\n\u5927\u5E63\u3092\u632F\u3063\u3066\u306D"
+  chooseLine: "\u9858\u3044\u306E\u8272\u3068\u540C\u3058\u304A\u5B88\u308A\u306E\u30DC\u30BF\u30F3\u3092\n\u9078\u3093\u3067\u304B\u3089\u632F\u3063\u3066\u306D"
+  discernLine: "\u8DB3\u3082\u3068\u306B\u91D1\u8272\u306E\u4E8C\u91CD\u306E\u8F2A\u304C\u3042\u308B\u4EBA\u306F\n\u6025\u3044\u3067\u3044\u308B\u3088\u3002\u5148\u306B\u52A9\u3051\u3066\u3042\u3052\u3066\uFF01"
+  freePracticeLine: "\u305D\u306E\u8ABF\u5B50\uFF01\n\u672C\u756A\u307E\u3067\u81EA\u7531\u306B\u7DF4\u7FD2\u3057\u3066\u306D"
+  countdownLine: "\u3067\u306F\u672C\u756A\u3067\u3059\u3002\u304C\u3093\u3070\u3063\u3066\uFF01"
+  praiseLine: "\u305D\u306E\u8ABF\u5B50\uFF01"
+  priorityPraiseLine: "\u3088\u304F\u3067\u304D\u307E\u3057\u305F\uFF01"
+  wrongColorLine: "\u8272\u304C\u9055\u3046\u3088\n\u9858\u3044\u306E\u8272\u3092\u3088\u304F\u898B\u3066\u306D"
+  swingHintLine: "\u5927\u5E63\u3092\u5927\u304D\u304F\u632F\u3063\u3066\u307F\u3066\uFF01"
+  aimHintLine: "\u7167\u6E96\u3092\u5149\u3063\u3066\u3044\u308B\u4EBA\u306B\u5408\u308F\u305B\u3066\u306D"
+  colorHintLine: "\u9858\u3044\u306E\u8272\u3068\u540C\u3058\u30DC\u30BF\u30F3\u3092\u62BC\u3057\u3066\u306D"
+  priorityHintLine: "\u91D1\u8272\u306E\u4E8C\u91CD\u306E\u8F2A\u306E\u4EBA\u3092\u5148\u306B\u52A9\u3051\u3066\u306D"
+--- !u!4 &160273777
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 160273775}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &185653945
 GameObject:
   m_ObjectHideFlags: 0
@@ -875,6 +924,62 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 556d98e9a3ae30e4dae83b31c13ff156, type: 3}
+--- !u!1 &570471673
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 570471675}
+  - component: {fileID: 570471674}
+  m_Layer: 0
+  m_Name: StartCountdown
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &570471674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 570471673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365203e84ee643f7a2ae7c6339ae7b15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SessionEndCountdownTMP
+  japaneseFont: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
+  sdfFont: {fileID: 11400000, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
+  fontSize: 600
+  textColor: {r: 0.9811321, g: 0.92043674, b: 0.021597084, a: 0.68}
+  opacity: 0.5
+  countdownStartSeconds: 3
+  startCountdownStepDuration: 1
+  startMessageDuration: 0.5
+  startOpacity: 1
+  anchoredPosition: {x: 0, y: 0}
+  textAreaSize: {x: 700, y: 400}
+  sortingOrder: 70
+--- !u!4 &570471675
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 570471673}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &607264994
 GameObject:
   m_ObjectHideFlags: 0
@@ -1003,7 +1108,15 @@ MonoBehaviour:
   font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
   sortingOrder: 60
-  buttonSize: 100
+  buttonSprites:
+  - {fileID: 21300000, guid: a4e52b3b9635bab41aab695cac7165aa, type: 3}
+  - {fileID: 21300000, guid: 631d85ee879f5754f983a06b7e8c3ae8, type: 3}
+  - {fileID: 21300000, guid: e7e70131bcbc66044986c3fa48aaf0bd, type: 3}
+  - {fileID: 21300000, guid: 4f07349c954e02e46a48e90ec1ca4906, type: 3}
+  - {fileID: 21300000, guid: 471ce80321cc3014895c22f16ec36275, type: 3}
+  selectedGlowColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+  idleSpriteBrightness: 0.6
+  buttonSize: 130
   buttonSpacing: 20
   buttonRowY: 130
   idleButtonAlpha: 0.45
@@ -2317,18 +2430,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Hud.ScoreBoardHud
   font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
-  enFontRatio: 0.15
-  rankFontRatio: 0.18
+  enFontRatio: 0.11
+  rankFontRatio: 0.12
   bestFontRatio: 0.105
   labelFontRatio: 0.04
   marginRatio: 0.02
   sortingOrder: 50
-  enColor: {r: 1, g: 1, b: 1, a: 1}
-  labelColor: {r: 1, g: 1, b: 1, a: 0.85}
-  bestColor: {r: 1, g: 0.84, b: 0.3, a: 1}
-  newBestColor: {r: 1, g: 0.95, b: 0.45, a: 1}
-  gaugeColor: {r: 1, g: 0.78, b: 0.2, a: 1}
-  backplateColor: {r: 0, g: 0, b: 0, a: 0.38}
+  washiEnColor: {r: 0.17, g: 0.17, b: 0.16, a: 1}
+  washiLabelColor: {r: 0.37, g: 0.37, b: 0.35, a: 1}
+  washiBestColor: {r: 0.52, g: 0.31, b: 0.04, a: 1}
+  washiNewBestColor: {r: 0.66, g: 0.18, b: 0.16, a: 1}
+  plaqueLabelColor: {r: 0.25, g: 0.14, b: 0.01, a: 1}
+  plaqueGaugeBackColor: {r: 0.39, g: 0.22, b: 0.02, a: 0.45}
+  plaqueGaugeColor: {r: 0.94, g: 0.62, b: 0.15, a: 1}
 --- !u!4 &1072269765
 Transform:
   m_ObjectHideFlags: 0
@@ -3327,7 +3441,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1715754125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6187,3 +6301,5 @@ SceneRoots:
   - {fileID: 756149435}
   - {fileID: 1275962935}
   - {fileID: 1749970099}
+  - {fileID: 570471675}
+  - {fileID: 160273777}

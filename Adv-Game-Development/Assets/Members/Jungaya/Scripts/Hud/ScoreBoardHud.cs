@@ -20,8 +20,9 @@ namespace Toufuku.Hud
     public class ScoreBoardHud : MonoBehaviour
     {
         // 既定の文字の大きさ（画面の高さに対するわりあい）
-        public const float DefaultEnFontRatio = 0.15f;
-        public const float DefaultRankFontRatio = 0.18f;
+        // 7m 先から読むのに要るのは約 0.10。板が画面をふさがないよう、それより少し大きいくらいにとどめる
+        public const float DefaultEnFontRatio = 0.11f;
+        public const float DefaultRankFontRatio = 0.12f;
         public const float DefaultBestFontRatio = 0.105f;
         public const float DefaultLabelFontRatio = 0.04f;
 
@@ -29,9 +30,9 @@ namespace Toufuku.Hud
         [SerializeField] Font font;
 
         [Header("文字の大きさ（画面の高さに対するわりあい）")]
-        [Tooltip("縁の数字。既定 0.15 は 50インチのモニターで約10m先から読める。")]
+        [Tooltip("縁の数字。既定 0.11 は 50インチのモニターで約7.7m先から読める。")]
         [SerializeField, Range(0.05f, 0.3f)] float enFontRatio = DefaultEnFontRatio;
-        [Tooltip("今のランクの文字。既定 0.18 は 50インチのモニターで約12m先から読める。")]
+        [Tooltip("今のランクの文字。既定 0.12 は 50インチのモニターで約8.4m先から読める。")]
         [SerializeField, Range(0.05f, 0.3f)] float rankFontRatio = DefaultRankFontRatio;
         [Tooltip("今日のベストの数字。既定 0.105 は 50インチのモニターで約7m先から読める。")]
         [SerializeField, Range(0.03f, 0.2f)] float bestFontRatio = DefaultBestFontRatio;
@@ -43,19 +44,27 @@ namespace Toufuku.Hud
         [SerializeField, Range(0f, 0.1f)] float marginRatio = 0.02f;
         [SerializeField] int sortingOrder = 50;
 
-        [Header("色")]
-        [SerializeField] Color enColor = Color.white;
-        [SerializeField] Color labelColor = new Color(1f, 1f, 1f, 0.85f);
-        [SerializeField] Color bestColor = new Color(1f, 0.84f, 0.3f);
-        [SerializeField] Color newBestColor = new Color(1f, 0.95f, 0.45f);
-        [SerializeField] Color gaugeColor = new Color(1f, 0.78f, 0.2f);
-        [SerializeField] Color backplateColor = new Color(0f, 0f, 0f, 0.38f);
+        /*
+            見た目は「神社の掲示物」: 左上のランクは木札、右上の縁は和紙の帯（板の絵は HudShapes がコードで描く）
+            明るい板の上に置くので、文字は墨・こげ茶・朱の濃い色にして、黒い縁取りはつけない
+        */
+        [Header("色（和紙の帯）")]
+        [SerializeField] Color washiEnColor = new Color(0.17f, 0.17f, 0.16f);
+        [SerializeField] Color washiLabelColor = new Color(0.37f, 0.37f, 0.35f);
+        [SerializeField] Color washiBestColor = new Color(0.52f, 0.31f, 0.04f);
+        [SerializeField] Color washiNewBestColor = new Color(0.66f, 0.18f, 0.16f);
+
+        [Header("色（木札）")]
+        [SerializeField] Color plaqueLabelColor = new Color(0.25f, 0.14f, 0.01f);
+        [SerializeField] Color plaqueGaugeBackColor = new Color(0.39f, 0.22f, 0.02f, 0.45f);
+        [SerializeField] Color plaqueGaugeColor = new Color(0.94f, 0.62f, 0.15f);
 
         RectTransform _canvas;
         Text _enValue;
         Text _bestLabel;
         Text _bestValue;
         Text _rankValue;
+        Outline _rankOutline;
         RectTransform _gaugeFill;
 
         bool _scoreSubscribed;
@@ -130,26 +139,35 @@ namespace Toufuku.Hud
         void BuildScoreBoard(int enSize, int bestSize, int labelSize, float margin, float pad)
         {
             float enRowH = enSize * 1.2f;
+            // 「今日のベスト」は数字の横ではなく上の段に置く（横に並べると帯の幅が見出しのぶん広がる）
+            float bestLabelRowH = labelSize * 1.3f;
             float bestRowH = bestSize * 1.2f;
-            // 数字1けたは約 0.6em。見出しのぶんも足す
-            float width = Mathf.Max(enSize * 0.6f * 5f + labelSize * 2f, bestSize * 0.6f * 5f + labelSize * 7f) + pad * 2f;
-            float height = enRowH + bestRowH + pad * 2f;
+            // 数字1けたは約 0.6em。見出しは「ベスト更新中！」の7文字ぶん
+            float width = Mathf.Max(enSize * 0.6f * 5f + labelSize * 2f, Mathf.Max(bestSize * 0.6f * 5f, labelSize * 7f)) + pad * 2f;
+            float height = enRowH + bestLabelRowH + bestRowH + pad * 2f;
+
+            float band = Mathf.Max(6f, height * 0.07f); // 上の朱の帯のぶん、文字を下げる
+            height += band;
 
             RectTransform board = HudUi.CreateRect(_canvas, "ScoreBoard", new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-margin, -margin), new Vector2(width, height));
-            HudUi.CreateImage(board, "Backplate", backplateColor);
+            HudUi.CreateImage(board, "Washi", Color.white).sprite = HudShapes.WashiBand(new Vector2(width, height));
 
             float rowW = width - pad * 2f;
 
             RectTransform enRow = HudUi.CreateRect(board, "EnRow", new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-pad, -pad), new Vector2(rowW, enRowH));
-            _enValue = HudUi.CreateText(enRow, "EnValue", font, enSize, TextAnchor.LowerRight, enColor);
-            CreateBaselineLabel(enRow, "EnLabel", "縁", labelSize, enSize, TextAnchor.LowerLeft, labelColor);
+                new Vector2(-pad, -pad - band), new Vector2(rowW, enRowH));
+            _enValue = HudUi.CreateText(enRow, "EnValue", font, enSize, TextAnchor.LowerRight, washiEnColor, false);
+            CreateBaselineLabel(enRow, "EnLabel", "縁", labelSize, enSize, TextAnchor.LowerLeft, washiLabelColor);
+
+            RectTransform bestLabelRow = HudUi.CreateRect(board, "BestLabelRow", new Vector2(1f, 1f), new Vector2(1f, 1f),
+                new Vector2(-pad, -pad - band - enRowH), new Vector2(rowW, bestLabelRowH));
+            _bestLabel = HudUi.CreateText(bestLabelRow, "BestLabel", font, labelSize, TextAnchor.LowerLeft, washiBestColor, false);
+            _bestLabel.text = "今日のベスト";
 
             RectTransform bestRow = HudUi.CreateRect(board, "BestRow", new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-pad, -pad - enRowH), new Vector2(rowW, bestRowH));
-            _bestValue = HudUi.CreateText(bestRow, "BestValue", font, bestSize, TextAnchor.LowerRight, bestColor);
-            _bestLabel = CreateBaselineLabel(bestRow, "BestLabel", "今日のベスト", labelSize, bestSize, TextAnchor.LowerLeft, bestColor);
+                new Vector2(-pad, -pad - band - enRowH - bestLabelRowH), new Vector2(rowW, bestRowH));
+            _bestValue = HudUi.CreateText(bestRow, "BestValue", font, bestSize, TextAnchor.LowerRight, washiBestColor, false);
         }
 
         // 左上: 今のランクと評価ゲージ
@@ -160,28 +178,35 @@ namespace Toufuku.Hud
             float gaugeH = Mathf.Max(12f, labelSize * 0.55f);
             float gaugeW = rankSize * 2.2f;
             float width = Mathf.Max(gaugeW, labelSize * 5.5f) + pad * 2f;
-            float height = labelRowH + rankRowH + gaugeH + pad * 3f;
+            // 上の吊るす穴と斜めの角のぶん、上を空ける
+            float top = pad + Mathf.Min(width, labelRowH + rankRowH) * 0.12f;
+            float height = top + labelRowH + rankRowH + gaugeH + pad * 2f;
 
             RectTransform board = HudUi.CreateRect(_canvas, "RankBoard", new Vector2(0f, 1f), new Vector2(0f, 1f),
                 new Vector2(margin, -margin), new Vector2(width, height));
-            HudUi.CreateImage(board, "Backplate", backplateColor);
+            HudUi.CreateImage(board, "Plaque", Color.white).sprite = HudShapes.WoodPlaque(new Vector2(width, height));
 
-            RectTransform labelRow = HudUi.CreateRect(board, "LabelRow", new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(pad, -pad), new Vector2(width - pad * 2f, labelRowH));
-            HudUi.CreateText(labelRow, "RankLabel", font, labelSize, TextAnchor.UpperLeft, labelColor).text = "神社ランク";
+            float innerW = width - pad * 2f;
+            RectTransform labelRow = HudUi.CreateRect(board, "LabelRow", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -top), new Vector2(innerW, labelRowH));
+            HudUi.CreateText(labelRow, "RankLabel", font, labelSize, TextAnchor.UpperCenter, plaqueLabelColor, false).text = "神社ランク";
 
-            RectTransform rankRow = HudUi.CreateRect(board, "RankRow", new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(pad, -pad - labelRowH), new Vector2(width - pad * 2f, rankRowH));
-            _rankValue = HudUi.CreateText(rankRow, "RankValue", font, rankSize, TextAnchor.LowerLeft, HudUi.RankColor(ShrineRank.C));
+            RectTransform rankRow = HudUi.CreateRect(board, "RankRow", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -top - labelRowH), new Vector2(innerW, rankRowH));
+            _rankValue = HudUi.CreateText(rankRow, "RankValue", font, rankSize, TextAnchor.LowerCenter, HudUi.RankInkColor(ShrineRank.C), false);
+            _rankOutline = _rankValue.gameObject.AddComponent<Outline>();
+            _rankOutline.effectColor = HudShapes.WoodEdge;
+            _rankOutline.effectDistance = new Vector2(3f, -3f);
+            _rankOutline.enabled = false;
 
-            RectTransform gauge = HudUi.CreateRect(board, "Gauge", new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(pad, -pad * 2f - labelRowH - rankRowH), new Vector2(gaugeW, gaugeH));
-            HudUi.CreateImage(gauge, "GaugeBack", new Color(0f, 0f, 0f, 0.55f));
+            RectTransform gauge = HudUi.CreateRect(board, "Gauge", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -top - pad - labelRowH - rankRowH), new Vector2(gaugeW, gaugeH));
+            HudUi.CreateImage(gauge, "GaugeBack", plaqueGaugeBackColor);
 
             _gaugeFill = HudUi.CreateRect(gauge, "GaugeFill", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
             HudUi.Stretch(_gaugeFill);
             Image fill = _gaugeFill.gameObject.AddComponent<Image>();
-            fill.color = gaugeColor;
+            fill.color = plaqueGaugeColor;
             fill.raycastTarget = false;
         }
 
@@ -193,7 +218,7 @@ namespace Toufuku.Hud
         {
             float lift = HudUi.DescenderRatio * (bigSize - labelSize);
             RectTransform rt = HudUi.CreateRect(row, name, Vector2.zero, Vector2.zero, new Vector2(0f, lift), new Vector2(row.sizeDelta.x, labelSize * 1.5f));
-            Text label = HudUi.CreateText(rt, "Text", font, labelSize, alignment, color);
+            Text label = HudUi.CreateText(rt, "Text", font, labelSize, alignment, color, false);
             label.text = text;
             return label;
         }
@@ -328,22 +353,22 @@ namespace Toufuku.Hud
                 // 今日はじめてのプレイ。くらべる相手がまだいない
                 _bestLabel.text = "今日のベスト";
                 _bestValue.text = "―";
-                _bestLabel.color = bestColor;
-                _bestValue.color = bestColor;
+                _bestLabel.color = washiBestColor;
+                _bestValue.color = washiBestColor;
             }
             else if (_en > before)
             {
                 _bestLabel.text = "ベスト更新中！";
                 _bestValue.text = HudUi.FormatScore(_en);
-                _bestLabel.color = newBestColor;
-                _bestValue.color = newBestColor;
+                _bestLabel.color = washiNewBestColor;
+                _bestValue.color = washiNewBestColor;
             }
             else
             {
                 _bestLabel.text = "今日のベスト";
                 _bestValue.text = HudUi.FormatScore(before);
-                _bestLabel.color = bestColor;
-                _bestValue.color = bestColor;
+                _bestLabel.color = washiBestColor;
+                _bestValue.color = washiBestColor;
             }
         }
 
@@ -351,7 +376,9 @@ namespace Toufuku.Hud
         {
             if (_rankValue == null) return;
             _rankValue.text = _rank.ToString();
-            _rankValue.color = HudUi.RankColor(_rank);
+            _rankValue.color = HudUi.RankInkColor(_rank);
+            // 金の S だけ、木の上で沈まないようにこげ茶でふちどる
+            if (_rankOutline != null) _rankOutline.enabled = _rank == ShrineRank.S;
             if (_gaugeFill != null) _gaugeFill.anchorMax = new Vector2(Mathf.Clamp01(_ratingNormalized), 1f);
         }
     }

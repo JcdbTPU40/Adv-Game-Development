@@ -85,6 +85,12 @@ namespace Toufuku.Menu
         [SerializeField] Font font;
         [Tooltip("ロゴ・見出しのフォント（明朝などを入れる）。未設定なら font と同じ")]
         [SerializeField] Font titleFont;
+        [Tooltip("タイトルの「大幣を振って開始」「ボタンを押して開始」の筆文字フォント。未設定なら titleFont → font")]
+        [SerializeField] Font promptFont;
+        [Tooltip("タイトルの地の色")]
+        [SerializeField] Color titleBackground = Color.white;
+        [Tooltip("タイトルの「〜して開始」の色")]
+        [SerializeField] Color titlePromptColor = Color.black;
         [SerializeField] int sortingOrder = 50;
 
         [Header("デバッグ")]
@@ -216,6 +222,8 @@ namespace Toufuku.Menu
             const string dir = "Assets/Members/Jungaya/Textures/Menu/";
             if (logoSprite == null) logoSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(dir + "Menu_Logo.png");
             if (crestSprite == null) crestSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(dir + "Menu_CrestMask.png");
+            // チームのタイトルの筆文字（小林さんが入れた 玉ねぎ楷書「激」）
+            if (promptFont == null) promptFont = UnityEditor.AssetDatabase.LoadAssetAtPath<Font>("Assets/Members/Kobayashi/font/玉ねぎ楷書激無料版v7改.ttf");
             string[] names = { "Enmusubi", "Kinun", "Yakuyoke", "Kenkou", "Gakugyou" };
             if (omamoriSprites == null || omamoriSprites.Length != names.Length) omamoriSprites = new Sprite[names.Length];
             for (int i = 0; i < names.Length; i++)
@@ -300,6 +308,8 @@ namespace Toufuku.Menu
 
             move += ReadTilt();
             decide |= ReadSwing();
+            // 押した瞬間を取りこぼさないよう、毎フレーム見ておく
+            _colorPressed = ColorPressedThisFrame();
 
             if (_flashStart >= 0f) return;
 
@@ -351,7 +361,8 @@ namespace Toufuku.Menu
                     if (elapsed >= omamoriSeconds) StartFlash(() => Show(Page.Logo, true));
                     break;
                 case Page.Logo:
-                    if (accept)
+                    // 「ボタンを押して開始」なので、色ボタンを押しても始める
+                    if (accept || (elapsed >= MinPhaseSeconds && _colorPressed))
                     {
                         Play(decideClip);
                         Show(Page.Top);
@@ -513,6 +524,22 @@ namespace Toufuku.Menu
             ShowToast("正面を合わせました", now);
             Log($"正面合わせ 基準ヨー={_raw.Yaw:0.0}");
             return true;
+        }
+
+        // 色ボタンのどれかが、このフレームで押されたか（押しっぱなしは数えない）
+        readonly bool[] _prevColorHeld = new bool[InputStateMachine.ColorCount];
+        bool _colorPressed;
+        bool ColorPressedThisFrame()
+        {
+            if (_raw == null) return false;
+            bool pressed = false;
+            for (int i = 0; i < _prevColorHeld.Length; i++)
+            {
+                bool held = _raw.IsColorHeld(i);
+                if (held && !_prevColorHeld[i]) pressed = true;
+                _prevColorHeld[i] = held;
+            }
+            return pressed;
         }
 
         bool AnyColorHeld()
@@ -946,36 +973,45 @@ namespace Toufuku.Menu
             };
         }
 
+        /*
+            タイトル（チームのイメージ: 白地にロゴ、その下に筆文字で「〜して開始」）
+            ・お守りの光（白）からそのまま白地のタイトルにつながる
+            ・大幣がつながっていれば「大幣を振って開始」、なければ「ボタンを押して開始」
+            ・振る・色ボタン・Enter・クリックのどれでも始まる
+        */
         void BuildLogo()
         {
             PageView page = NewPage(Page.Logo);
             page.Cinematic = true;
             page.Zoom = 1f;
-            // ロゴの絵にも鳥居があるので、背景の鳥居とけんかしないよう暗めに
-            page.Dim = logoSprite != null ? 0.55f : 0.25f;
+            page.Dim = 0f;
 
-            RectTransform logo = BuildLogoMark(page.Rect, new Vector2(0f, 110f), 1f, true);
+            HudUi.CreateImage(page.Rect, "Paper", titleBackground);
+            RectTransform logo = BuildLogoMark(page.Rect, new Vector2(0f, 120f), 1.12f, true, false);
 
-            _logoPrompt = Txt(page.Rect, "Prompt", new Vector2(0f, -330f), new Vector2(1200f, 60f), 40, Cream);
-            page.OnShow = () => _logoPrompt.text = ControllerReady ? "大幣を振ってはじめる" : "Enter・クリックではじめる";
+            Font f = promptFont != null ? promptFont : (titleFont != null ? titleFont : font);
+            RectTransform promptRect = Rect(page.Rect, "Prompt", new Vector2(0f, -360f), new Vector2(1600f, 150f));
+            _logoPrompt = HudUi.CreateText(promptRect, "Text", f, 112, TextAnchor.MiddleCenter, titlePromptColor, false);
+            page.OnShow = () => _logoPrompt.text = ControllerReady ? "大幣を振って開始" : "ボタンを押して開始";
             page.Tick = e =>
             {
                 // 光のあとに、少し大きいところから落ちついてくる
                 float t = Mathf.Clamp01(e / 0.7f);
-                logo.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, 1f - (1f - t) * (1f - t));
-                Color c = _logoPrompt.color;
-                c.a = e < 1f ? 0f : 0.35f + 0.65f * (0.5f + 0.5f * Mathf.Sin((e - 1f) * 3.4f));
+                logo.localScale = Vector3.one * 1.12f * Mathf.Lerp(1.08f, 1f, 1f - (1f - t) * (1f - t));
+                // 文字は少し遅れて出て、ゆっくり明滅する（消えきらない）
+                Color c = titlePromptColor;
+                c.a = e < 0.8f ? 0f : Mathf.Min(Mathf.Clamp01((e - 0.8f) / 0.4f), 0.55f + 0.45f * (0.5f + 0.5f * Mathf.Cos((e - 1.2f) * 3f)));
                 _logoPrompt.color = c;
             };
         }
 
         // ロゴ。素材があればその画像、なければ しめ縄・紙垂・「投福神社」・「とうふくじんじゃ」を描く
-        RectTransform BuildLogoMark(RectTransform parent, Vector2 pos, float scale, bool rope)
+        RectTransform BuildLogoMark(RectTransform parent, Vector2 pos, float scale, bool rope, bool glow = true)
         {
             RectTransform root = Rect(parent, "Logo", pos, new Vector2(1400f, 600f));
             root.localScale = Vector3.one * scale;
 
-            Img(root, "Glow", MenuArt.Glow, Vector2.zero, new Vector2(1600f, 760f), MenuArt.Hex("#ffbe5a", 0.3f));
+            if (glow) Img(root, "Glow", MenuArt.Glow, Vector2.zero, new Vector2(1600f, 760f), MenuArt.Hex("#ffbe5a", 0.3f));
             if (logoSprite != null)
             {
                 // 2000×1007 の絵。幅 1340 で高さ 675
@@ -1585,7 +1621,7 @@ namespace Toufuku.Menu
         {
             return new List<StageInfo>
             {
-                new StageInfo { id = "1-1", label = "1-1", title = "朝の参道", sceneName = "GameScene", mapPosition = new Vector2(230f, 150f),
+                new StageInfo { id = "1-1", label = "1-1", title = "朝の参道", sceneName = "TestGame", mapPosition = new Vector2(230f, 150f),
                     description = "はじめてのお参り。大幣の振り方と、お守りの投げ方を覚えよう。" },
                 new StageInfo { id = "1-2", label = "1-2", title = "昼の境内", sceneName = "GameScene", mapPosition = new Vector2(760f, 370f),
                     description = "参拝客がふえてくる。願いの色を見分けて、すばやく届けよう。" },
