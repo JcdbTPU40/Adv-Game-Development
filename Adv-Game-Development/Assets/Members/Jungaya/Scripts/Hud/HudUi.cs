@@ -131,6 +131,18 @@ namespace Toufuku.Hud
             }
         }
 
+        // 木札の上に墨で書くランクの色。C は墨、B は深緑、A は朱、S は金（S だけこげ茶でふちどる）
+        public static Color RankInkColor(ShrineRank rank)
+        {
+            switch (rank)
+            {
+                case ShrineRank.S: return new Color(1f, 0.80f, 0.20f);
+                case ShrineRank.A: return new Color(0.66f, 0.16f, 0.12f);
+                case ShrineRank.B: return new Color(0.13f, 0.36f, 0.16f);
+                default:           return new Color(0.17f, 0.11f, 0.06f);
+            }
+        }
+
 #if UNITY_EDITOR
         // エディタで付けたときに、プロジェクトの日本語フォントを探して入れる
         public static Font FindProjectJapaneseFont()

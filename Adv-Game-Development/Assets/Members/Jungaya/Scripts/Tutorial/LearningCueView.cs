@@ -42,6 +42,14 @@ namespace Toufuku.Tutorial
         [SerializeField] OmamoriPalette palette;
         [SerializeField] int sortingOrder = 60;
 
+        [Header("ボタンの列の絵（ボタン箱のならび: 健康・学業成就・厄除け安全・縁結び・金運）")]
+        [Tooltip("お守りの絵。入っている色は四角の代わりにこの絵を出す（色をかけずにそのまま。脈動していないときはうすく暗くする）。")]
+        [SerializeField] Sprite[] buttonSprites = new Sprite[ColorCount];
+        [Tooltip("今選んでいる色のお守りのまわりに出す金のふちどり。")]
+        [SerializeField] Color selectedGlowColor = new Color(1f, 0.85f, 0.3f, 1f);
+        [Tooltip("脈動していない絵の明るさ（0〜1）。")]
+        [SerializeField, Range(0f, 1f)] float idleSpriteBrightness = 0.6f;
+
         [Header("ボタンの列（1080 基準のピクセル）")]
         [SerializeField, Min(10f)] float buttonSize = 72f;
         [SerializeField, Min(0f)] float buttonSpacing = 20f;
@@ -124,9 +132,19 @@ namespace Toufuku.Tutorial
                 if (_buttons[i] == null) continue;
                 float amount = Mathf.Clamp01(Mathf.Max(_pulse[i], _ghostPulse[i]));
                 bool selected = i == _selected;
-                Color c = ColorOf(i);
-                c.a = selected ? 1f : Mathf.Lerp(idleButtonAlpha, 1f, amount);
-                _buttons[i].color = Color.Lerp(c, Color.white, amount * 0.25f);
+                if (HasSprite(i))
+                {
+                    // 絵は色をかけずに、明るさとうすさだけ変える
+                    float v = selected ? 1f : Mathf.Lerp(idleSpriteBrightness, 1f, amount);
+                    float a = selected ? 1f : Mathf.Lerp(Mathf.Max(idleButtonAlpha, 0.75f), 1f, amount);
+                    _buttons[i].color = new Color(v, v, v, a);
+                }
+                else
+                {
+                    Color c = ColorOf(i);
+                    c.a = selected ? 1f : Mathf.Lerp(idleButtonAlpha, 1f, amount);
+                    _buttons[i].color = Color.Lerp(c, Color.white, amount * 0.25f);
+                }
                 _buttonRects[i].localScale = Vector3.one * Mathf.Max(selected ? selectedScale : 1f, Mathf.Lerp(1f, pulseScale, amount));
                 _selectFrames[i].enabled = selected;
             }
@@ -224,11 +242,22 @@ namespace Toufuku.Tutorial
                     new Vector2(x, y), new Vector2(buttonSize, buttonSize));
                 Image image = rt.gameObject.AddComponent<Image>();
                 image.raycastTarget = false;
-                image.color = ColorOf(i);
+                bool hasSprite = HasSprite(i);
+                if (hasSprite)
+                {
+                    image.sprite = buttonSprites[i];
+                    image.preserveAspect = true;
+                    image.color = Color.white;
+                }
+                else
+                {
+                    image.color = ColorOf(i);
+                }
 
+                // 四角は白い枠、お守りの絵は絵の形にそった金のふちどり
                 Outline frame = rt.gameObject.AddComponent<Outline>();
-                frame.effectColor = Color.white;
-                frame.effectDistance = new Vector2(5f, -5f);
+                frame.effectColor = hasSprite ? selectedGlowColor : Color.white;
+                frame.effectDistance = hasSprite ? new Vector2(4f, 4f) : new Vector2(5f, -5f);
                 frame.useGraphicAlpha = false;
                 frame.enabled = false;
 
@@ -258,6 +287,11 @@ namespace Toufuku.Tutorial
             bool ghostNeedsRow = false;
             for (int i = 0; i < ColorCount; i++) ghostNeedsRow |= _ghostPulse[i] > 0f;
             _row.gameObject.SetActive(_rowRequested || (_ghost != null && ghostNeedsRow));
+        }
+
+        bool HasSprite(int index)
+        {
+            return buttonSprites != null && index >= 0 && index < buttonSprites.Length && buttonSprites[index] != null;
         }
 
         Color ColorOf(int index)
