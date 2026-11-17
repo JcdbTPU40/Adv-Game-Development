@@ -728,7 +728,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bce58546d1f9b645b83c23ad998f970, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StartScript
-  sceneName: GameScene_K
+  sceneName: TestGame_K
   fusumaTransition: {fileID: 777600100201}
 --- !u!4 &1348011344
 Transform:
@@ -838,6 +838,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
   leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  openSe: {fileID: 8300000, guid: eb2f1f9f4e232684582a5c00c3395953, type: 3}
+  closeSe: {fileID: 8300000, guid: 3facdd23eb905be4ba79012527276dc9, type: 3}
+  seVolume: 1
   slideDuration: 0.65
   slideCurve:
     serializedVersion: 2

@@ -13,6 +13,11 @@ public class TimeUpImageDisplay : MonoBehaviour
     [SerializeField] private Sprite leftPanelSprite;
     [SerializeField] private Sprite rightPanelSprite;
 
+    [Header("襖の効果音")]
+    [SerializeField] private AudioClip openSe;
+    [SerializeField] private AudioClip closeSe;
+    [SerializeField, Range(0f, 1f)] private float seVolume = 1f;
+
     [Header("スライド演出")]
     [SerializeField, Min(0f)] private float slideDuration = 0.8f;
     [SerializeField] private AnimationCurve slideCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
@@ -245,6 +250,7 @@ public class TimeUpImageDisplay : MonoBehaviour
 
     private IEnumerator SlidePanelsIntoPlace()
     {
+        PlayFusumaSe(closeSe);
         float duration = Mathf.Max(0f, slideDuration);
         if (duration <= 0f)
         {
@@ -271,6 +277,7 @@ public class TimeUpImageDisplay : MonoBehaviour
 
     private IEnumerator SlidePanelsOutward()
     {
+        PlayFusumaSe(openSe);
         float duration = Mathf.Max(0f, slideDuration);
         if (duration <= 0f)
         {
@@ -301,6 +308,32 @@ public class TimeUpImageDisplay : MonoBehaviour
         {
             overlayCanvas.gameObject.SetActive(false);
         }
+    }
+
+    private void PlayFusumaSe(AudioClip clip)
+    {
+        if (clip == null)
+        {
+            Debug.LogWarning("襖のSEがInspectorに設定されていません。", this);
+            return;
+        }
+
+        if (clip.loadState == AudioDataLoadState.Unloaded)
+        {
+            clip.LoadAudioData();
+        }
+
+        // 遷移元のシーンが閉じるSEの途中で破棄されても、最後まで聞こえるよう独立して再生します。
+        GameObject audioObject = new GameObject("FusumaSEAudioSource", typeof(AudioSource));
+        AudioSource audioSource = audioObject.GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+        DontDestroyOnLoad(audioObject);
+        audioSource.PlayOneShot(clip, seVolume);
+        Debug.Log($"襖SEを再生します: {clip.name} (読込状態: {clip.loadState})", this);
+        // AudioClip.length がデータ読込前に 0 を返す環境でも、再生中にSourceを破棄しない。
+        Destroy(audioObject, Mathf.Max(clip.length + 1f, 5f));
     }
 
     private void StopSlide()

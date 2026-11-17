@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 4232933}
   - component: {fileID: 4232938}
   - component: {fileID: 2026110402}
+  - component: {fileID: 2026111701}
   m_Layer: 0
   m_Name: CountDownManager
   m_TagString: Untagged
@@ -160,6 +161,7 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  showRankLetter: 1
   rankFontSize: 64
   rankTextColor: {r: 1, g: 1, b: 1, a: 1}
   rankTopLeftOffset: {x: 36, y: -36}
@@ -178,6 +180,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimeUpImageDisplay
   leftPanelSprite: {fileID: 1321839265, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
   rightPanelSprite: {fileID: 644957669, guid: f51540ddc9cfc224b8aa3a0b3eb5f478, type: 3}
+  openSe: {fileID: 8300000, guid: eb2f1f9f4e232684582a5c00c3395953, type: 3}
+  closeSe: {fileID: 8300000, guid: 3facdd23eb905be4ba79012527276dc9, type: 3}
+  seVolume: 1
   slideDuration: 0.65
   slideCurve:
     serializedVersion: 2
@@ -293,6 +298,7 @@ MonoBehaviour:
   topRightOffset: {x: -36, y: -36}
   textAreaSize: {x: 600, y: 100}
   sortingOrder: 50
+  showRankLetter: 1
   rankFontSize: 64
   rankTextColor: {r: 1, g: 1, b: 1, a: 1}
   rankTopLeftOffset: {x: 36, y: -36}
@@ -2155,6 +2161,8 @@ MonoBehaviour:
   omamoriSelector: {fileID: 839193286}
   sideSwingBulletPrefab: {fileID: -8531969900583564061, guid: 603b21bb731ac7a46b216d0346a620fb, type: 3}
   spawnPoint: {fileID: 607264995}
+  requiredSwingCount: 5
+  swingTimeLimit: 3
 --- !u!1001 &987733337
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2413,6 +2421,7 @@ GameObject:
   - component: {fileID: 1072269764}
   - component: {fileID: 2026110401}
   - component: {fileID: 2026111001}
+  - component: {fileID: 2026111702}
   m_Layer: 0
   m_Name: ScoreBoardHud
   m_TagString: Untagged
@@ -3637,7 +3646,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: e3b3b9d883c76cd4fbc1d3d0c84a6a66, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.65
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -3859,6 +3868,92 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8170744685537866841, guid: f086ca92b19bd6247a6e79a1bbf3ca47, type: 3}
   m_PrefabInstance: {fileID: 884747132}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2026110401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1072269762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e1c75651a6a54649a726b8e4a624060, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Hud.ResultScreen
+  font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
+  sortingOrder: 60
+  showLastResult: 0
+  retrySceneName: GameScene
+  titleColor: {r: 1, g: 1, b: 1, a: 1}
+  enColor: {r: 1, g: 1, b: 1, a: 1}
+  bestColor: {r: 1, g: 0.84, b: 0.3, a: 1}
+  newRecordColor: {r: 1, g: 0.95, b: 0.45, a: 1}
+--- !u!114 &2026110402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4232931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcb0cf0a87bd4f47ab35c5fcbe8eb5c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ReturnToStartAfterSession
+  returnSceneName: Assets/Members/Kobayashi/Scenes/Start.unity
+  resultInputLockDuration: 3
+--- !u!114 &2026111001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1072269762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a087cdd7b8be4dc696035efcee138b90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonthPlaqueHud
+  rankBoard: {fileID: 0}
+  font: {fileID: 11400000, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
+  fontSize: 48
+  textColor: {r: 0.25, g: 0.14, b: 0.01, a: 1}
+  plaqueHeight: 100
+  gapFromRankBoard: 12
+  monthNumberOffset: 0
+  flipDuration: 0.36
+--- !u!114 &2026111701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4232931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1df5d9f14f3431a9f1a0f950ce1c5f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CountdownSlideInUI
+  targetCanvasName: CurrentScoreCanvas
+  slideDirection: {x: 1, y: 0}
+  slideDistance: 1000
+  slideDuration: 0.8
+--- !u!114 &2026111702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1072269762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1df5d9f14f3431a9f1a0f950ce1c5f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CountdownSlideInUI
+  targetCanvasName: ScoreBoardHudCanvas
+  slideDirection: {x: 0, y: 1}
+  slideDistance: 700
+  slideDuration: 0.8
 --- !u!1 &2027243687
 GameObject:
   m_ObjectHideFlags: 0
@@ -6306,57 +6401,3 @@ SceneRoots:
   - {fileID: 1749970099}
   - {fileID: 570471675}
   - {fileID: 160273777}
---- !u!114 &2026110401
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072269762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e1c75651a6a54649a726b8e4a624060, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Hud.ResultScreen
-  font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
-  sortingOrder: 60
-  showLastResult: 0
-  retrySceneName: GameScene
-  titleColor: {r: 1, g: 1, b: 1, a: 1}
-  enColor: {r: 1, g: 1, b: 1, a: 1}
-  bestColor: {r: 1, g: 0.84, b: 0.3, a: 1}
-  newRecordColor: {r: 1, g: 0.95, b: 0.45, a: 1}
-
---- !u!114 &2026110402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4232931}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bcb0cf0a87bd4f47ab35c5fcbe8eb5c7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ReturnToStartAfterSession
-  returnSceneName: Assets/Members/Kobayashi/Scenes/Start.unity
-  resultInputLockDuration: 3
---- !u!114 &2026111001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072269762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a087cdd7b8be4dc696035efcee138b90, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MonthPlaqueHud
-  rankBoard: {fileID: 0}
-  font: {fileID: 11400000, guid: 8642ae62389e65f4e9704ae38d8ac9c8, type: 2}
-  fontSize: 48
-  textColor: {r: 0.25, g: 0.14, b: 0.01, a: 1}
-  plaqueHeight: 100
-  gapFromRankBoard: 12
-  monthNumberOffset: 0
