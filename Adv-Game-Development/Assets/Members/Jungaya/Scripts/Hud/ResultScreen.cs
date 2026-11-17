@@ -15,58 +15,73 @@ namespace Toufuku.Hud
             神社の称号: プレイ中の最高ランク（最終ランクではない。終盤の負荷ウェーブで評価が下がっても達成の記録を消さない）
             今日のベスト: 今回で更新したら大きく祝う
             最大の福の連なり
-        ・「もう一度」ボタンで GameSession.Retry()
-        ・Canvas はコードで組み立てるので、シーンの空の GameObject に付けるだけで動く。EventSystem がなければ足す（ボタンを押せるように）
+        ・見た目は ResultScreenView プレハブ（Canvas とオブジェクト）と AnimationClip。位置・文字・色・動きは、プレハブを開いて変える。
+          このスクリプトは、出す・消すと、値をわたすだけ
+            画面は、子に ResultScreenView が置いてあればそれを使う。なければ viewPrefab、それも空なら Resources の ResultScreenView を出す
+            （だから、シーンの空の GameObject にこのスクリプトを付けるだけで動く）
+            出した画面の名前は ResultScreenCanvas にする（小林さんのスクリプトが、この名前で中の部品を探している）
+        ・ボタン「タイトルへ」でタイトルのシーンへもどる（ゲームショウで次の人に交代するため）
+            もどる先は、シーンに ExhibitAutoReturn があればそちらの titleSceneName（自動復帰と同じ所）。なければ titleSceneName
+            どちらも開けないとき（テスト用のシーンなど）は、前と同じ「もう一度」になる
         ・showLastResult を ON にすると、リザルト専用のシーン（ResultScene）用になる
             開いたらすぐ LastSessionResult（GameScene で ResultSceneTransition が写した値）を出す
-            「もう一度」は retrySceneName のシーン（GameScene）を開きなおす
     */
     public class ResultScreen : MonoBehaviour
     {
         // 今リザルトを出しているか（テスト用の SessionHud が、かんたんなリザルトを重ねないために見る）
         public static bool IsShowing { get; private set; }
 
-        [Header("フォント（NotoSansJP の .ttf を入れる。未設定なら組み込みフォント）")]
+        const string ViewName = "ResultScreenCanvas";
+        const string ViewResource = "ResultScreenView";
+
+        [Header("画面（未設定なら Resources の ResultScreenView。子に置いてあれば、それを使う）")]
+        [SerializeField] ResultScreenView viewPrefab;
+        [Tooltip("入れてあれば、画面の文字をぜんぶこのフォントにする（未設定なら、プレハブのフォントのまま）")]
         [SerializeField] Font font;
-        [SerializeField] int sortingOrder = 60;
 
         [Header("リザルト専用のシーン（ResultScene）で使うとき")]
         [Tooltip("ON なら開いたらすぐ LastSessionResult を出す（GameSession を見ない）")]
         [SerializeField] bool showLastResult;
-        [Tooltip("「もう一度」で開くシーン名（showLastResult が ON のとき）")]
+        [Tooltip("タイトルへもどれないときに「もう一度」で開くシーン名（showLastResult が ON のとき）")]
         [SerializeField] string retrySceneName = "GameScene";
 
-        [Header("色")]
-        [SerializeField] Color titleColor = Color.white;
-        [SerializeField] Color enColor = Color.white;
-        [SerializeField] Color bestColor = new Color(1f, 0.84f, 0.3f);
-        [SerializeField] Color newRecordColor = new Color(1f, 0.95f, 0.45f);
+        [Header("ボタン「タイトルへ」")]
+        [Tooltip("もどる先のシーン名。シーンに ExhibitAutoReturn があれば、そちらの titleSceneName を使う")]
+        [SerializeField] string titleSceneName = "Start";
 
-        RectTransform _canvas;
-        Text _enValue;
-        Text _titleValue;
-        Text _bestText;
-        Text _chainText;
+        ResultScreenView _view;
         bool _shown;
 
         // 確認用: 表示した値
         public int ShownEn { get; private set; }
         public ShrineRank ShownTitle { get; private set; }
         public bool ShownNewRecord { get; private set; }
-        public string BestText => _bestText != null ? _bestText.text : null;
-
-#if UNITY_EDITOR
-        void Reset()
-        {
-            font = HudUi.FindProjectJapaneseFont();
-        }
-#endif
+        public string BestText => _view != null ? _view.BestText : null;
 
         void Awake()
         {
             DailyBestRecorder.Ensure();
-            Build();
-            _canvas.gameObject.SetActive(false);
+            CreateView();
+        }
+
+        void CreateView()
+        {
+            _view = GetComponentInChildren<ResultScreenView>(true);
+            if (_view == null)
+            {
+                ResultScreenView prefab = viewPrefab != null ? viewPrefab : Resources.Load<ResultScreenView>(ViewResource);
+                if (prefab == null)
+                {
+                    Debug.LogError($"[ResultScreen] 画面のプレハブがありません（Resources/{ViewResource}）", this);
+                    return;
+                }
+                _view = Instantiate(prefab, transform);
+            }
+            _view.name = ViewName;
+            if (font != null)
+                foreach (Text text in _view.GetComponentsInChildren<Text>(true)) text.font = font;
+            _view.NextPressed += OnNext;
+            _view.gameObject.SetActive(false);
         }
 
         void OnDisable()
@@ -76,6 +91,8 @@ namespace Toufuku.Hud
 
         void Update()
         {
+            if (_view == null) return;
+
             if (showLastResult)
             {
                 if (!_shown) Show();
@@ -90,16 +107,17 @@ namespace Toufuku.Hud
 
         void Show()
         {
-            Populate();
             EnsureEventSystem();
-            _canvas.gameObject.SetActive(true);
+            // 先に出してから値を入れる（出したときに Animator が頭から始まる）
+            _view.gameObject.SetActive(true);
+            Populate();
             _shown = true;
             IsShowing = true;
         }
 
         void Hide()
         {
-            if (_canvas != null) _canvas.gameObject.SetActive(false);
+            if (_view != null) _view.gameObject.SetActive(false);
             _shown = false;
             IsShowing = false;
         }
@@ -126,28 +144,27 @@ namespace Toufuku.Hud
             ShownEn = en;
             ShownTitle = title;
             ShownNewRecord = newRecord;
-
-            _enValue.text = HudUi.FormatScore(ShownEn);
-            _titleValue.text = ShownTitle.ToString();
-            _titleValue.color = HudUi.RankColor(ShownTitle);
-
-            if (ShownNewRecord)
-            {
-                _bestText.text = $"★ 今日のベスト更新！ {HudUi.FormatScore(todayBest)} ★";
-                _bestText.color = newRecordColor;
-                _bestText.fontSize = 84;
-            }
-            else
-            {
-                _bestText.text = $"今日のベスト  {HudUi.FormatScore(todayBest)}";
-                _bestText.color = bestColor;
-                _bestText.fontSize = 64;
-            }
-
-            _chainText.text = $"最大の福の連なり  {maxCombo}";
+            _view.Fill(en, title, newRecord, todayBest, maxCombo);
         }
 
-        void OnRetry()
+        // ボタン: タイトルへ。もどれなければ、もう一度
+        void OnNext()
+        {
+            ExhibitAutoReturn autoReturn = FindAnyObjectByType<ExhibitAutoReturn>();
+            if (autoReturn != null && autoReturn.ReturnToTitle("リザルトのボタン")) return;
+
+            if (!string.IsNullOrEmpty(titleSceneName) && Application.CanStreamedLevelBeLoaded(titleSceneName))
+            {
+                Time.timeScale = 1f;
+                SceneManager.LoadScene(titleSceneName, LoadSceneMode.Single);
+                return;
+            }
+
+            Debug.LogWarning($"[ResultScreen] タイトルのシーン「{titleSceneName}」が Build Settings にないので、もう一度にします", this);
+            Retry();
+        }
+
+        void Retry()
         {
             if (showLastResult)
             {
@@ -168,60 +185,6 @@ namespace Toufuku.Hud
             if (EventSystem.current != null) return;
             if (FindAnyObjectByType<EventSystem>() != null) return;
             new GameObject("EventSystem (ResultScreen)", typeof(EventSystem), typeof(InputSystemUIInputModule));
-        }
-
-        // ---------- 組み立て（1920×1080 基準のピクセル） ----------
-
-        void Build()
-        {
-            _canvas = HudUi.CreateCanvas(transform, "ResultScreenCanvas", sortingOrder);
-            HudUi.CreateImage(_canvas, "Dim", new Color(0f, 0f, 0f, 0.72f));
-
-            Vector2 top = new Vector2(0.5f, 1f);
-            RectTransform panel = HudUi.CreateRect(_canvas, "Panel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(1400f, 960f));
-            HudUi.CreateImage(panel, "Backplate", new Color(0.08f, 0.06f, 0.1f, 0.92f));
-
-            Row(panel, "Title", top, new Vector2(0f, -40f), new Vector2(1300f, 90f), 60, TextAnchor.MiddleCenter, titleColor)
-                .text = "―― 三ヶ月が経ちました ――";
-
-            // 左: 縁
-            Row(panel, "EnLabel", top, new Vector2(-340f, -160f), new Vector2(620f, 80f), 56, TextAnchor.MiddleCenter, titleColor)
-                .text = "縁";
-            _enValue = Row(panel, "EnValue", top, new Vector2(-340f, -240f), new Vector2(620f, 300f), 220, TextAnchor.MiddleCenter, enColor);
-
-            // 右: 神社の称号（プレイ中の最高ランク）
-            Row(panel, "TitleLabel", top, new Vector2(340f, -160f), new Vector2(620f, 80f), 56, TextAnchor.MiddleCenter, titleColor)
-                .text = "神社の称号";
-            _titleValue = Row(panel, "TitleValue", top, new Vector2(340f, -240f), new Vector2(620f, 300f), 240, TextAnchor.MiddleCenter, Color.white);
-            Row(panel, "TitleNote", top, new Vector2(340f, -540f), new Vector2(620f, 50f), 36, TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.75f))
-                .text = "プレイ中の最高ランク";
-
-            _bestText = Row(panel, "Best", top, new Vector2(0f, -610f), new Vector2(1300f, 110f), 64, TextAnchor.MiddleCenter, bestColor);
-            _chainText = Row(panel, "Chain", top, new Vector2(0f, -725f), new Vector2(1300f, 60f), 44, TextAnchor.MiddleCenter, titleColor);
-
-            BuildRetryButton(panel, top);
-        }
-
-        Text Row(RectTransform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, int fontSize, TextAnchor alignment, Color color)
-        {
-            RectTransform rt = HudUi.CreateRect(parent, name, anchor, anchor, position, size);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = position;
-            return HudUi.CreateText(rt, "Text", font, fontSize, alignment, color);
-        }
-
-        void BuildRetryButton(RectTransform panel, Vector2 anchor)
-        {
-            RectTransform rt = HudUi.CreateRect(panel, "RetryButton", anchor, new Vector2(0.5f, 1f), new Vector2(0f, -810f), new Vector2(460f, 110f));
-            Image image = rt.gameObject.AddComponent<Image>();
-            image.color = new Color(0.85f, 0.2f, 0.25f, 1f);
-
-            Button button = rt.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            button.onClick.AddListener(OnRetry);
-
-            HudUi.CreateText(rt, "Label", font, 56, TextAnchor.MiddleCenter, Color.white).text = "もう一度";
         }
     }
 }
