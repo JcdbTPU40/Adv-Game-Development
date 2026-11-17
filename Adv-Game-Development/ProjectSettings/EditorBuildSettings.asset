@@ -35,6 +35,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Members/Jungaya/Scenes/TestGame.unity
     guid: 72622c80ad21f0f40a9d841560714e67
+  - enabled: 1
+    path: Assets/_Scenes/TitleScene.unity
+    guid: ed4866f50355a4a4cb46f40c9258e5c3
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
