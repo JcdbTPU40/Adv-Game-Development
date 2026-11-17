@@ -80,10 +80,7 @@ public sealed class ShrineTitleSdfFont : MonoBehaviour
 
     private IEnumerator ApplyAfterResultIsBuilt()
     {
-        // ResultScreenがラベルと値を組み立ててから、表示ラベルを更新します。
-        yield return null;
-        applyRoutine = null;
-
+        // リザルト生成側が評価文字を入れてから置き換え、空文字で大きな評価を消さないようにします。
         Transform titleLabelTransform = transform.Find("ResultScreenCanvas/Panel/TitleLabel/Text");
         Text titleLabel = titleLabelTransform != null ? titleLabelTransform.GetComponent<Text>() : null;
         if (titleLabel != null)
@@ -93,19 +90,29 @@ public sealed class ShrineTitleSdfFont : MonoBehaviour
 
         if (titleFont == null)
         {
+            applyRoutine = null;
             Debug.LogWarning("神社称号用のTMP SDFフォントがInspectorで設定されていません。", this);
             yield break;
         }
 
         Transform titleTextTransform = transform.Find("ResultScreenCanvas/Panel/TitleValue/Text");
-        if (titleTextTransform == null)
+        originalText = titleTextTransform != null ? titleTextTransform.GetComponent<Text>() : null;
+        if (originalText == null)
         {
+            applyRoutine = null;
             yield break;
         }
 
-        originalText = titleTextTransform.GetComponent<Text>();
-        if (originalText == null)
+        // ResultScreen.Updateが終わるまで最大8フレーム待ち、C/B/A/Sが入ってから複製します。
+        for (int frame = 0; frame < 8 && string.IsNullOrWhiteSpace(originalText.text); frame++)
         {
+            yield return new WaitForEndOfFrame();
+        }
+
+        applyRoutine = null;
+        if (string.IsNullOrWhiteSpace(originalText.text))
+        {
+            Debug.LogWarning("リザルトの評価文字が空のため、元の大きな評価表示を残します。", this);
             yield break;
         }
 

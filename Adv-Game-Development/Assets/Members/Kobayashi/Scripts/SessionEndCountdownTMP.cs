@@ -90,6 +90,7 @@ public class SessionEndCountdownTMP : MonoBehaviour
         }
 
         isStartingCountdown = true;
+        CountdownSlideInUI.PlayAll();
         Color previousColor = countdownText.color;
         Color startColor = previousColor;
         startColor.a = startOpacity;

@@ -295,7 +295,7 @@ public class ConecteController : MonoBehaviour
 
                 yaw = -sample.Yaw + yawOffset;
                 pitch = -sample.Pitch;
-                roll = -sample.Roll + rollOffset;
+                roll = sample.Roll + rollOffset;
                 buttons = sample.Buttons;
                 hasButtons = sample.HasButtons;
 

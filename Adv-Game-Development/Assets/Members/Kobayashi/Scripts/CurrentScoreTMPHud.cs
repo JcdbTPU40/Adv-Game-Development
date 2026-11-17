@@ -20,6 +20,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
     [SerializeField] private int sortingOrder = 50;
 
     [Header("神社の評価ランク")]
+    [SerializeField] private bool showRankLetter = true;
     [SerializeField, Min(1f)] private float rankFontSize = 64f;
     [SerializeField] private Color rankTextColor = Color.white;
     [SerializeField] private Vector2 rankTopLeftOffset = new Vector2(36f, -36f);
@@ -35,6 +36,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
         CreateScoreText();
         CreateRankText();
         HideLegacyRankLabel();
+        HideLegacyRankValue();
         TrySubscribe();
         TrySubscribeRating();
     }
@@ -46,7 +48,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
             TrySubscribe();
         }
 
-        if (subscribedShrineRating == null)
+        if (showRankLetter && subscribedShrineRating == null)
         {
             TrySubscribeRating();
         }
@@ -106,7 +108,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
 
     private void TrySubscribeRating()
     {
-        if (subscribedShrineRating != null || ShrineRating.Instance == null)
+        if (!showRankLetter || subscribedShrineRating != null || ShrineRating.Instance == null)
         {
             return;
         }
@@ -158,7 +160,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
         rankText.alignment = TextAlignmentOptions.TopLeft;
         rankText.textWrappingMode = TextWrappingModes.NoWrap;
         rankText.raycastTarget = false;
-        rankText.text = "神社の評価 C";
+        rankText.text = showRankLetter ? "神社の評価 C" : "神社の評価";
     }
 
     private void HideLegacyRankLabel()
@@ -182,6 +184,16 @@ public class CurrentScoreTMPHud : MonoBehaviour
         }
     }
 
+    private void HideLegacyRankValue()
+    {
+        // 独自HUDに評価ラベルを残し、小さい旧ランク文字だけを隠します。
+        GameObject legacyValueObject = GameObject.Find(
+            "ScoreBoardHud/ScoreBoardHudCanvas/RankBoard/RankRow/RankValue");
+        if (legacyValueObject != null)
+        {
+            legacyValueObject.SetActive(false);
+        }
+    }
     private void OnRankChanged(ShrineRank rank)
     {
         if (rankText != null)

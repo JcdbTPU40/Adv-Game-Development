@@ -15,16 +15,58 @@ public class SideSwingProjectileLauncher : MonoBehaviour
     [SerializeField] private SideSwingBullet sideSwingBulletPrefab;
     [SerializeField] private Transform spawnPoint;
 
+    [Header("連続横振り設定")]
+    [SerializeField] private int requiredSwingCount = 5;
+    [SerializeField] private float swingTimeLimit = 3f;
+
+    private int swingCount = 0;
+    private float firstSwingTime = 0f;
+
     private void OnEnable()
     {
         if (swingDetector != null)
-            swingDetector.SideSwingDetected += Fire;
+            swingDetector.SideSwingDetected += OnSideSwingDetected;
     }
 
     private void OnDisable()
     {
         if (swingDetector != null)
-            swingDetector.SideSwingDetected -= Fire;
+            swingDetector.SideSwingDetected -= OnSideSwingDetected;
+
+        ResetSwingCount();
+    }
+
+    private void OnSideSwingDetected()
+    {
+        // 1回目の検知時刻を記録
+        if (swingCount == 0)
+        {
+            firstSwingTime = Time.time;
+        }
+
+        // 制限時間を超えていたらカウントをリセット
+        if (Time.time - firstSwingTime > swingTimeLimit)
+        {
+            swingCount = 0;
+            firstSwingTime = Time.time;
+        }
+
+        swingCount++;
+
+        Debug.Log($"横振り検知: {swingCount}/{requiredSwingCount}");
+
+        // 5回に到達したら発射
+        if (swingCount >= requiredSwingCount)
+        {
+            Fire();
+            ResetSwingCount();
+        }
+    }
+
+    private void ResetSwingCount()
+    {
+        swingCount = 0;
+        firstSwingTime = 0f;
     }
 
     private void Fire()
@@ -60,7 +102,7 @@ public class SideSwingProjectileLauncher : MonoBehaviour
         // 弾の救済判定に使用する種類を設定
         bullet.SetRescueType(selectedType);
 
-        // 正面に発射（Launchは1回だけ呼ぶ）
+        // 正面に発射
         bullet.Launch(spawnPoint.forward);
 
         Debug.Log(
