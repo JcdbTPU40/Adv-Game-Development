@@ -31,6 +31,11 @@ namespace Toufuku.Aim
         [Tooltip("照準を投影するカメラ。未設定なら Camera.main")]
         [SerializeField] Camera cam;
 
+        [Header("危険度による照準優先度")]
+        [Tooltip("0なら距離を優先、1なら危険度Dを優先")]
+        [SerializeField, Range(0f, 1f)]
+        private float dangerPriorityWeight = 0.7f;
+
         [Header("照準の求め方")]
         [SerializeField] AimSourceMode mode = AimSourceMode.Auto;
         [Tooltip("距離と左右の基準点（投げる人の位置。例: ShootPos）。未設定ならこの GameObject")]
@@ -428,13 +433,13 @@ namespace Toufuku.Aim
             }
         }
 
+
         private Vector3 ApplyDistanceAimAssist(Vector3 point)
         {
             if (!softAimAssistEnabled ||
                 assistDistance <= 0f ||
                 assistStrength <= 0f)
             {
-                _currentAssistTarget = null;
                 return point;
             }
 
@@ -442,119 +447,90 @@ namespace Toufuku.Aim
 
             AimAssistTarget bestTarget = null;
             Vector3 bestTargetPoint = default;
-            float nearestDistance = float.MaxValue;
+            float bestScore = float.MinValue;
 
-            // 1. 現在の対象を維持できるか確認する
-            if (_currentAssistTarget != null &&
-    _currentAssistTarget.isActiveAndEnabled)
+            var targets = AimAssistTarget.ActiveTargets;
+
+            for (int i = 0; i < targets.Count; i++)
             {
+                AimAssistTarget target = targets[i];
+
+                if (target == null || !target.isActiveAndEnabled)
+                    continue;
+
                 CustomerState customer =
-                    _currentAssistTarget.GetComponentInParent<CustomerState>();
+                    target.GetComponentInParent<CustomerState>();
 
                 CustomerRescue rescue =
-    _currentAssistTarget.GetComponentInParent<CustomerRescue>();
+                    target.GetComponentInParent<CustomerRescue>();
 
-                bool isMatching =
-                    rescue != null &&
-                    rescue.Evaluate(omamoriSelector.Current) == Affinity.Good;
+                // CustomerState / CustomerRescue がない客は対象外
+                if (customer == null || rescue == null)
+                    continue;
 
-                bool canAssist =
-                    isMatching &&
-                    customer != null &&
-                    customer.IsRescueTarget &&
-                    !customer.IsRescued &&
-                    !customer.IsBlack;
+                // 選択中のお守りと相性が良い客だけを対象にする
+                if (rescue.Evaluate(omamoriSelector.Current) != Affinity.Good)
+                    continue;
 
-                if (canAssist)
+                // 救済対象外・救済済み・黒客は対象外
+                if (!customer.IsRescueTarget ||
+                    customer.IsRescued ||
+                    customer.IsBlack)
                 {
-                    Vector3 currentPoint = _currentAssistTarget.AimPosition;
+                    continue;
+                }
 
-                    float currentDistance =
-                        Vector3.Distance(landingPoint, currentPoint);
+                Vector3 customerPoint = target.AimPosition;
 
-                    if (currentDistance <= targetReleaseDistance)
-                    {
-                        bestTarget = _currentAssistTarget;
-                        bestTargetPoint = currentPoint;
-                        nearestDistance = currentDistance;
-                    }
+                // 着弾予測地点と客との距離
+                float distance = Vector3.Distance(
+                    landingPoint,
+                    customerPoint
+                );
+
+                // アシスト範囲外なら対象にしない
+                if (distance > assistDistance)
+                    continue;
+
+                // 距離の優先度（近いほど高い）
+                float distancePriority =
+                    1f - Mathf.Clamp01(distance / assistDistance);
+
+                // 危険度の優先度（D=100なら1、D=0なら0）
+                float dangerPriority =
+                    Mathf.Clamp01(customer.Danger / 100f);
+
+                // 距離と危険度を合わせて評価
+                float score =
+                    dangerPriority * dangerPriorityWeight +
+                    distancePriority * (1f - dangerPriorityWeight);
+
+                // 最も優先度が高い客を選ぶ
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestTarget = target;
+                    bestTargetPoint = customerPoint;
                 }
             }
 
-            // 2. 維持できる対象がいなければ、新しい対象を探す
-            if (bestTarget == null)
-            {
-                _currentAssistTarget = null;
-
-                var targets = AimAssistTarget.ActiveTargets;
-
-                nearestDistance = assistDistance;
-
-                for (int i = 0; i < targets.Count; i++)
-                {
-                    AimAssistTarget target = targets[i];
-
-                    if (target == null || !target.isActiveAndEnabled)
-                        continue;
-
-                    // CustomerState を取得
-                    CustomerState customer = target.GetComponentInParent<CustomerState>();
-
-                    CustomerRescue rescue =
-    target.GetComponentInParent<CustomerRescue>();
-
-                    // CustomerRescue がない客は対象外
-                    if (rescue == null)
-                        continue;
-
-                    // 選択中のお守りと一致しない客は対象外
-                    if (rescue.Evaluate(omamoriSelector.Current) != Affinity.Good)
-                        continue;
-
-                    // 救済済み、黒客、または救済対象外なら照準を合わせない
-                    if (customer != null &&
-                        (!customer.IsRescueTarget ||
-                         customer.IsRescued ||
-                         customer.IsBlack))
-                    {
-                        continue;
-                    }
-
-                    Vector3 customerPoint = target.AimPosition;
-
-                    float distance = Vector3.Distance(
-                        landingPoint,
-                        customerPoint
-                    );
-
-                    if (distance < nearestDistance)
-                    {
-                        nearestDistance = distance;
-                        bestTarget = target;
-                        bestTargetPoint = customerPoint;
-                    }
-                }
-
-                // 選択した対象を記憶する
-                _currentAssistTarget = bestTarget;
-            }
-
-            // 3. 対象がいなければ補正しない
+            // 対象がいなければ補正しない
             if (bestTarget == null)
                 return point;
 
-            // 4. 客との距離に応じて補正する
-            float proximity = 1f - Mathf.Clamp01(nearestDistance / assistDistance);
-            float weight = assistStrength;
+            // 選ばれた客へソフトに補正
+            Vector3 result = Vector3.Lerp(
+                landingPoint,
+                bestTargetPoint,
+                assistStrength
+            );
 
-            // 水平方向はソフトに補正する
-            Vector3 result = Vector3.Lerp(landingPoint, bestTargetPoint, weight);
-
-            // 高さはお客さんの胸の位置に合わせる
-            result.y = bestTargetPoint.y + 1;
+            // 高さは客の胸の位置に合わせる
+            result.y = bestTargetPoint.y + 1f;
 
             return result;
         }
+
 
     }
 }
