@@ -4,10 +4,10 @@ using UnityEngine;
 namespace Toufuku.Menu
 {
     /*
-        ステージ選択マップの1マス（MainMenu のインスペクタで並べる）
+        参道マップの1マスのステージ（マスの MenuStageNode に書く。順番は MainMenu の stageNodes）
 
-        ・前のステージをクリアすると、次が解放される（いちばん前は、はじめから解放）
-        ・mapPosition は 1920×1080 の画面での、マスの中心（左下が 0,0）
+        ・MainMenu の unlockAllStages が ON なら、どれもはじめから選べる（ゲームショウ用）。
+          OFF なら、前のステージをクリアすると次が解放される（いちばん前は、はじめから解放）
         ・ステージごとの中身（客の数・時間など）はまだ決まっていないので、今はどれも sceneName のシーンを開くだけ
     */
     [Serializable]
@@ -23,6 +23,5 @@ namespace Toufuku.Menu
         public string description = "";
         [Tooltip("このステージで開くシーン（Build Settings に入っていること）")]
         public string sceneName = "GameScene";
-        public Vector2 mapPosition;
     }
 }
