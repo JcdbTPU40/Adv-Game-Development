@@ -55,10 +55,12 @@ namespace Toufuku.Menu
     }
 
     /*
-        セーブ枠（メインメニューの「絵馬を選ぶ」）
+        セーブ枠
 
+        ・いまはどこからも枠を選んでいない（ゲームショウで次々に遊んでもらうので、メインメニューの「絵馬を選ぶ」画面をなくした）。
+          Current は null のままなので、MarkPlayed / RecordResult は何も書かない。セーブをもどすときは、メニューから Select を呼ぶ
         ・枠は SlotCount こ。1枠 = persistentDataPath/Saves/slot{番号}.json
-        ・メニューで選んだ枠を Current に持っておき、プレイのシーンから RecordResult で記録できるようにする
+        ・選んだ枠を Current に持っておき、プレイのシーンから RecordResult で記録できるようにする
           （リザルトから記録する呼び出しは、まだどこにもつないでいない）
         ・壊れたファイルは読めなかったことにする（白紙あつかい。上書きはしない）
     */
