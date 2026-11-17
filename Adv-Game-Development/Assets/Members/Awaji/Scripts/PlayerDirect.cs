@@ -1,52 +1,61 @@
+
 using UnityEngine;
+using Toufuku.Aim;
 
 public class PlayerDirect : MonoBehaviour
 {
-    public ConecteController con;
+    [Header("参照")]
+    [SerializeField] private OnusaAimController aimController;
+    [SerializeField] private ConecteController con;
 
-    float yawOffset;
-    float rollOffset;
+    [Header("回転設定")]
+    [SerializeField] private float rotationSpeed = 10f;
+
+    // Y軸の向きが逆の場合はON
+    [SerializeField] private bool invertYaw = true;
 
     void Start()
     {
+        if (aimController == null)
+            aimController = FindAnyObjectByType<OnusaAimController>();
+
         if (con == null)
             con = FindAnyObjectByType<ConecteController>();
-
-        yawOffset = con != null ? con.yaw : 0f;
-        rollOffset = con != null ? con.roll : 0f;
-
-        yawOffset = con.yaw;
-        rollOffset = con.roll;
-
-        float relativeYaw = con.yaw - yawOffset;
-        float relativeRoll = con.roll - rollOffset;
-
-        transform.rotation = Quaternion.Euler(
-            relativeRoll,
-            relativeYaw,
-            0f
-        );
     }
 
     void Update()
     {
-        if (con == null)
+        if (aimController == null || con == null)
             return;
 
-        // Aキーを押した方向を「正面」にする
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            yawOffset = con.yaw;
-            rollOffset = con.roll;
-        }
+        if (!aimController.HasAim || !con.isConnected)
+            return;
 
-        float relativeYaw = con.yaw - yawOffset;
-        float relativeRoll = con.roll - rollOffset;
+        // X軸：OnusaAimControllerの照準方向から計算
+        Vector3 aimDirection =
+            aimController.TargetPoint - aimController.Origin;
 
-        transform.rotation = Quaternion.Euler(
-            relativeRoll,
-            relativeYaw,
+        float horizontalDistance =
+            new Vector2(aimDirection.x, aimDirection.z).magnitude;
+
+        float xAngle = -Mathf.Atan2(
+            aimDirection.x,
+            horizontalDistance
+        ) * Mathf.Rad2Deg;
+
+        // Y軸：ConecteControllerのロール
+        float yAngle = con.roll;
+
+        Quaternion targetRotation = Quaternion.Euler(
+            yAngle - 10,
+            xAngle,
             0f
+        );
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            rotationSpeed * Time.deltaTime
         );
     }
 }
