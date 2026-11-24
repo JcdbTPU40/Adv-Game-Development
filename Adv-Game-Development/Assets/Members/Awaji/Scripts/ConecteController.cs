@@ -287,11 +287,11 @@ public class ConecteController : MonoBehaviour
                 if (!ControllerSample.TryParse(line, Time.realtimeSinceStartupAsDouble, out ControllerSample sample))
                     continue;
 
-                if(sample.Pitch >= 45)
-                {
-                    yawOffset = sample.Yaw;
-                    rollOffset = sample.Roll;
-                }
+                //if(sample.Pitch >= 45)
+                //{
+                //    yawOffset = sample.Yaw;
+                //    rollOffset = sample.Roll;
+                //}
 
                 yaw = -sample.Yaw + yawOffset;
                 pitch = -sample.Pitch;

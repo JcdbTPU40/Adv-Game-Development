@@ -888,6 +888,8 @@ MonoBehaviour:
   sortingOrder: 55
   openOnSceneStart: 0
   closedHoldDuration: 0.5
+  resultScoreStartDelay: 0.25
+  resultScoreCountDuration: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

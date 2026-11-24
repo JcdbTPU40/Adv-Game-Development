@@ -1,4 +1,5 @@
 using System.Collections;
+using Toufuku.Hud;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -28,15 +29,26 @@ public class TimeUpImageDisplay : MonoBehaviour
     [SerializeField] private bool openOnSceneStart;
     [SerializeField, Min(0f)] private float closedHoldDuration = 0.5f;
 
+    [Header("リザルトスコアのカウントアップ")]
+    [SerializeField, Min(0f)] private float resultScoreStartDelay = 0.25f;
+    [SerializeField, Min(0.05f)] private float resultScoreCountDuration = 2f;
+
     private GameSession subscribedSession;
     private Canvas overlayCanvas;
     private Image leftPanelImage;
     private Image rightPanelImage;
     private Coroutine slideRoutine;
     private bool allowSessionStartToHidePanels;
+    private ResultScreen resultScreen;
+    private GameObject resultCanvasObject;
+    private Text resultScoreText;
+    private Coroutine resultScoreCountRoutine;
+    private bool resultScoreCountStarted;
+    private bool resultUISearchCompleted;
 
     private void Start()
     {
+        TryFindResultScoreUI();
         // シーン側のInspector設定に加え、現在のメインゲームシーン名でも開始を判定します。
         // シーンのシリアライズ値が更新されていない場合もGameScene1では必ず開きます。
         bool shouldOpenOnSceneStart = openOnSceneStart
@@ -61,11 +73,136 @@ public class TimeUpImageDisplay : MonoBehaviour
 
     private void Update()
     {
+        TryFindResultScoreUI();
         // GameSessionが後から生成される場合に備えて、イベント購読だけを再試行します。
         if (subscribedSession == null)
         {
             Subscribe();
         }
+    }
+
+    // ResultScreen.Update が結果Canvasを有効にした後、描画前にスコアを0へ戻して始めます。
+    private void LateUpdate()
+    {
+        if (resultCanvasObject == null || resultScoreText == null)
+        {
+            return;
+        }
+
+        if (!resultCanvasObject.activeInHierarchy)
+        {
+            if (resultScoreCountRoutine != null)
+            {
+                StopCoroutine(resultScoreCountRoutine);
+                resultScoreCountRoutine = null;
+            }
+            resultScoreCountStarted = false;
+            return;
+        }
+
+        if (!resultScoreCountStarted && resultScreen != null)
+        {
+            resultScoreCountStarted = true;
+            Debug.Log($"リザルトスコアのカウントアップ開始: {resultScreen.ShownEn}", this);
+            resultScoreCountRoutine = StartCoroutine(CountUpResultScore(resultScreen.ShownEn));
+        }
+    }
+
+    private void TryFindResultScoreUI()
+    {
+        if (resultUISearchCompleted)
+        {
+            return;
+        }
+
+        if (resultScreen == null)
+        {
+            resultScreen = FindAnyObjectByType<ResultScreen>();
+        }
+
+        if (resultScreen == null)
+        {
+            resultUISearchCompleted = true;
+            return;
+        }
+
+        if (resultCanvasObject == null)
+        {
+            Transform resultCanvas = resultScreen != null
+                ? resultScreen.transform.Find("ResultScreenCanvas")
+                : null;
+            if (resultCanvas == null)
+            {
+                Canvas[] canvases = resultScreen != null
+                    ? resultScreen.GetComponentsInChildren<Canvas>(true)
+                    : FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+                for (int i = 0; i < canvases.Length; i++)
+                {
+                    if (canvases[i].name == "ResultScreenCanvas")
+                    {
+                        resultCanvas = canvases[i].transform;
+                        break;
+                    }
+                }
+            }
+            if (resultCanvas != null)
+            {
+                resultCanvasObject = resultCanvas.gameObject;
+            }
+        }
+
+        if (resultScoreText == null)
+        {
+            Transform value = resultScreen != null
+                ? resultScreen.transform.Find("ResultScreenCanvas/Panel/EnValue/Text")
+                : null;
+            if (value != null)
+            {
+                resultScoreText = value.GetComponent<Text>();
+            }
+            if (resultScoreText == null)
+            {
+                Text[] texts = resultScreen != null
+                    ? resultScreen.GetComponentsInChildren<Text>(true)
+                    : FindObjectsByType<Text>(FindObjectsSortMode.None);
+                for (int i = 0; i < texts.Length; i++)
+                {
+                    Transform parent = texts[i].transform.parent;
+                    if (texts[i].gameObject.name == "Text" && parent != null && parent.name == "EnValue")
+                    {
+                        resultScoreText = texts[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        resultUISearchCompleted = resultCanvasObject != null && resultScoreText != null;
+    }
+
+    private IEnumerator CountUpResultScore(int finalScore)
+    {
+        finalScore = Mathf.Clamp(finalScore, 0, HudUi.MaxDisplayedScore);
+        resultScoreText.text = HudUi.FormatScore(0);
+
+        if (resultScoreStartDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(resultScoreStartDelay);
+        }
+
+        float elapsed = 0f;
+        while (elapsed < resultScoreCountDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / resultScoreCountDuration);
+            int displayedScore = Mathf.RoundToInt(Mathf.Lerp(0f, finalScore, progress));
+            resultScoreText.text = HudUi.FormatScore(displayedScore);
+            yield return null;
+        }
+
+        resultScoreText.text = HudUi.FormatScore(finalScore);
+        resultScoreCountRoutine = null;
+        Debug.Log($"リザルトスコアのカウントアップ完了: {finalScore}", this);
     }
 
     private void OnDisable()
