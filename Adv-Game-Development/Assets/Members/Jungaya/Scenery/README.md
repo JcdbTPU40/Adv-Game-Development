@@ -27,6 +27,30 @@ GameScene の背景・ライティング・日周表現の土台です。モデ�
 5. **灯籠の火袋**（`Hibukuro`）は夜に光ります。`DayCycleController.nightGlowRenderers` に入っているレンダラーの `_EmissionColor` を上書きする仕組みです。
 6. **狐火**（`Prefabs/Kitsunebi.prefab`）は飾りです。子の `Wisp_xx`（ParticleSystem）1つが狐火1つで、`KitsunebiWisps` が置いた位置のまわりを漂わせます。動く幅は 0.35m なので、置き場所は `|x| ≥ 10` か鳥居より奥（z < 7）にしてください。色は輪郭5色（特に学業の青）とまぎれないよう、彩度を落とした青白（`Materials/Env_Kitsunebi.mat`）です。
 
+## 地面のテクスチャとディテール
+
+- 地面：`Textures/Env_Gravel_*`（玉砂利）、`Env_PathStone_*`（参道の石畳）、`Env_ForestFloor_*`（玉垣の外と鳥居の奥の林床）。どれもタイルできる絵で、`Materials/` の同名マテリアルに入っています。
+- 濃淡：`Textures/Env_Bark_Detail`（幹）、`Env_Stone_Detail`（玉垣・狛犬・縁石）、`Env_Paint_Detail`（鳥居）は白に近いグレーの絵で、トゥーンマテリアルの色に掛け算されます。色を変えたいときはマテリアルの色のほうを変えてください。
+- ディテール：`Prefabs/Details/` の岩・草・低木・飛び石・苔・落ち葉を、`ShrineEnvironment.prefab` の `Details` の下に並べています。位置・向き・大きさはシーンビューでそのまま動かせます。モデルを差し替えるときは `Prefabs/Details/` のプレハブの中身を替えてください。
+- 「客を隠さない」ルールはディテールも同じです。`|x| < 9.5` かつ `z > 7` に置くのは高さ 0.15m 以下の物（`GrassShort`・苔・小石・飛び石）だけにしてください。背の高い草・岩・低木は玉垣ぞいから外側か、鳥居の奥です。
+- 参道の距離の線（7・12・18m）が目地に紛れないよう、石畳の目地は線より明るく細くしています。
+
+## 手水舎・おみくじ掛けの仮の色（GameScene だけ）
+
+デザイン班のモデル（`Members/Awaji/3DObject/FBX/cyouzuya.fbx`・`omikuzi.fbx`）にテクスチャが来るまでの仮の色です。元の FBX は触っていません。
+
+- `Models/Cyouzuya_Parts`・`Omikuzi_Parts`：元のメッシュを、木／屋根／石／縄の4つのサブメッシュに分けた複製です（高さと面の向きで分類）。GameScene 上のインスタンスで、メッシュとマテリアル（`Env_ShrineWood`・`Env_ShrineRoof`・`Env_ShrineStone`・`Env_Rope`）を差し替えています。
+- `Prefabs/Details/OmikujiPapers`：縄に結んだおみくじの紙。GameScene の `omikuzi`・`omikuzi (1)` の子に置いています。
+- 本番のテクスチャが来たら、GameScene の該当オブジェクトで Mesh Filter と Materials の上書きを Revert し、`OmikujiPapers` を消せば元のモデルに戻ります。
+
+## 賽銭箱（GameScene だけ）
+
+`Prefabs/Saisenbako.prefab` を、GameScene の `ShrineEnvironment` の子として (0, 0, 41.6) に置いています。参道の終わり、プレイヤー（カメラ）のすぐ手前です。客が立てる場所からは 2m 以上はなれていて、カメラから客への視線も遮りません。コライダーは付けていません。
+
+## 自作メッシュをトゥーンで描くときの注意
+
+`Toon/Toon` は法線とタンジェントが平行な面を真っ黒に描きます。タンジェントのないメッシュは既定で (1,0,0) が入るので、法線が ±X の面が黒くなります。`Models/` のメッシュには法線に直交するタンジェントを入れてあります。メッシュを作り直したときも入れてください。
+
 ## ライティング
 
 - `DayCycleController`：1ヶ月（GameSession の 60 秒）を1日として、`Profiles/TimeOfDay_June_*` の朝(0)→昼(0.2)→夕(0.42)→夜(0.68)→翌月の朝 をつなぎます。
