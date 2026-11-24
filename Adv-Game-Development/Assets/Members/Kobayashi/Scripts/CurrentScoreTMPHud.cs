@@ -160,7 +160,7 @@ public class CurrentScoreTMPHud : MonoBehaviour
         rankText.alignment = TextAlignmentOptions.TopLeft;
         rankText.textWrappingMode = TextWrappingModes.NoWrap;
         rankText.raycastTarget = false;
-        rankText.text = showRankLetter ? "神社の評価 C" : "神社の評価";
+        rankText.text = showRankLetter ? $"神社の評価 {RankLabel(ShrineRank.C)}" : "神社の評価";
     }
 
     private void HideLegacyRankLabel()
@@ -198,7 +198,19 @@ public class CurrentScoreTMPHud : MonoBehaviour
     {
         if (rankText != null)
         {
-            rankText.text = $"神社の評価 {rank}";
+            rankText.text = $"神社の評価 {RankLabel(rank)}";
+        }
+    }
+
+    private static string RankLabel(ShrineRank rank)
+    {
+        switch (rank)
+        {
+            case ShrineRank.C: return "貧";
+            case ShrineRank.B: return "凡";
+            case ShrineRank.A: return "良";
+            case ShrineRank.S: return "極";
+            default: return rank.ToString();
         }
     }
 

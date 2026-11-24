@@ -629,6 +629,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Hud.ScoreBoardHud
   font: {fileID: 12800000, guid: 6e8c791297b66884a8df1d1024990402, type: 3}
+  rankSdfFont: {fileID: 11400000, guid: 40f29083ad456a2449f82dab1a20399d, type: 2}
   enFontRatio: 0.11
   rankFontRatio: 0.12
   bestFontRatio: 0.105

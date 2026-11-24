@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -49,6 +50,7 @@ namespace Toufuku.Hud
         int _en;
         int _shownEn = -1;
         bool _filled;
+        TextMeshProUGUI _titleSdfText;
 
         // 確認用
         public string BestText { get; private set; }
@@ -66,8 +68,7 @@ namespace Toufuku.Hud
 
             if (titleValue != null)
             {
-                titleValue.text = title.ToString();
-                titleValue.color = HudUi.RankColor(title);
+                SetTitleRank(RankLabel(title), HudUi.RankColor(title));
             }
 
             BestText = string.Format(newRecord ? bestNewFormat : bestNormalFormat, HudUi.FormatScore(todayBest));
@@ -78,6 +79,69 @@ namespace Toufuku.Hud
 
             if (chainText != null) chainText.text = string.Format(chainFormat, maxCombo);
             WriteEn();
+        }
+
+        void SetTitleRank(string label, Color color)
+        {
+            TMP_FontAsset font = FindTitleSdfFont();
+            if (font == null)
+            {
+                titleValue.enabled = true;
+                titleValue.text = label;
+                titleValue.color = color;
+                return;
+            }
+
+            if (_titleSdfText == null)
+            {
+                RectTransform source = titleValue.rectTransform;
+                GameObject textObject = new GameObject("TitleValueSDF", typeof(RectTransform), typeof(TextMeshProUGUI));
+                textObject.transform.SetParent(source.parent, false);
+
+                RectTransform target = textObject.GetComponent<RectTransform>();
+                target.anchorMin = source.anchorMin;
+                target.anchorMax = source.anchorMax;
+                target.pivot = source.pivot;
+                target.anchoredPosition3D = source.anchoredPosition3D;
+                target.sizeDelta = source.sizeDelta;
+                target.localRotation = source.localRotation;
+                target.localScale = source.localScale;
+
+                _titleSdfText = textObject.GetComponent<TextMeshProUGUI>();
+                _titleSdfText.font = font;
+                _titleSdfText.fontSize = titleValue.fontSize;
+                _titleSdfText.alignment = TextAlignmentOptions.Center;
+                _titleSdfText.textWrappingMode = TextWrappingModes.NoWrap;
+                _titleSdfText.overflowMode = TextOverflowModes.Overflow;
+                _titleSdfText.raycastTarget = false;
+                titleValue.enabled = false;
+            }
+
+            _titleSdfText.text = label;
+            _titleSdfText.color = color;
+        }
+
+        static TMP_FontAsset FindTitleSdfFont()
+        {
+            TMP_FontAsset[] fonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            for (int i = 0; i < fonts.Length; i++)
+            {
+                if (fonts[i] != null && fonts[i].name == "玉ねぎ楷書激無料版v7改 SDF")
+                    return fonts[i];
+            }
+            return null;
+        }
+
+        static string RankLabel(ShrineRank rank)
+        {
+            switch (rank)
+            {
+                case ShrineRank.C: return "貧";
+                case ShrineRank.B: return "凡";
+                case ShrineRank.A: return "良";
+                case ShrineRank.S: return "極";
+                default: return rank.ToString();
+            }
         }
 
         void LateUpdate()
