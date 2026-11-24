@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.0043944404
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.58422244, g: 0.6458152, b: 0.78450036, a: 1}
-  m_AmbientEquatorColor: {r: 0.5592036, g: 0.5542224, b: 0.523704, a: 1}
-  m_AmbientGroundColor: {r: 0.293426, g: 0.27816677, b: 0.2394816, a: 1}
+  m_AmbientSkyColor: {r: 0.6260556, g: 0.650278, b: 0.88948154, a: 1}
+  m_AmbientEquatorColor: {r: 0.5678888, g: 0.5607964, b: 0.6373704, a: 1}
+  m_AmbientGroundColor: {r: 0.3086852, g: 0.293426, b: 0.32, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -2605,7 +2605,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3c85e2996d7cff48a4c69bd51802ce3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Mock.MockCrowdDirector
-  customerPrefab: {fileID: 2761562772266223857, guid: 7990cf26d5949614e961f40e1e6c2ec8, type: 3}
+  customerPrefab: {fileID: 8538731767159513570, guid: 8e33887de8fa56c49bf014c0d75b0ea4, type: 3}
+  customerPrefabVariants: []
   customerParent: {fileID: 759437407}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
