@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.0043944404
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.58422244, g: 0.6458152, b: 0.78450036, a: 1}
-  m_AmbientEquatorColor: {r: 0.5592036, g: 0.5542224, b: 0.523704, a: 1}
-  m_AmbientGroundColor: {r: 0.293426, g: 0.27816677, b: 0.2394816, a: 1}
+  m_AmbientSkyColor: {r: 0.6260556, g: 0.650278, b: 0.88948154, a: 1}
+  m_AmbientEquatorColor: {r: 0.5678888, g: 0.5607964, b: 0.6373704, a: 1}
+  m_AmbientGroundColor: {r: 0.3086852, g: 0.293426, b: 0.32, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -1917,6 +1917,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Rescue.Mock.MockCrowdDirector
   customerPrefab: {fileID: 3521761798749841998, guid: 77d7704915dc3004293370e8a8d607e1, type: 3}
+  customerPrefabVariants:
+  - {fileID: 3521761798749841998, guid: 77d7704915dc3004293370e8a8d607e1, type: 3}
+  - {fileID: 1884368331046120837, guid: dd7d591a342768b49bb797faab08c8d5, type: 3}
+  - {fileID: 409917059564060533, guid: 59d11b67ccec691448a59b28f327afb1, type: 3}
+  - {fileID: 6502720907608417270, guid: e481f7eb2f676d84d8d7cfc4e155ce0a, type: 3}
   customerParent: {fileID: 759437407}
   outlineMaterial: {fileID: 2100000, guid: 20e0f2ede8d40a84a90c7ff2a25fb85c, type: 2}
   palette: {fileID: 11400000, guid: 0acfed318b287b24f91f7809f20a9d89, type: 2}
@@ -3015,14 +3020,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d52767f7d1345a74b9a3df99fd972268, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Toufuku.Feedback.GameFeedbackDirector
-  throwSe: {fileID: 0}
-  hitSe: {fileID: 0}
-  rescueSe: {fileID: 0}
-  failSe: {fileID: 0}
-  blackHitSe: {fileID: 0}
-  countdownSe: {fileID: 0}
-  countdownAccentSe: {fileID: 0}
-  bellSe: {fileID: 0}
+  throwSe: {fileID: 8300000, guid: ad30912ed78216245949f7e0dd2ecea4, type: 3}
+  hitSe: {fileID: 8300000, guid: 58b66b2fb5b9d934282f68d925407886, type: 3}
+  rescueSe: {fileID: 8300000, guid: 739b5e50705904948b5b9fce5c1a0b7e, type: 3}
+  failSe: {fileID: 8300000, guid: 3288d3b85470519468a4b10eeda7f720, type: 3}
+  blackHitSe: {fileID: 8300000, guid: 60bf3627e49b05c4ab53d682d7b64718, type: 3}
+  countdownSe: {fileID: 8300000, guid: bcc3b1dba2f423c4f91eae9457184fa6, type: 3}
+  countdownAccentSe: {fileID: 8300000, guid: 1930af3079f14714b85e89fb39690ae8, type: 3}
+  bellSe: {fileID: 8300000, guid: d219b0f79bb553643aaf64677a211b46, type: 3}
   synthesizePlaceholders: 1
   seVolume: 0.9
   maxScaleStep: 10
@@ -4167,7 +4172,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &2027243688
 Light:
   m_ObjectHideFlags: 0
