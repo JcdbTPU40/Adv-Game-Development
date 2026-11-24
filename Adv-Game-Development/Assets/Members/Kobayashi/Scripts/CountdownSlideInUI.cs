@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Toufuku.Hud;
 using UnityEngine;
 
 /// <summary>
@@ -32,8 +33,21 @@ public sealed class CountdownSlideInUI : MonoBehaviour
         CountdownSlideInUI[] slideIns = FindObjectsByType<CountdownSlideInUI>(FindObjectsSortMode.None);
         if (slideIns.Length == 0)
         {
-            Debug.LogWarning("開始カウントダウン用の CountdownSlideInUI がシーン内にありません。");
-            return;
+            // CountdownSlideInUIをシーンに手動追加していないシーンでも、
+            // 既存の共通HUDがあれば自動で演出対象にします。
+            ScoreBoardHud scoreBoard = FindAnyObjectByType<ScoreBoardHud>();
+            if (scoreBoard == null)
+            {
+                Debug.LogWarning("スライド対象の CountdownSlideInUI と ScoreBoardHud がシーン内にありません。");
+                return;
+            }
+
+            CountdownSlideInUI slideIn = scoreBoard.gameObject.AddComponent<CountdownSlideInUI>();
+            slideIn.targetCanvasName = "ScoreBoardHudCanvas";
+            slideIn.slideDirection = Vector2.up;
+            slideIn.slideDistance = 700f;
+            slideIn.slideDuration = 0.8f;
+            slideIns = new[] { slideIn };
         }
         for (int i = 0; i < slideIns.Length; i++) slideIns[i].PrepareSlideIn();
     }
