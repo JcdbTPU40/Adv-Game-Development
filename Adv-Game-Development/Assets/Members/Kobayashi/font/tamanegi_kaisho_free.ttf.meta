@@ -10,8 +10,9 @@ TrueTypeFontImporter:
   includeFontData: 1
   fontNames:
   - TamanegiKaisho v1.06
-  fallbackFontReferences: []
-  customCharacters: 
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 83a365c38e947ec41a9f2529a2357e38, type: 3}
+  customCharacters: 貧凡良極
   fontRenderingMode: 0
   ascentCalculationMode: 1
   useLegacyBoundsCalculation: 0

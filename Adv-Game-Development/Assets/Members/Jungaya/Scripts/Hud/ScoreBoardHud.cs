@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace Toufuku.Hud
 {
@@ -28,6 +29,8 @@ namespace Toufuku.Hud
 
         [Header("フォント（NotoSansJP の .ttf を入れる。未設定なら組み込みフォント）")]
         [SerializeField] Font font;
+        [Header("ランク表示フォント")]
+        [SerializeField] TMP_FontAsset rankSdfFont;
 
         [Header("文字の大きさ（画面の高さに対するわりあい）")]
         [Tooltip("縁の数字。既定 0.11 は 50インチのモニターで約7.7m先から読める。")]
@@ -64,6 +67,7 @@ namespace Toufuku.Hud
         Text _bestLabel;
         Text _bestValue;
         Text _rankValue;
+        TextMeshProUGUI _rankTmpValue;
         Outline _rankOutline;
         RectTransform _gaugeFill;
 
@@ -79,7 +83,7 @@ namespace Toufuku.Hud
         public string EnText => _enValue != null ? _enValue.text : null;
         public string BestLabelText => _bestLabel != null ? _bestLabel.text : null;
         public string BestValueText => _bestValue != null ? _bestValue.text : null;
-        public string RankText => _rankValue != null ? _rankValue.text : null;
+        public string RankText => _rankTmpValue != null ? _rankTmpValue.text : (_rankValue != null ? _rankValue.text : null);
         public bool IsVisible => _canvas != null && _canvas.gameObject.activeSelf;
 
         public float EnFontRatio => enFontRatio;
@@ -198,6 +202,29 @@ namespace Toufuku.Hud
             _rankOutline.effectColor = HudShapes.WoodEdge;
             _rankOutline.effectDistance = new Vector2(3f, -3f);
             _rankOutline.enabled = false;
+
+            if (rankSdfFont != null)
+            {
+                GameObject tmpObject = new GameObject("RankValueSDF", typeof(RectTransform), typeof(TextMeshProUGUI));
+                RectTransform tmpRect = tmpObject.GetComponent<RectTransform>();
+                tmpRect.SetParent(rankRow, false);
+                HudUi.Stretch(tmpRect);
+
+                _rankTmpValue = tmpObject.GetComponent<TextMeshProUGUI>();
+                _rankTmpValue.font = rankSdfFont;
+                _rankTmpValue.fontSize = rankSize;
+                _rankTmpValue.color = HudUi.RankInkColor(ShrineRank.C);
+                _rankTmpValue.alignment = TextAlignmentOptions.Bottom;
+                _rankTmpValue.textWrappingMode = TextWrappingModes.NoWrap;
+                _rankTmpValue.overflowMode = TextOverflowModes.Overflow;
+                _rankTmpValue.raycastTarget = false;
+
+                _rankOutline = tmpObject.AddComponent<Outline>();
+                _rankOutline.effectColor = HudShapes.WoodEdge;
+                _rankOutline.effectDistance = new Vector2(3f, -3f);
+                _rankOutline.enabled = false;
+                _rankValue.enabled = false;
+            }
 
             RectTransform gauge = HudUi.CreateRect(board, "Gauge", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, -top - pad - labelRowH - rankRowH), new Vector2(gaugeW, gaugeH));
@@ -375,11 +402,36 @@ namespace Toufuku.Hud
         void RefreshRank()
         {
             if (_rankValue == null) return;
-            _rankValue.text = _rank.ToString();
-            _rankValue.color = HudUi.RankInkColor(_rank);
+            string label = RankLabel(_rank);
+            Color color = HudUi.RankInkColor(_rank);
+            if (_rankTmpValue != null)
+            {
+                _rankTmpValue.text = label;
+                _rankTmpValue.color = color;
+            }
+            else
+            {
+                _rankValue.text = label;
+                if (_rankValue.font != null)
+                    _rankValue.font.RequestCharactersInTexture(label, _rankValue.fontSize, _rankValue.fontStyle);
+                _rankValue.color = color;
+            }
             // 金の S だけ、木の上で沈まないようにこげ茶でふちどる
             if (_rankOutline != null) _rankOutline.enabled = _rank == ShrineRank.S;
             if (_gaugeFill != null) _gaugeFill.anchorMax = new Vector2(Mathf.Clamp01(_ratingNormalized), 1f);
         }
+
+        static string RankLabel(ShrineRank rank)
+        {
+            switch (rank)
+            {
+                case ShrineRank.C: return "貧";
+                case ShrineRank.B: return "凡";
+                case ShrineRank.A: return "良";
+                case ShrineRank.S: return "極";
+                default: return rank.ToString();
+            }
+        }
+
     }
 }
