@@ -47,8 +47,14 @@ GameScene の背景・ライティング・日周表現の土台です。モデ�
 どちらもデザイン班のモデルを、GameScene の `ShrineEnvironment` の子に置いています。コライダーは付けていません。
 
 - おみくじ掛け：`Assets/object/omikuzi_musubi/omikuzi_musubi.fbx` を2つ。`MockDirector` の `obstacles` に入っているので、動かすときはそのまま動かせば客が避けます。
-- 賽銭箱：`Members/Awaji/3DObject/FBX/SAISENBOX_comp.fbx` を、スケール 3 で (0, 0.045, 41.75) に。参道の終わり、プレイヤー（カメラ）のすぐ手前です。大幣の紙垂が垂れる範囲より手前に置いています。
-- どちらも、客が立てる場所へのカメラからの視線を遮らないことを確認しています。
+- 賽銭箱：`Members/Awaji/3DObject/FBX/SAISENBOX_comp.fbx` を、スケール (7, 3, 5.5) で (0, 0.045, 42.13) に。参道の終わり、プレイヤー（カメラ）のすぐ手前です。
+- おみくじ掛けは、客が立てる場所へのカメラからの視線を遮らないことを確認しています。賽銭箱は客の立てる場所（基準点から 3m 以上）より手前にあります。
+
+## 手と御幣（GameScene だけ）
+
+`ShootObject` の子に `OnusaVisual` → `FaceBack` → `Hand_Model_Anim01`（`Assets/Hand_Model`）の順で置いています。手のモデルの位置と大きさは GameScene_Awaji と同じです。
+
+`ShootObject` は、マウスのときは照準のほうを +Z に、コントローラーのときはヨー 0 度付近（+Z が手前）に向きます。そのままだとマウスのときに御幣が手前を向くので、`OnusaVisualFacing`（`OnusaVisual` に付いている）が親の向きを見て 180 度まわしています。`FaceBack` は、手のモデルの正面が -Z なのを合わせるための固定の 180 度です。
 
 ## 自作メッシュをトゥーンで描くときの注意
 
