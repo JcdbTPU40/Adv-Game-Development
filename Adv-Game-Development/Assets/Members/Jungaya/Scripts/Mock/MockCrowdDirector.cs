@@ -136,6 +136,11 @@ namespace Toufuku.Rescue.Mock
         [Tooltip("モック用の客プレハブ（Editor拡張が生成する MockCustomer.prefab）。")]
         [SerializeField] private GameObject customerPrefab;
 
+        [Tooltip("客の見た目を何種類か混ぜるときのプレハブ。空なら customerPrefab だけを使う。\n" +
+                 "どれも customerPrefab と同じコンポーネント構成（MockCustomerTag など）であること。\n" +
+                 "客の通し番号の順に回して選ぶので、くじ（色・種類・位置）の出方は変わらない。")]
+        [SerializeField] private GameObject[] customerPrefabVariants = new GameObject[0];
+
         [Tooltip("生成した客をぶら下げる親。未設定ならこの GameObject の下に置く。")]
         [SerializeField] private Transform customerParent;
 
@@ -940,6 +945,15 @@ namespace Toufuku.Rescue.Mock
             return leader;
         }
 
+        // 客の見た目のプレハブを、通し番号の順に回して選ぶ（乱数は使わないので、ほかのくじに影響しない）
+        private GameObject PrefabFor(int id)
+        {
+            if (customerPrefabVariants == null || customerPrefabVariants.Length == 0) return customerPrefab;
+            int n = customerPrefabVariants.Length;
+            GameObject picked = customerPrefabVariants[((id % n) + n) % n];
+            return picked != null ? picked : customerPrefab;
+        }
+
         /*
             forcedColor / forcedBand: #58 段階学習で色と帯を決めて置くとき（-1 ならふつうの補充と同じにくじと順番で決める）
             group / groupIndex / groupSize: #93 集団客の何人目か。companionOf: 2人目からは1人目の定位置のまわりに並ぶ（定位置は取らない）
@@ -1006,7 +1020,7 @@ namespace Toufuku.Rescue.Mock
             Vector3 origin = ToriiPosition + formation;
 
             GameObject go = Instantiate(
-                customerPrefab,
+                PrefabFor(id),
                 instant ? destination : origin,
                 Quaternion.identity,
                 customerParent);
