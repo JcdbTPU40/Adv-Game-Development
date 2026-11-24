@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Toufuku.Hud;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// SessionEndCountdownTMP の開始カウントダウンに合わせ、指定Canvas内のUI要素を画面内へスライドさせます。
@@ -25,8 +27,18 @@ public sealed class CountdownSlideInUI : MonoBehaviour
         public bool isAnimating;
     }
 
+    private sealed class ShadowRestore
+    {
+        public Renderer renderer;
+        public ShadowCastingMode originalMode;
+        public int restoreFrame;
+    }
+
     private readonly Dictionary<RectTransform, SlideTarget> pendingTargets = new Dictionary<RectTransform, SlideTarget>();
     private readonly List<SlideTarget> targetBuffer = new List<SlideTarget>();
+    private readonly HashSet<Renderer> knownCustomerRenderers = new HashSet<Renderer>();
+    private readonly Dictionary<Renderer, ShadowRestore> pendingShadowRestores = new Dictionary<Renderer, ShadowRestore>();
+    private float customerShadowMonitorUntil;
 
     public static void PlayAll()
     {
@@ -49,6 +61,12 @@ public sealed class CountdownSlideInUI : MonoBehaviour
             slideIn.slideDuration = 0.8f;
             slideIns = new[] { slideIn };
         }
+
+        if (SceneManager.GetActiveScene().name == "GameScene_Awaji")
+        {
+            slideIns[0].ArmCustomerShadowWarmup();
+        }
+
         for (int i = 0; i < slideIns.Length; i++) slideIns[i].PrepareSlideIn();
     }
 
@@ -68,9 +86,112 @@ public sealed class CountdownSlideInUI : MonoBehaviour
         for (int i = 0; i < targetBuffer.Count; i++) StartCoroutine(AnimateSlideIn(targetBuffer[i]));
     }
 
+    private void LateUpdate()
+    {
+        RestoreWarmedCustomerShadows();
+
+        if (Time.unscaledTime > customerShadowMonitorUntil)
+        {
+            return;
+        }
+
+        GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
+        for (int i = 0; i < customers.Length; i++)
+        {
+            Renderer[] renderers = customers[i].GetComponentsInChildren<Renderer>(true);
+            for (int j = 0; j < renderers.Length; j++)
+            {
+                Renderer customerRenderer = renderers[j];
+                if (customerRenderer == null || !knownCustomerRenderers.Add(customerRenderer))
+                {
+                    continue;
+                }
+
+                ShadowCastingMode originalMode = customerRenderer.shadowCastingMode;
+                if (originalMode == ShadowCastingMode.Off)
+                {
+                    continue;
+                }
+
+                // Instantiateされたフレームの未安定な影マップを一度だけ避け、次フレームで通常の影に戻します。
+                pendingShadowRestores[customerRenderer] = new ShadowRestore
+                {
+                    renderer = customerRenderer,
+                    originalMode = originalMode,
+                    restoreFrame = Time.frameCount + 1
+                };
+                customerRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            }
+        }
+    }
+
+    private void ArmCustomerShadowWarmup()
+    {
+        customerShadowMonitorUntil = Time.unscaledTime + 6f;
+        knownCustomerRenderers.Clear();
+        pendingShadowRestores.Clear();
+
+        GameObject[] existingCustomers = GameObject.FindGameObjectsWithTag("Customer");
+        for (int i = 0; i < existingCustomers.Length; i++)
+        {
+            Renderer[] renderers = existingCustomers[i].GetComponentsInChildren<Renderer>(true);
+            for (int j = 0; j < renderers.Length; j++)
+            {
+                if (renderers[j] != null)
+                {
+                    knownCustomerRenderers.Add(renderers[j]);
+                }
+            }
+        }
+
+        Debug.Log("競技開始後6秒間、新しく出現する客の影を初回描画の次フレームから有効にします。", this);
+    }
+
+    private void RestoreWarmedCustomerShadows()
+    {
+        if (pendingShadowRestores.Count == 0)
+        {
+            return;
+        }
+
+        List<Renderer> restored = null;
+        foreach (KeyValuePair<Renderer, ShadowRestore> entry in pendingShadowRestores)
+        {
+            ShadowRestore shadowRestore = entry.Value;
+            if (shadowRestore.renderer == null)
+            {
+                (restored ??= new List<Renderer>()).Add(entry.Key);
+                continue;
+            }
+
+            if (Time.frameCount >= shadowRestore.restoreFrame)
+            {
+                shadowRestore.renderer.shadowCastingMode = shadowRestore.originalMode;
+                (restored ??= new List<Renderer>()).Add(entry.Key);
+            }
+        }
+
+        if (restored != null)
+        {
+            for (int i = 0; i < restored.Count; i++)
+            {
+                pendingShadowRestores.Remove(restored[i]);
+            }
+        }
+    }
+
     private void OnDisable()
     {
         StopAllCoroutines();
+        foreach (ShadowRestore shadowRestore in pendingShadowRestores.Values)
+        {
+            if (shadowRestore.renderer != null)
+            {
+                shadowRestore.renderer.shadowCastingMode = shadowRestore.originalMode;
+            }
+        }
+        pendingShadowRestores.Clear();
+        knownCustomerRenderers.Clear();
         foreach (SlideTarget target in pendingTargets.Values)
         {
             if (target.rect != null) target.rect.anchoredPosition = target.finalPosition;
