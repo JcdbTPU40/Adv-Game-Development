@@ -18,9 +18,9 @@ MonoBehaviour:
   lightColor: {r: 1, g: 0.97, b: 0.92, a: 1}
   lightIntensity: 1.35
   shadowStrength: 0.8
-  ambientSky: {r: 0.6, g: 0.68, b: 0.82, a: 1}
-  ambientEquator: {r: 0.55, g: 0.57, b: 0.55, a: 1}
-  ambientGround: {r: 0.3, g: 0.29, b: 0.25, a: 1}
+  ambientSky: {r: 0.63, g: 0.67, b: 0.9, a: 1}
+  ambientEquator: {r: 0.56, g: 0.57, b: 0.64, a: 1}
+  ambientGround: {r: 0.31, g: 0.3, b: 0.32, a: 1}
   skyTint: {r: 0.45, g: 0.5, b: 0.58, a: 1}
   skyGround: {r: 0.4, g: 0.38, b: 0.36, a: 1}
   skyExposure: 1.35

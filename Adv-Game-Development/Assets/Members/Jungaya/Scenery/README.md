@@ -27,6 +27,39 @@ GameScene の背景・ライティング・日周表現の土台です。モデ�
 5. **灯籠の火袋**（`Hibukuro`）は夜に光ります。`DayCycleController.nightGlowRenderers` に入っているレンダラーの `_EmissionColor` を上書きする仕組みです。
 6. **狐火**（`Prefabs/Kitsunebi.prefab`）は飾りです。子の `Wisp_xx`（ParticleSystem）1つが狐火1つで、`KitsunebiWisps` が置いた位置のまわりを漂わせます。動く幅は 0.35m なので、置き場所は `|x| ≥ 10` か鳥居より奥（z < 7）にしてください。色は輪郭5色（特に学業の青）とまぎれないよう、彩度を落とした青白（`Materials/Env_Kitsunebi.mat`）です。
 
+## 地面のテクスチャとディテール
+
+- 地面：`Textures/Env_Gravel_*`（玉砂利）、`Env_PathStone_*`（参道の石畳）、`Env_ForestFloor_*`（玉垣の外と鳥居の奥の林床）。どれもタイルできる絵で、`Materials/` の同名マテリアルに入っています。
+- 濃淡：`Textures/Env_Bark_Detail`（幹）、`Env_Stone_Detail`（玉垣・狛犬・縁石）、`Env_Paint_Detail`（鳥居）は白に近いグレーの絵で、トゥーンマテリアルの色に掛け算されます。色を変えたいときはマテリアルの色のほうを変えてください。
+- ディテール：`Prefabs/Details/` の岩・草・低木・飛び石・苔・落ち葉を、`ShrineEnvironment.prefab` の `Details` の下に並べています。位置・向き・大きさはシーンビューでそのまま動かせます。モデルを差し替えるときは `Prefabs/Details/` のプレハブの中身を替えてください。
+- 「客を隠さない」ルールはディテールも同じです。`|x| < 9.5` かつ `z > 7` に置くのは高さ 0.15m 以下の物（`GrassShort`・苔・小石・飛び石）だけにしてください。背の高い草・岩・低木は玉垣ぞいから外側か、鳥居の奥です。
+- 参道の距離の線（7・12・18m）が目地に紛れないよう、石畳の目地は線より明るく細くしています。
+
+## 手水舎の仮の色（GameScene だけ）
+
+デザイン班のモデル（`Members/Awaji/3DObject/FBX/cyouzuya.fbx`）にテクスチャが来るまでの仮の色です。元の FBX は触っていません。
+
+- `Models/Cyouzuya_Parts`：元のメッシュを、木／屋根／石のサブメッシュに分けた複製です（高さと面の向きで分類）。GameScene 上のインスタンスで、メッシュとマテリアル（`Env_ShrineWood`・`Env_ShrineRoof`・`Env_ShrineStone`）を差し替えています。
+- 本番のテクスチャが来たら、GameScene の `cyouzuya` で Mesh Filter と Materials の上書きを Revert すれば元のモデルに戻ります。
+
+## おみくじ掛け・賽銭箱（GameScene だけ）
+
+どちらもデザイン班のモデルを、GameScene の `ShrineEnvironment` の子に置いています。コライダーは付けていません。
+
+- おみくじ掛け：`Assets/object/omikuzi_musubi/omikuzi_musubi.fbx` を2つ。`MockDirector` の `obstacles` に入っているので、動かすときはそのまま動かせば客が避けます。
+- 賽銭箱：`Members/Awaji/3DObject/FBX/SAISENBOX_comp.fbx` を、スケール (7, 3, 5.5) で (0, 0.045, 42.13) に。参道の終わり、プレイヤー（カメラ）のすぐ手前です。
+- おみくじ掛けは、客が立てる場所へのカメラからの視線を遮らないことを確認しています。賽銭箱は客の立てる場所（基準点から 3m 以上）より手前にあります。
+
+## 手と御幣（GameScene だけ）
+
+`ShootObject` の子に `OnusaVisual` → `FaceBack` → `Hand_Model_Anim01`（`Assets/Hand_Model`）の順で置いています。手のモデルの位置と大きさは GameScene_Awaji と同じです。
+
+`ShootObject` は、マウスのときは照準のほうを +Z に、コントローラーのときはヨー 0 度付近（+Z が手前）に向きます。そのままだとマウスのときに御幣が手前を向くので、`OnusaVisualFacing`（`OnusaVisual` に付いている）が親の向きを見て 180 度まわしています。`FaceBack` は、手のモデルの正面が -Z なのを合わせるための固定の 180 度です。
+
+## 自作メッシュをトゥーンで描くときの注意
+
+`Toon/Toon` は法線とタンジェントが平行な面を真っ黒に描きます。タンジェントのないメッシュは既定で (1,0,0) が入るので、法線が ±X の面が黒くなります。`Models/` のメッシュには法線に直交するタンジェントを入れてあります。メッシュを作り直したときも入れてください。
+
 ## ライティング
 
 - `DayCycleController`：1ヶ月（GameSession の 60 秒）を1日として、`Profiles/TimeOfDay_June_*` の朝(0)→昼(0.2)→夕(0.42)→夜(0.68)→翌月の朝 をつなぎます。
