@@ -35,17 +35,20 @@ GameScene の背景・ライティング・日周表現の土台です。モデ�
 - 「客を隠さない」ルールはディテールも同じです。`|x| < 9.5` かつ `z > 7` に置くのは高さ 0.15m 以下の物（`GrassShort`・苔・小石・飛び石）だけにしてください。背の高い草・岩・低木は玉垣ぞいから外側か、鳥居の奥です。
 - 参道の距離の線（7・12・18m）が目地に紛れないよう、石畳の目地は線より明るく細くしています。
 
-## 手水舎・おみくじ掛けの仮の色（GameScene だけ）
+## 手水舎の仮の色（GameScene だけ）
 
-デザイン班のモデル（`Members/Awaji/3DObject/FBX/cyouzuya.fbx`・`omikuzi.fbx`）にテクスチャが来るまでの仮の色です。元の FBX は触っていません。
+デザイン班のモデル（`Members/Awaji/3DObject/FBX/cyouzuya.fbx`）にテクスチャが来るまでの仮の色です。元の FBX は触っていません。
 
-- `Models/Cyouzuya_Parts`・`Omikuzi_Parts`：元のメッシュを、木／屋根／石／縄の4つのサブメッシュに分けた複製です（高さと面の向きで分類）。GameScene 上のインスタンスで、メッシュとマテリアル（`Env_ShrineWood`・`Env_ShrineRoof`・`Env_ShrineStone`・`Env_Rope`）を差し替えています。
-- `Prefabs/Details/OmikujiPapers`：縄に結んだおみくじの紙。GameScene の `omikuzi`・`omikuzi (1)` の子に置いています。
-- 本番のテクスチャが来たら、GameScene の該当オブジェクトで Mesh Filter と Materials の上書きを Revert し、`OmikujiPapers` を消せば元のモデルに戻ります。
+- `Models/Cyouzuya_Parts`：元のメッシュを、木／屋根／石のサブメッシュに分けた複製です（高さと面の向きで分類）。GameScene 上のインスタンスで、メッシュとマテリアル（`Env_ShrineWood`・`Env_ShrineRoof`・`Env_ShrineStone`）を差し替えています。
+- 本番のテクスチャが来たら、GameScene の `cyouzuya` で Mesh Filter と Materials の上書きを Revert すれば元のモデルに戻ります。
 
-## 賽銭箱（GameScene だけ）
+## おみくじ掛け・賽銭箱（GameScene だけ）
 
-`Prefabs/Saisenbako.prefab` を、GameScene の `ShrineEnvironment` の子として (0, 0, 41.6) に置いています。参道の終わり、プレイヤー（カメラ）のすぐ手前です。客が立てる場所からは 2m 以上はなれていて、カメラから客への視線も遮りません。コライダーは付けていません。
+どちらもデザイン班のモデルを、GameScene の `ShrineEnvironment` の子に置いています。コライダーは付けていません。
+
+- おみくじ掛け：`Assets/object/omikuzi_musubi/omikuzi_musubi.fbx` を2つ。`MockDirector` の `obstacles` に入っているので、動かすときはそのまま動かせば客が避けます。
+- 賽銭箱：`Members/Awaji/3DObject/FBX/SAISENBOX_comp.fbx` を、スケール 3 で (0, 0.045, 41.75) に。参道の終わり、プレイヤー（カメラ）のすぐ手前です。大幣の紙垂が垂れる範囲より手前に置いています。
+- どちらも、客が立てる場所へのカメラからの視線を遮らないことを確認しています。
 
 ## 自作メッシュをトゥーンで描くときの注意
 
